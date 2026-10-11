@@ -661,7 +661,7 @@ body:has(.immersive-player.open) .player{display:none!important}
  </section>
  <section class="ai-layout" id="aiView" style="display:none;min-height:100dvh;padding:70px 24px 40px;max-width:520px;margin:0 auto">
   <div style="text-align:center;margin-bottom:22px">
-   <div style="font-size:13px;letter-spacing:2px;color:#ffffffaa;margin-bottom:6px">GROQ AI</div>
+   <div style="font-size:13px;letter-spacing:2px;color:#ffffffaa;margin-bottom:6px">AI Mix</div>
    <h2 style="font-size:22px;margin:0 0 6px;font-weight:750">Similar Songs</h2>
    <p style="font-size:12px;color:#ffffff88;margin:0">Based on current track • Separate from search queue</p>
   </div>
@@ -777,40 +777,37 @@ body:has(.immersive-player.open) .player{display:none!important}
  </div>
 </div>
 <div class="toast" id="toast"></div>
-<div id="yt-player"></div>
-<script src="https://www.youtube.com/iframe_api"></script>
+<audio id="audioPlayer" preload="none" crossorigin="anonymous" style="display:none"></audio>
 <script>
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const CATALOG=[
-{id:"kJQP7kiw5Fk",title:"Despacito",artist:"Luis Fonsi",mood:"Party",thumb:"https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg"},
-{id:"JGwWNGJdvx8",title:"Shape of You",artist:"Ed Sheeran",mood:"Party",thumb:"https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg"},
-{id:"09R8_2nJtjg",title:"Sugar",artist:"Maroon 5",mood:"Party",thumb:"https://i.ytimg.com/vi/09R8_2nJtjg/hqdefault.jpg"},
-{id:"fRh_vgS2dFE",title:"Sorry",artist:"Justin Bieber",mood:"Party",thumb:"https://i.ytimg.com/vi/fRh_vgS2dFE/hqdefault.jpg"},
-{id:"hT_nvWreIhg",title:"Counting Stars",artist:"OneRepublic",mood:"Focus",thumb:"https://i.ytimg.com/vi/hT_nvWreIhg/hqdefault.jpg"},
-{id:"YQHsXMglC9A",title:"Hello",artist:"Adele",mood:"Sad",thumb:"https://i.ytimg.com/vi/YQHsXMglC9A/hqdefault.jpg"},
-{id:"2Vv-BfVoq4g",title:"Perfect",artist:"Ed Sheeran",mood:"Romantic",thumb:"https://i.ytimg.com/vi/2Vv-BfVoq4g/hqdefault.jpg"},
-{id:"lp-EO5I60KA",title:"Thinking Out Loud",artist:"Ed Sheeran",mood:"Romantic",thumb:"https://i.ytimg.com/vi/lp-EO5I60KA/hqdefault.jpg"},
-{id:"RgKAFK5djSk",title:"See You Again",artist:"Wiz Khalifa ft. Charlie Puth",mood:"Sad",thumb:"https://i.ytimg.com/vi/RgKAFK5djSk/hqdefault.jpg"},
-{id:"OPf0YbXqDm0",title:"Uptown Funk",artist:"Mark Ronson ft. Bruno Mars",mood:"Party",thumb:"https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg"},
-{id:"CevxZvSJLk8",title:"Roar",artist:"Katy Perry",mood:"Workout",thumb:"https://i.ytimg.com/vi/CevxZvSJLk8/hqdefault.jpg"},
-{id:"7wtfhZwyrcc",title:"Believer",artist:"Imagine Dragons",mood:"Workout",thumb:"https://i.ytimg.com/vi/7wtfhZwyrcc/hqdefault.jpg"},
-{id:"0KSOMA3QBU0",title:"Dark Horse",artist:"Katy Perry",mood:"Party",thumb:"https://i.ytimg.com/vi/0KSOMA3QBU0/hqdefault.jpg"},
-{id:"pRpeEdMmmQ0",title:"Waka Waka",artist:"Shakira",mood:"Party",thumb:"https://i.ytimg.com/vi/pRpeEdMmmQ0/hqdefault.jpg"},
-{id:"9bZkp7q19f0",title:"Gangnam Style",artist:"PSY",mood:"Party",thumb:"https://i.ytimg.com/vi/9bZkp7q19f0/hqdefault.jpg"},
-{id:"hLQl3WQQoQ0",title:"Someone Like You",artist:"Adele",mood:"Sad",thumb:"https://i.ytimg.com/vi/hLQl3WQQoQ0/hqdefault.jpg"},
-{id:"60ItHLz5WEA",title:"Faded",artist:"Alan Walker",mood:"Chill",thumb:"https://i.ytimg.com/vi/60ItHLz5WEA/hqdefault.jpg"},
-{id:"3AtDnEC4zak",title:"We Don't Talk Anymore",artist:"Charlie Puth",mood:"Romantic",thumb:"https://i.ytimg.com/vi/3AtDnEC4zak/hqdefault.jpg"},
-{id:"pt8VYOfr8FY",title:"Photograph",artist:"Ed Sheeran",mood:"Romantic",thumb:"https://i.ytimg.com/vi/pt8VYOfr8FY/hqdefault.jpg"},
-{id:"IcrbM1l_BoI",title:"Wake Me Up",artist:"Avicii",mood:"Workout",thumb:"https://i.ytimg.com/vi/IcrbM1l_BoI/hqdefault.jpg"},
-{id:"nfWlot6h_JM",title:"Shake It Off",artist:"Taylor Swift",mood:"Party",thumb:"https://i.ytimg.com/vi/nfWlot6h_JM/hqdefault.jpg"},
-{id:"aJOTlE1K90k",title:"Girls Like You",artist:"Maroon 5",mood:"Party",thumb:"https://i.ytimg.com/vi/aJOTlE1K90k/hqdefault.jpg"},
-{id:"09R8_2nJtjg",title:"Sugar",artist:"Maroon 5",mood:"Chill",thumb:"https://i.ytimg.com/vi/09R8_2nJtjg/hqdefault.jpg"},
-{id:"L_jWHffIx5E",title:"All Star",artist:"Smash Mouth",mood:"Party",thumb:"https://i.ytimg.com/vi/L_jWHffIx5E/hqdefault.jpg"},
+{id:"kJQP7kiw5Fk",title:"Despacito",artist:"Luis Fonsi",mood:"Party",thumb:"/thumb/kJQP7kiw5Fk"},
+{id:"JGwWNGJdvx8",title:"Shape of You",artist:"Ed Sheeran",mood:"Party",thumb:"/thumb/JGwWNGJdvx8"},
+{id:"09R8_2nJtjg",title:"Sugar",artist:"Maroon 5",mood:"Party",thumb:"/thumb/09R8_2nJtjg"},
+{id:"fRh_vgS2dFE",title:"Sorry",artist:"Justin Bieber",mood:"Party",thumb:"/thumb/fRh_vgS2dFE"},
+{id:"hT_nvWreIhg",title:"Counting Stars",artist:"OneRepublic",mood:"Focus",thumb:"/thumb/hT_nvWreIhg"},
+{id:"YQHsXMglC9A",title:"Hello",artist:"Adele",mood:"Sad",thumb:"/thumb/YQHsXMglC9A"},
+{id:"2Vv-BfVoq4g",title:"Perfect",artist:"Ed Sheeran",mood:"Romantic",thumb:"/thumb/2Vv-BfVoq4g"},
+{id:"lp-EO5I60KA",title:"Thinking Out Loud",artist:"Ed Sheeran",mood:"Romantic",thumb:"/thumb/lp-EO5I60KA"},
+{id:"RgKAFK5djSk",title:"See You Again",artist:"Wiz Khalifa ft. Charlie Puth",mood:"Sad",thumb:"/thumb/RgKAFK5djSk"},
+{id:"OPf0YbXqDm0",title:"Uptown Funk",artist:"Mark Ronson ft. Bruno Mars",mood:"Party",thumb:"/thumb/OPf0YbXqDm0"},
+{id:"CevxZvSJLk8",title:"Roar",artist:"Katy Perry",mood:"Workout",thumb:"/thumb/CevxZvSJLk8"},
+{id:"7wtfhZwyrcc",title:"Believer",artist:"Imagine Dragons",mood:"Workout",thumb:"/thumb/7wtfhZwyrcc"},
+{id:"0KSOMA3QBU0",title:"Dark Horse",artist:"Katy Perry",mood:"Party",thumb:"/thumb/0KSOMA3QBU0"},
+{id:"pRpeEdMmmQ0",title:"Waka Waka",artist:"Shakira",mood:"Party",thumb:"/thumb/pRpeEdMmmQ0"},
+{id:"9bZkp7q19f0",title:"Gangnam Style",artist:"PSY",mood:"Party",thumb:"/thumb/9bZkp7q19f0"},
+{id:"hLQl3WQQoQ0",title:"Someone Like You",artist:"Adele",mood:"Sad",thumb:"/thumb/hLQl3WQQoQ0"},
+{id:"60ItHLz5WEA",title:"Faded",artist:"Alan Walker",mood:"Chill",thumb:"/thumb/60ItHLz5WEA"},
+{id:"3AtDnEC4zak",title:"We Don't Talk Anymore",artist:"Charlie Puth",mood:"Romantic",thumb:"/thumb/3AtDnEC4zak"},
+{id:"pt8VYOfr8FY",title:"Photograph",artist:"Ed Sheeran",mood:"Romantic",thumb:"/thumb/pt8VYOfr8FY"},
+{id:"IcrbM1l_BoI",title:"Wake Me Up",artist:"Avicii",mood:"Workout",thumb:"/thumb/IcrbM1l_BoI"},
+{id:"nfWlot6h_JM",title:"Shake It Off",artist:"Taylor Swift",mood:"Party",thumb:"/thumb/nfWlot6h_JM"},
+{id:"aJOTlE1K90k",title:"Girls Like You",artist:"Maroon 5",mood:"Party",thumb:"/thumb/aJOTlE1K90k"},
+{id:"09R8_2nJtjg",title:"Sugar",artist:"Maroon 5",mood:"Chill",thumb:"/thumb/09R8_2nJtjg"},
+{id:"L_jWHffIx5E",title:"All Star",artist:"Smash Mouth",mood:"Party",thumb:"/thumb/L_jWHffIx5E"},
 ];
 const LYRICS_DB={"Apna Bana Le":["Jo tum na ho","Toh yeh raatein","Na jaane kyun","Yeh dil meri","Apna bana le","Piya","Apna bana le"],"Kesariya":["Kesariya tera","Ishq hai piya","Rang jaaun jo","Main haathon mein","Tera naam likh doon"],"Satranga":["Satranga re","Dil yeh mera","Satranga re","O saathiya","Main hoon tera"],"Perfect":["I found a love","For me","Darling just dive right in","And follow my lead","Well I found a girl"],"Shape of You":["The club isn't the best place","To find a lover","So the bar is where I go","Me and my friends"],"default":["Feel the rhythm","Let the music take you","Somewhere beautiful","Every moment","Feels like a new beginning","Keep the vibe alive"]};
-const GROQ_API_KEY="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";
-const GROQ_URL="https://api.groq.com/openai/v1/chat/completions";
 function loadJSON(key,fallback){
   try{
     const raw=localStorage.getItem(key);
@@ -845,7 +842,7 @@ function loadPlaylists(){
   });
   return out;
 }
-const state={songs:[...CATALOG],queue:[...CATALOG],currentIndex:-1,playing:false,shuffle:false,repeat:0,volume:70,favorites:loadJSON("auraFavs",[]),likedSongs:loadJSON("auraLikedSongs",[]),customPlaylists:loadPlaylists(),profile:loadJSON("auraProfile",{}),recentPlayed:loadJSON("auraRecent",[]),bgImage:(()=>{try{return localStorage.getItem("auraBgImage")||""}catch(e){return""}})(),bgImageDim:+((()=>{try{return localStorage.getItem("auraBgDim")||55}catch(e){return55}})()),ytPlayer:null,ytReady:false,progressTimer:null,fsView:"lyrics",fromDiscovery:true,lastSuggestedFor:"",aiQueue:[],aiLoading:false,ctxSong:null,sleepMin:0,sleepEndsAt:0,sleepTimer:null,eqBands:[50,50,50,50,50],eqPreset:"flat"};
+const state={songs:[...CATALOG],queue:[...CATALOG],currentIndex:-1,playing:false,shuffle:false,repeat:0,volume:70,favorites:loadJSON("auraFavs",[]),likedSongs:loadJSON("auraLikedSongs",[]),customPlaylists:loadPlaylists(),profile:loadJSON("auraProfile",{}),recentPlayed:loadJSON("auraRecent",[]),bgImage:(()=>{try{return localStorage.getItem("auraBgImage")||""}catch(e){return""}})(),bgImageDim:+((()=>{try{return localStorage.getItem("auraBgDim")||55}catch(e){return55}})()),progressTimer:null,fsView:"lyrics",fromDiscovery:true,lastSuggestedFor:"",aiQueue:[],aiLoading:false,ctxSong:null,sleepMin:0,sleepEndsAt:0,sleepTimer:null,eqBands:[50,50,50,50,50],eqPreset:"flat"};
 const EQ_PRESETS={flat:[50,50,50,50,50],bass:[82,70,48,40,38],vocal:[40,48,72,68,45],treble:[35,42,55,75,85],electronic:[78,45,55,70,80]};
 const fmt=s=>{if(!s||!isFinite(s))return"0:00";const m=Math.floor(s/60),sec=Math.floor(s%60);return m+":"+String(sec).padStart(2,"0")};
 
@@ -1029,78 +1026,27 @@ function cleanArtistName(artist=""){
 }
 
 async function getSimilarSongs(title, artist){
-  // User wants FULL original title + "similar songs"
   const fullTitle = String(title || "").trim();
   const cleanArtist = (artist||"").replace(/\s*-\s*Topic$/i,"").replace(/\s*VEVO$/i,"").trim();
-  console.log("[AI] Requesting similar for FULL title:", fullTitle);
+  console.log("[AI] Requesting similar for:", fullTitle);
   try{
-    const res=await fetch(GROQ_URL,{
-      method:"POST",
-      headers:{"Authorization":"Bearer "+GROQ_API_KEY,"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model:"qwen/qwen3.8-27b",
-        messages:[
-          {role:"system",content:"You are a world-class music recommendation engine used by Spotify and Apple Music style apps. You deeply know Bollywood, Hollywood, Punjabi, Tamil, Telugu, Korean, Spanish and global hits. When given a song, you mentally play it in your head — hear the melody, bass, emotion, language and energy — then pick 5 DIFFERENT real songs that a listener would love next. Output ONLY a valid JSON array. No markdown, no explanation, no reasoning, no extra text."},
-          {role:"user",content:`Recommend 5 similar songs for:
-Title: ${fullTitle}
-Artist: ${cleanArtist || "Unknown"}
-
-Think step by step silently:
-- Detect language (Hindi / English / Punjabi / Haryanvi / Spanish / etc.)
-- Detect mood (romantic, sad, party, workout, chill, emotional, motivational)
-- Detect energy (slow, mid, high BPM feel)
-- Detect era / style (classic, modern, EDM, acoustic, filmi, indie)
-
-Then return 5 real popular songs that match ALL of: same language + same mood + same energy + same style.
-
-HARD RULES:
-1. Same language as input song (mandatory)
-2. Same mood and emotional feeling (mandatory)
-3. Similar energy / tempo feel
-4. NEVER the same song title, never a remix of the same song
-5. Prefer different artists
-6. Only real famous songs people actually search and play (no fake names)
-7. Titles must be clean real song names (not YouTube junk)
-8. Exactly 5 items
-
-JSON only:
-[{"title":"Exact Song Name","artist":"Artist Name"},{"title":"Exact Song Name","artist":"Artist Name"},{"title":"Exact Song Name","artist":"Artist Name"},{"title":"Exact Song Name","artist":"Artist Name"},{"title":"Exact Song Name","artist":"Artist Name"}]`}
-        ],
-        temperature:0.3,
-        max_tokens:500
-      }),
-      signal:AbortSignal.timeout(20000)
+    const res = await fetch("/api/similar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: fullTitle, artist: cleanArtist || "Unknown" }),
+      signal: AbortSignal.timeout(20000)
     });
     if(!res.ok){
-      const errText=await res.text().catch(()=>"");
-      console.warn("[AI] Groq HTTP error",res.status,errText.slice(0,300));
-      return[];
+      console.warn("[AI] Server error", res.status);
+      return [];
     }
-    const data=await res.json();
-    const msg = data.choices && data.choices[0] && data.choices[0].message;
-    let text = (msg && msg.content) || "";
-    if (!text.trim() && msg && msg.reasoning) {
-      text = msg.reasoning;
-      console.log("[AI] Using reasoning field because content was empty");
-    }
-    console.log("[AI] Raw content:", text.slice(0,350));
-    text = text.replace(/```json|```/g, "").trim();
-    let list = [];
-    try {
-      const match = text.match(/\[[\s\S]*\]/);
-      if (match) list = JSON.parse(match[0]);
-      else list = JSON.parse(text);
-    } catch (parseErr) {
-      console.warn("[AI] JSON parse failed", parseErr.message);
-      const objs = [...text.matchAll(/\{[^{}]*"title"\s*:\s*"[^"]+"[^{}]*\}/g)];
-      list = objs.map(m => { try { return JSON.parse(m[0]); } catch(e){ return null; } }).filter(Boolean);
-    }
+    const list = await res.json();
     const result = Array.isArray(list) ? list.filter(x => x && x.title).slice(0, 5) : [];
     console.log("[AI] Parsed songs:", result.length, result.map(x => x.title));
     return result;
   }catch(e){
-    console.warn("[AI] Network/timeout error",e);
-    return[];
+    console.warn("[AI] Network/timeout error", e);
+    return [];
   }
 }
 
@@ -1150,9 +1096,9 @@ async function addSimilarToQueue(song){
           const list=(Array.isArray(data)?data:[]).map(v=>({
             id:v.id||v.videoId,
             title:v.title||sim.title,
-            artist:v.author||v.artist||sim.artist,
+            artist:v.artist||v.author||sim.artist,
             mood:"Related",
-            thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
+            thumb:v.thumb||v.thumbnail||("/thumb/"+(v.id||v.videoId))
           })).filter(s=>s.id);
           if(list[0]&&!existingIds.has(list[0].id)) track=list[0];
         }
@@ -1327,22 +1273,7 @@ function updateNowUI(){
  renderQueue();
 }
 
-function onYouTubeIframeAPIReady(){
- state.ytPlayer=new YT.Player("yt-player",{
-  height:"1",width:"1",
-  playerVars:{autoplay:0,controls:0,disablekb:1,fs:0,rel:0,modestbranding:1,playsinline:1,origin:location.origin},
-  events:{
-   onReady:()=>{state.ytReady=true;applyPlayerVolume()},
-   onStateChange:e=>{
-    if(e.data===YT.PlayerState.ENDED){if(state.repeat===2)playSong(state.currentIndex);else nextSong()}
-    if(e.data===YT.PlayerState.PLAYING){state.playing=true;startProgress();updateNowUI()}
-    if(e.data===YT.PlayerState.PAUSED){state.playing=false;stopProgress();updateNowUI()}
-   },
-   onError:(e)=>{console.warn("YT error",e?.data);if(!state._skipping){state._skipping=true;setTimeout(()=>{state._skipping=false;try{nextSong()}catch(err){}},500)}}
-  }
- });
-}
-window.onYouTubeIframeAPIReady=onYouTubeIframeAPIReady;
+
 
 
 
@@ -1476,7 +1407,7 @@ async function loadLyrics(videoId, title, artist){
       state.lyricsLines=parseLrc(data.syncedLyrics);
     }else if(data&&data.plainLyrics){
       let dur=180;
-      try{dur=state.ytPlayer?.getDuration?.()||180}catch(e){}
+      try{const aa=document.getElementById("audioPlayer");dur=(aa&&aa.duration)||180}catch(e){}
       state.lyricsLines=plainToTimed(data.plainLyrics,dur);
     }
     if(state.lyricsLines.length){
@@ -1497,24 +1428,30 @@ function playSong(index){state._skip=false;state._skipping=false;
  const s=state.queue[index];if(!s)return;
  updateNowUI();
  addToRecent(s);
- if(state.ytReady&&state.ytPlayer){
-  state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;
- }else{
-  const wait=setInterval(()=>{
-   if(state.ytReady&&state.ytPlayer){clearInterval(wait);state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;updateNowUI()}
-  },200);
-  setTimeout(()=>clearInterval(wait),8000);
- }
- toast("▶ "+s.title);
- // AI best-effort only — never blocks or replaces search queue
+ const a=document.getElementById("audioPlayer");
+ if(!a)return;
+ a.src="/stream?id="+encodeURIComponent(s.id);
+ a.load();
+ a.play().then(()=>{
+   state.playing=true;
+   startProgress();
+   updateNowUI();
+ }).catch(()=>{
+   state.playing=false;
+   updateNowUI();
+   toast("Playback failed");
+ });
+ toast("▶ "+(s.title||"Track"));
  if(state.fromDiscovery){
   setTimeout(()=>{try{addSimilarToQueue(s)}catch(e){}},1500);
  }
 }
 function togglePlay(){
  if(state.currentIndex<0){playSong(0);return}
- if(!state.ytPlayer)return;
- if(state.playing){state.ytPlayer.pauseVideo();state.playing=false}else{state.ytPlayer.playVideo();state.playing=true}
+ const a=document.getElementById("audioPlayer");
+ if(!a)return;
+ if(state.playing){a.pause();state.playing=false;stopProgress()}
+ else{a.play().then(()=>{state.playing=true;startProgress()}).catch(()=>{})}
  updateNowUI();
 }
 function nextSong(){
@@ -1526,16 +1463,18 @@ function nextSong(){
 }
 function prevSong(){
  if(!state.queue.length)return;
- try{const t=state.ytPlayer?.getCurrentTime?.()||0;if(t>3){state.ytPlayer.seekTo(0);return}}catch(e){}
+ const a=document.getElementById("audioPlayer");
+ try{if(a&&a.currentTime>3){a.currentTime=0;return}}catch(e){}
  let idx=state.currentIndex-1;if(idx<0)idx=state.repeat===1?state.queue.length-1:0;
  playSong(idx);
 }
 function startProgress(){
  stopProgress();
  state.progressTimer=setInterval(()=>{
-  if(!state.ytPlayer||!state.playing)return;
+  const a=document.getElementById("audioPlayer");
+  if(!a||!state.playing)return;
   try{
-   const cur=state.ytPlayer.getCurrentTime()||0,dur=state.ytPlayer.getDuration()||0,pct=dur?(cur/dur)*100:0;
+   const cur=a.currentTime||0,dur=a.duration||0,pct=dur?(cur/dur)*100:0;
    $("#seekFill").style.width=pct+"%";$("#rFill").style.width=pct+"%";
    $("#elapsed").textContent=fmt(cur);$("#duration").textContent=fmt(dur);
    $("#rElapsed").textContent=fmt(cur);$("#rDuration").textContent=fmt(dur);
@@ -1565,22 +1504,19 @@ function startProgress(){
 }
 function stopProgress(){if(state.progressTimer)clearInterval(state.progressTimer);state.progressTimer=null}
 function eqGain(){
- // YouTube iframe can't expose real DSP; apply mild presence/bass bias via volume curve
+ // mild presence/bass bias via volume curve
  const b=state.eqBands||[50,50,50,50,50];
  const bass=(b[0]+b[1])/2, mid=b[2], treb=(b[3]+b[4])/2;
  const bias=((bass-50)*0.18+(mid-50)*0.08+(treb-50)*0.12)/100;
  return Math.max(0.72,Math.min(1.18,1+bias));
 }
-function applyPlayerVolume(){
- const eff=Math.round(Math.max(0,Math.min(100,state.volume*eqGain())));
- try{state.ytPlayer?.setVolume?.(eff)}catch(e){}
-}
+function applyPlayerVolume(){const a=document.getElementById("audioPlayer");if(a)a.volume=Math.max(0,Math.min(1,(state.volume/100)*eqGain()));}
 function setVolume(v){
  state.volume=Math.max(0,Math.min(100,v));
  $("#volFill").style.width=state.volume+"%";$("#lyricsVol").value=state.volume;$("#minimalVol").value=state.volume;
  applyPlayerVolume();
 }
-function seekTo(pct){try{const dur=state.ytPlayer?.getDuration?.()||0;if(dur)state.ytPlayer.seekTo((pct/100)*dur,true)}catch(e){}}
+function seekTo(pct){try{const a=document.getElementById("audioPlayer");if(a&&a.duration)a.currentTime=(pct/100)*a.duration}catch(e){}}
 function toggleLike(){
  const s=currentSong();if(!s)return;
  const i=state.favorites.indexOf(s.id);
@@ -1606,8 +1542,8 @@ async function playMood(mood){
   if(res.ok){
    const data=await res.json();
    const list=(Array.isArray(data)?data:[]).map(v=>({
-    id:v.id||v.videoId,title:v.title||"Unknown",artist:v.author||"Unknown",mood:mood,
-    thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
+    id:v.id||v.videoId,title:v.title||"Unknown",artist:v.artist||v.author||"Unknown",mood:mood,
+    thumb:v.thumb||v.thumbnail||("/thumb/"+(v.id||v.videoId))
    })).filter(s=>s.id);
    if(list.length){
     state.queue=list;state.songs=list;state.currentIndex=0;playSong(0);
@@ -1632,9 +1568,9 @@ async function searchLocal(q){
   const list=(Array.isArray(data)?data:[]).map(v=>({
    id:v.id||v.videoId,
    title:v.title||"Unknown",
-   artist:v.author||v.artist||"Unknown",
+   artist:v.artist||v.author||"Unknown",
    mood:"Search",
-   thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
+   thumb:v.thumb||v.thumbnail||("/thumb/"+(v.id||v.videoId))
   })).filter(s=>s.id);
   if(!list.length){
    $("#trackHeading").textContent="No results";
@@ -1896,8 +1832,8 @@ function bind(){
    if(res.ok){
     const data=await res.json();
     const list=(Array.isArray(data)?data:[]).map(v=>({
-     id:v.id||v.videoId,title:v.title||s.title,artist:v.author||v.artist||s.artist,mood:"AI Similar",
-     thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
+     id:v.id||v.videoId,title:v.title||s.title,artist:v.artist||v.author||s.artist,mood:"AI Similar",
+     thumb:v.thumb||v.thumbnail||("/thumb/"+(v.id||v.videoId))
     })).filter(x=>x.id);
     if(list[0]){
      state.aiQueue[idx]={...list[0],resolved:true};
@@ -2115,6 +2051,24 @@ function bind(){
  $("#profileModal")?.addEventListener("click",e=>{if(e.target===$("#profileModal"))closeProfileModal()});
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#profileModal")?.classList.contains("open"))closeProfileModal()});
 }
+
+function bindAudioEvents(){
+  const a=document.getElementById("audioPlayer");
+  if(!a)return;
+  a.addEventListener("ended",()=>{
+    if(state.repeat===2)playSong(state.currentIndex);
+    else nextSong();
+  });
+  a.addEventListener("play",()=>{state.playing=true;startProgress();updateNowUI()});
+  a.addEventListener("pause",()=>{state.playing=false;stopProgress();updateNowUI()});
+  a.addEventListener("error",()=>{
+    if(!state._skipping){
+      state._skipping=true;
+      setTimeout(()=>{state._skipping=false;try{nextSong()}catch(e){}},800);
+    }
+  });
+}
+
 function init(){
  try{
   const eq=JSON.parse(localStorage.getItem("auraEq")||"null");
@@ -2127,21 +2081,21 @@ function init(){
  state.recentPlayed=loadJSON("auraRecent",state.recentPlayed||[]);
  // write backup so next open is safe
  savePlaylists();saveFavs();saveLikedSongs();
- renderPlaylistNav();renderCards(CATALOG);renderMix();renderRecent();updateProfileUI();updateNowUI();setVolume(70);syncEqUI();bind();
+ renderPlaylistNav();renderCards(CATALOG);renderMix();renderRecent();updateProfileUI();updateNowUI();setVolume(70);syncEqUI();bind();bindAudioEvents();
  let _rhT;
  window.addEventListener("resize",()=>{clearTimeout(_rhT);_rhT=setTimeout(syncRecentToCardsHeight,120)});
  // images in cards may load late — resync height
  setTimeout(syncRecentToCardsHeight,400);
  setTimeout(syncRecentToCardsHeight,1200);
- if(window.YT&&window.YT.Player)onYouTubeIframeAPIReady();
+ 
  // Live trending if server available
  fetch("/search?q="+encodeURIComponent("trending bollywood hits"),{signal:AbortSignal.timeout(8000)})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
    if(!Array.isArray(data)||!data.length)return;
    const list=data.map(v=>({
-    id:v.id||v.videoId,title:v.title||"Unknown",artist:v.author||"Unknown",mood:"Trending",
-    thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
+    id:v.id||v.videoId,title:v.title||"Unknown",artist:v.artist||v.author||"Unknown",mood:"Trending",
+    thumb:v.thumb||v.thumbnail||("/thumb/"+(v.id||v.videoId))
    })).filter(s=>s.id);
    if(list.length){state.fromDiscovery=true;state.queue=list;state.songs=list;renderCards(list);$("#trackHeading").textContent="🔥 Trending Now"}
   }).catch(()=>{});
