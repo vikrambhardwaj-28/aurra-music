@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const http = require("http");
+const https = require("https");
 const { spawn } = require("child_process");
 const ytSearch = require("yt-search");
 
@@ -128,7 +130,124 @@ function resolveDirectAudioUrl(videoId) {
   });
 }
 
-/** Pipe audio through server (fallback when direct URL fails). */
+/**
+ * Proxy a direct CDN audio URL through our server (same-origin).
+ * Critical for mobile background: <audio src="/stream?..."> must stay same-origin.
+ * Forwards Range so seeking works on phones.
+ */
+function proxyDirectUrl(directUrl, req, res, { asAttachment = false, title = "aura-song" } = {}) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (ok) => {
+      if (settled) return;
+      settled = true;
+      resolve(ok);
+    };
+
+    let parsed;
+    try {
+      parsed = new URL(directUrl);
+    } catch (e) {
+      return done(false);
+    }
+
+    const lib = parsed.protocol === "http:" ? http : https;
+    const headers = {
+      "User-Agent":
+        req.headers["user-agent"] ||
+        "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36",
+      Accept: "*/*",
+    };
+    if (req.headers.range) headers.Range = req.headers.range;
+
+    const upstream = lib.get(
+      directUrl,
+      { headers, timeout: 30000 },
+      (up) => {
+        // Follow one redirect if CDN sends it
+        if (
+          up.statusCode >= 300 &&
+          up.statusCode < 400 &&
+          up.headers.location
+        ) {
+          up.resume();
+          proxyDirectUrl(up.headers.location, req, res, {
+            asAttachment,
+            title,
+          }).then(done);
+          return;
+        }
+
+        if (up.statusCode !== 200 && up.statusCode !== 206) {
+          up.resume();
+          done(false);
+          return;
+        }
+
+        const ct =
+          up.headers["content-type"] ||
+          (directUrl.includes(".m4a") || directUrl.includes("mp4")
+            ? "audio/mp4"
+            : directUrl.includes("webm")
+              ? "audio/webm"
+              : "audio/mp4");
+
+        res.statusCode = up.statusCode;
+        res.setHeader("Content-Type", ct);
+        res.setHeader("Cache-Control", "no-store");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        if (up.headers["content-length"]) {
+          res.setHeader("Content-Length", up.headers["content-length"]);
+        }
+        if (up.headers["content-range"]) {
+          res.setHeader("Content-Range", up.headers["content-range"]);
+        }
+        if (up.headers["accept-ranges"]) {
+          res.setHeader("Accept-Ranges", up.headers["accept-ranges"]);
+        } else {
+          res.setHeader("Accept-Ranges", "bytes");
+        }
+        if (asAttachment) {
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${title}.m4a"`
+          );
+        } else {
+          res.setHeader("Content-Disposition", "inline");
+        }
+
+        up.pipe(res);
+        up.on("error", () => {
+          try {
+            res.end();
+          } catch (_) {}
+          done(true);
+        });
+        res.on("close", () => {
+          try {
+            up.destroy();
+          } catch (_) {}
+        });
+        done(true);
+      }
+    );
+
+    upstream.on("error", () => done(false));
+    upstream.setTimeout(30000, () => {
+      try {
+        upstream.destroy();
+      } catch (_) {}
+      done(false);
+    });
+    req.on("close", () => {
+      try {
+        upstream.destroy();
+      } catch (_) {}
+    });
+  });
+}
+
+/** Pipe audio through yt-dlp stdout (fallback when direct URL fails). */
 function pipeAudio(videoId, res, { asAttachment = false, title = "aura-song" } = {}) {
   const pageUrl = `https://www.youtube.com/watch?v=${videoId}`;
   const args = [
@@ -440,18 +559,21 @@ async function handleStream(req, res) {
   try {
     const direct = await resolveDirectAudioUrl(id);
     if (direct) {
-      // Browser <audio> follows redirect → plays from CDN.
-      // This is what allows background / lock-screen audio on mobile.
-      res.setHeader("Cache-Control", "no-store");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      return res.redirect(302, direct);
+      // Same-origin proxy (NOT redirect) — required for reliable mobile background audio
+      const ok = await proxyDirectUrl(direct, req, res, {
+        asAttachment: false,
+      });
+      if (ok) return;
+      console.warn("proxyDirectUrl failed, falling back to yt-dlp pipe");
     }
   } catch (e) {
     console.warn("resolveDirectAudioUrl:", e.message);
   }
 
-  // Fallback: server-side pipe
-  pipeAudio(id, res, { asAttachment: false });
+  // Fallback: server-side yt-dlp pipe
+  if (!res.headersSent) {
+    pipeAudio(id, res, { asAttachment: false });
+  }
 }
 
 app.get("/", (req, res) => {
