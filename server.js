@@ -556,21 +556,31 @@ async function handleStream(req, res) {
   }
   console.log("Stream:", id);
 
+  // Fast path: cached direct URL → proxy immediately
+  const cached = getStreamUrlCache(id);
+  if (cached) {
+    const ok = await proxyDirectUrl(cached, req, res, { asAttachment: false });
+    if (ok) return;
+  }
+
+  // Resolve direct URL with short timeout; if slow, pipe yt-dlp without waiting
+  let direct = null;
   try {
-    const direct = await resolveDirectAudioUrl(id);
-    if (direct) {
-      // Same-origin proxy (NOT redirect) — required for reliable mobile background audio
-      const ok = await proxyDirectUrl(direct, req, res, {
-        asAttachment: false,
-      });
-      if (ok) return;
-      console.warn("proxyDirectUrl failed, falling back to yt-dlp pipe");
-    }
+    direct = await Promise.race([
+      resolveDirectAudioUrl(id),
+      new Promise((r) => setTimeout(() => r(null), 4500)),
+    ]);
   } catch (e) {
     console.warn("resolveDirectAudioUrl:", e.message);
   }
 
-  // Fallback: server-side yt-dlp pipe
+  if (direct) {
+    const ok = await proxyDirectUrl(direct, req, res, { asAttachment: false });
+    if (ok) return;
+    console.warn("proxyDirectUrl failed, falling back to yt-dlp pipe");
+  }
+
+  // Fallback: server-side yt-dlp pipe (starts sending bytes ASAP)
   if (!res.headersSent) {
     pipeAudio(id, res, { asAttachment: false });
   }
