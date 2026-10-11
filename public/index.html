@@ -170,6 +170,15 @@ button,input{font:inherit}button{color:inherit;cursor:pointer;border:none;backgr
 .search input::placeholder{color:#d0d7ee}
 .search .mag{position:absolute;left:22px;top:15px;font-size:23px;color:#f1f4ff}
 .search .shortcut{position:absolute;right:16px;top:18px;color:var(--muted);font-size:10px}
+.search-suggest{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:90;display:none;max-height:min(320px,50vh);overflow-y:auto;border-radius:16px;padding:6px;background:rgba(12,18,40,.96);border:1px solid var(--line);box-shadow:0 16px 40px #000a,inset 0 1px 0 var(--shine);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);scrollbar-width:thin}
+.search-suggest.open{display:block}
+.search-suggest .sg-label{font-size:9px;color:var(--muted);letter-spacing:1.2px;padding:8px 12px 4px}
+.search-suggest .sg-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:0;background:transparent;color:#fff;font-size:13px;cursor:pointer}
+.search-suggest .sg-item:hover,.search-suggest .sg-item.active{background:rgba(255,255,255,.1)}
+.search-suggest .sg-item .sg-ico{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:rgba(255,255,255,.08);font-size:14px;flex-shrink:0}
+.search-suggest .sg-item b{display:block;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-suggest .sg-item small{display:block;font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-suggest .sg-clear{font-size:11px;color:var(--b);padding:8px 12px;cursor:pointer;background:none;border:0;width:100%;text-align:left}
 .avatar,.icon-btn{width:43px;height:43px;flex-shrink:0;border-radius:50%;border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 4px 14px rgba(0,0,0,.2);position:relative;overflow:hidden}
 .icon-btn::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(125deg,rgba(255,255,255,.28) 0%,transparent 50%);pointer-events:none}
 .avatar{font-weight:800;color:#fff;background:linear-gradient(145deg,var(--a),#7868ff,var(--b));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 0 22px var(--glow);text-shadow:0 1px 2px rgba(0,0,0,.3)}
@@ -513,7 +522,7 @@ body:has(.immersive-player.open) .player{display:none!important}
 </aside>
 <main class="center">
  <header class="topbar">
-  <label class="search"><span class="mag">⌕</span><input id="search" placeholder="Search songs, artists, albums, playlists..." autocomplete="off"><span class="shortcut">⌘ K</span></label>
+  <label class="search"><span class="mag">⌕</span><input id="search" placeholder="Search songs, artists, albums, playlists..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="searchSuggest"><span class="shortcut">⌘ K</span><div class="search-suggest" id="searchSuggest" role="listbox"></div></label>
   <button class="icon-btn" id="themeToggle" title="Theme">☼</button>
   <button class="avatar" id="profile">A</button>
  </header>
@@ -1562,23 +1571,113 @@ async function playMood(mood){
 }
 let _searchReq=0;
 let _searchAbort=null;
+let _sgIndex=-1;
+function loadSearchHistory(){
+  try{
+    const h=loadJSON("auraSearchHistory",[]);
+    return Array.isArray(h)?h.filter(x=>typeof x==="string"&&x.trim()).slice(0,10):[];
+  }catch(e){return[]}
+}
+function saveSearchHistory(q){
+  q=(q||"").trim();
+  if(!q)return;
+  let h=loadSearchHistory().filter(x=>x.toLowerCase()!==q.toLowerCase());
+  h.unshift(q);
+  if(h.length>10)h=h.slice(0,10);
+  saveJSON("auraSearchHistory",h);
+}
+function clearSearchHistory(){
+  saveJSON("auraSearchHistory",[]);
+  renderSearchSuggest($("#search")?.value||"");
+}
+function closeSearchSuggest(){
+  const box=$("#searchSuggest");
+  if(box){box.classList.remove("open");box.innerHTML=""}
+  _sgIndex=-1;
+  const inp=$("#search");
+  if(inp)inp.setAttribute("aria-expanded","false");
+}
+function attrEsc(s){
+  return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function renderSearchSuggest(q){
+  const box=$("#searchSuggest");
+  if(!box)return;
+  q=(q||"").trim();
+  const ql=q.toLowerCase();
+  const hist=loadSearchHistory();
+  const histMatch=ql?hist.filter(h=>h.toLowerCase().includes(ql)):hist;
+  // Instant local catalog matches (title / artist) — no network, fast
+  const songMatch=ql?CATALOG.filter(s=>{
+    const t=(s.title||"").toLowerCase(),a=(s.artist||"").toLowerCase();
+    return t.includes(ql)||a.includes(ql);
+  }).slice(0,6):[];
+  let html="";
+  if(histMatch.length){
+    html+=`<div class="sg-label">RECENT</div>`;
+    histMatch.slice(0,5).forEach((h,i)=>{
+      html+=`<button type="button" class="sg-item" role="option" data-sg="hist" data-q="${attrEsc(h)}" data-i="${i}"><span class="sg-ico">🕐</span><span><b>${escHtml(h)}</b><small>Recent search</small></span></button>`;
+    });
+    if(!ql) html+=`<button type="button" class="sg-clear" id="sgClearHist">Clear history</button>`;
+  }
+  if(songMatch.length){
+    html+=`<div class="sg-label">SUGGESTIONS</div>`;
+    songMatch.forEach((s,i)=>{
+      html+=`<button type="button" class="sg-item" role="option" data-sg="song" data-id="${attrEsc(s.id)}" data-q="${attrEsc(s.title)}" data-i="${histMatch.slice(0,5).length+i}"><span class="sg-ico">♫</span><span><b>${escHtml(cleanSongTitle(s.title))}</b><small>${escHtml(cleanArtistName(s.artist))}</small></span></button>`;
+    });
+  }
+  if(!html){
+    if(ql) html=`<div class="sg-label">Press Enter to search “${escHtml(q)}”</div>`;
+    else{closeSearchSuggest();return}
+  }
+  box.innerHTML=html;
+  box.classList.add("open");
+  _sgIndex=-1;
+  const inp=$("#search");
+  if(inp)inp.setAttribute("aria-expanded","true");
+}
+function pickSearchSuggest(q,songId){
+  const inp=$("#search");
+  if(inp)inp.value=q||"";
+  closeSearchSuggest();
+  if(songId){
+    // Play catalog song directly for instant feel
+    const song=CATALOG.find(s=>s.id===songId);
+    if(song){
+      saveSearchHistory(q);
+      state.fromDiscovery=true;
+      const rest=CATALOG.filter(s=>s.id!==songId);
+      state.queue=[song,...rest];
+      state.songs=state.queue;
+      playSong(0);
+      renderCards(state.songs);
+      $("#trackHeading").textContent="Search · "+q;
+      return;
+    }
+  }
+  searchLocal(q);
+}
 async function searchLocal(q){
  q=(q||"").trim();
- // Only explicit searches (Enter) should update the results panel
+ closeSearchSuggest();
+ // Only explicit searches (Enter / suggestion) should update the results panel
  if(!q){
   if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
   _searchReq++;
   state.songs=[...CATALOG];renderCards(CATALOG);$("#trackHeading").textContent="🔥 Trending Now";
   return;
  }
+ saveSearchHistory(q);
  const req=++_searchReq;
  if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
  _searchAbort=typeof AbortController!=="undefined"?new AbortController():null;
- const signal=_searchAbort?_searchAbort.signal:AbortSignal.timeout(12000);
+ const signal=_searchAbort?_searchAbort.signal:undefined;
+ const _to=setTimeout(()=>{try{_searchAbort&&_searchAbort.abort()}catch(e){}},10000);
  $("#trackHeading").textContent="Searching…";
  toast("Searching…");
  try{
-  const res=await fetch("/search?q="+encodeURIComponent(q),{signal});
+  const res=await fetch("/search?q="+encodeURIComponent(q),signal?{signal}:{});
+  clearTimeout(_to);
   if(req!==_searchReq)return; // stale — ignore
   if(!res.ok) throw new Error("HTTP "+res.status);
   const data=await res.json();
@@ -1602,6 +1701,7 @@ async function searchLocal(q){
   $("#trackHeading").textContent="Search · "+list.length+" results";
   toast(list.length+" songs found");
  }catch(e){
+  clearTimeout(_to);
   if(req!==_searchReq)return; // aborted or superseded
   if(e&&(e.name==="AbortError"||e.message==="The operation was aborted."))return;
   console.warn("Search error",e);
@@ -1746,12 +1846,53 @@ function bind(){
   const moodMap={"Chill Vibes":"Chill","Workout":"Workout","Romantic":"Romantic","Focus":"Focus","Party":"Party"};
   if(moodMap[page])playMood(moodMap[page]);
  });
- // Search ONLY on Enter — typing must not update results panel
+ // Suggestions while typing; results panel updates ONLY on Enter / suggestion pick
+ let _sgTimer=null;
+ $("#search").addEventListener("input",e=>{
+  clearTimeout(_sgTimer);
+  const v=e.target.value;
+  _sgTimer=setTimeout(()=>renderSearchSuggest(v),80);
+ });
+ $("#search").addEventListener("focus",e=>{
+  renderSearchSuggest(e.target.value);
+ });
  $("#search").addEventListener("keydown",e=>{
+  const box=$("#searchSuggest");
+  const items=box?$$("#searchSuggest .sg-item"):[];
+  if(e.key==="ArrowDown"&&items.length){
+   e.preventDefault();
+   _sgIndex=Math.min(items.length-1,_sgIndex+1);
+   items.forEach((el,i)=>el.classList.toggle("active",i===_sgIndex));
+   items[_sgIndex]?.scrollIntoView({block:"nearest"});
+   return;
+  }
+  if(e.key==="ArrowUp"&&items.length){
+   e.preventDefault();
+   _sgIndex=Math.max(0,_sgIndex-1);
+   items.forEach((el,i)=>el.classList.toggle("active",i===_sgIndex));
+   items[_sgIndex]?.scrollIntoView({block:"nearest"});
+   return;
+  }
+  if(e.key==="Escape"){closeSearchSuggest();return}
   if(e.key==="Enter"){
    e.preventDefault();
-   searchLocal(e.target.value);
+   if(_sgIndex>=0&&items[_sgIndex]){
+    const it=items[_sgIndex];
+    pickSearchSuggest(it.dataset.q,it.dataset.id||null);
+   }else{
+    searchLocal(e.target.value);
+   }
   }
+ });
+ $("#searchSuggest")?.addEventListener("mousedown",e=>{
+  e.preventDefault(); // keep focus on input
+  if(e.target.closest("#sgClearHist")){clearSearchHistory();return}
+  const it=e.target.closest(".sg-item");
+  if(!it)return;
+  pickSearchSuggest(it.dataset.q,it.dataset.id||null);
+ });
+ document.addEventListener("click",e=>{
+  if(!e.target.closest(".search")) closeSearchSuggest();
  });
  ["#play","#rPlay","#lyricsPlay","#minimalPlay"].forEach(sel=>$(sel)?.addEventListener("click",togglePlay));
  ["#next","#rNext","#lyricsNext","#minimalNext"].forEach(sel=>$(sel)?.addEventListener("click",nextSong));
