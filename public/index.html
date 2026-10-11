@@ -1653,7 +1653,8 @@ function stopAudioEl(){
 function playViaYouTube(s){
   if(!s||!s.id)return;
   state.useAudio=false;
-  stopAudioEl();
+  // Do NOT stopAudioEl() here — background stream preloads in parallel
+  try{if(state.audioEl&&!state.audioEl.paused)state.audioEl.pause()}catch(e){}
   if(state.ytReady&&state.ytPlayer){
     try{state.ytPlayer.loadVideoById({videoId:s.id,suggestedQuality:"hd720"})}catch(e){try{state.ytPlayer.loadVideoById(s.id)}catch(err){}}
     applyPlayerVolume();forceHighQuality();
@@ -1673,50 +1674,104 @@ function playViaYouTube(s){
     setTimeout(()=>clearInterval(wait),8000);
   }
 }
-async function playViaAudio(s){
-  if(!s||!s.id)return false;
-  const a=ensureAudioEl();
-  state.useAudio=true;
-  state._audioFallback=false;
-  // Pause YT so only one source plays
-  try{state.ytPlayer?.pauseVideo?.()}catch(e){}
-  // HTML5 audio from server stream → works in mobile background + notification
-  const url="/stream?id="+encodeURIComponent(s.id);
-  try{
-    a.src=url;
-    applyPlayerVolume();
-    const p=a.play();
-    if(p&&typeof p.then==="function")await p;
-    state.playing=true;state.wantPlaying=true;state.userPaused=false;
-    startProgress();updateNowUI();
-    return true;
-  }catch(e){
-    state.useAudio=false;
-    return false;
-  }
-}
 function getMediaTime(){
   try{
-    if(state.useAudio&&state.audioEl){
+    if(state.useAudio&&state.audioEl&&!state.audioEl.paused){
       return {cur:state.audioEl.currentTime||0,dur:state.audioEl.duration||0};
     }
     if(state.ytPlayer){
       return {cur:state.ytPlayer.getCurrentTime?.()||0,dur:state.ytPlayer.getDuration?.()||0};
     }
+    if(state.audioEl){
+      return {cur:state.audioEl.currentTime||0,dur:state.audioEl.duration||0};
+    }
   }catch(e){}
   return {cur:0,dur:0};
+}
+/** Preload same-origin /stream into HTML5 Audio (for lock-screen / home background). */
+function prepareBackgroundAudio(s){
+  if(!s||!s.id)return;
+  state.audioReady=false;
+  state._prepId=s.id;
+  const a=ensureAudioEl();
+  const url="/stream?id="+encodeURIComponent(s.id);
+  try{
+    a.pause();
+  }catch(e){}
+  // silent preload — do not call play() here (keeps YT as foreground player)
+  const onReady=()=>{
+    if(state._prepId!==s.id)return;
+    state.audioReady=true;
+    try{
+      // Sync approximate position from YT so switch is seamless
+      const t=state.ytPlayer?.getCurrentTime?.()||0;
+      if(t>0&&isFinite(a.duration)&&a.duration>t) a.currentTime=t;
+    }catch(e){}
+  };
+  a.oncanplay=onReady;
+  a.oncanplaythrough=onReady;
+  a.onloadeddata=onReady;
+  try{
+    a.src=url;
+    a.load();
+    applyPlayerVolume();
+  }catch(e){
+    state.audioReady=false;
+  }
+}
+/** Switch from YT → HTML5 audio (call when going to background). */
+async function switchToBackgroundAudio(){
+  if(state.userPaused||!state.wantPlaying)return false;
+  const s=currentSong();
+  if(!s||!s.id)return false;
+  const a=ensureAudioEl();
+  try{
+    // Ensure src is for current song
+    const expect="/stream?id="+encodeURIComponent(s.id);
+    if(!a.src||a.src.indexOf(s.id)<0){
+      a.src=expect;
+      a.load();
+      applyPlayerVolume();
+      await new Promise((resolve)=>{
+        let done=false;
+        const fin=()=>{if(done)return;done=true;resolve()};
+        a.oncanplay=fin;
+        a.onerror=fin;
+        setTimeout(fin,8000);
+      });
+    }
+    // Match YT position
+    try{
+      const t=state.ytPlayer?.getCurrentTime?.()||0;
+      if(t>1&&isFinite(a.duration)&&a.duration>t) a.currentTime=Math.min(t,a.duration-0.5);
+      else if(t>1) a.currentTime=t;
+    }catch(e){}
+    applyPlayerVolume();
+    await a.play();
+    state.useAudio=true;
+    state.playing=true;
+    state.audioReady=true;
+    // Pause YT so only audio runs in background
+    try{state.ytPlayer?.pauseVideo?.()}catch(e){}
+    startProgress();
+    updateMediaSession();
+    return true;
+  }catch(e){
+    return false;
+  }
 }
 function playSong(index){state._skip=false;state._skipping=false;
  if(index<0||index>=state.queue.length)return;
  state.currentIndex=index;
  state.userPaused=false;state.wantPlaying=true;state._audioFallback=false;
+ state.useAudio=false;state.audioReady=false;
  const s=state.queue[index];if(!s)return;
  updateNowUI();
  addToRecent(s);
- // Prefer HTML5 audio stream (background-capable on mobile). Fallback: YouTube iframe.
- playViaAudio(s).then(ok=>{
-   if(!ok) playViaYouTube(s);
- }).catch(()=>playViaYouTube(s));
+ // INSTANT play via YouTube (no wait)
+ playViaYouTube(s);
+ // Parallel: preload /stream for real mobile background later
+ prepareBackgroundAudio(s);
  toast("▶ "+s.title);
  // AI best-effort only — never blocks or replaces search queue
  if(state.fromDiscovery){
@@ -2551,21 +2606,33 @@ function init(){
  setTimeout(syncRecentToCardsHeight,400);
  setTimeout(syncRecentToCardsHeight,1200);
  if(window.YT&&window.YT.Player)onYouTubeIframeAPIReady();
- // Background: do not pause / do not touch the Audio element.
- // HTML5 same-origin /stream keeps playing; Media Session keeps notification.
+ // Home / lock screen: switch YT → HTML5 /stream audio (only this can stay alive in background)
  document.addEventListener("visibilitychange",()=>{
   try{
    if(document.visibilityState==="hidden"){
-     if(state.playing||state.wantPlaying){
-       state.wantPlaying=true;
-       try{if(navigator.mediaSession)navigator.mediaSession.playbackState="playing"}catch(err){}
+     if(state.userPaused||!(state.playing||state.wantPlaying))return;
+     state.wantPlaying=true;
+     try{if(navigator.mediaSession)navigator.mediaSession.playbackState="playing"}catch(err){}
+     // Critical: move playback to HTML5 audio for mobile background
+     switchToBackgroundAudio().then((ok)=>{
+       if(!ok){
+         // Retry once after short delay (stream may still be buffering)
+         setTimeout(()=>{switchToBackgroundAudio()},1200);
+       }
        updateMediaSession();
-     }
+     });
    }else{
-     // Back to app — resume only if needed
+     // Back to app: if we were on audio, keep audio; else resume YT
      if(!state.userPaused&&state.wantPlaying){
-       resumeIfNeeded();
-       setTimeout(resumeIfNeeded,400);
+       if(state.useAudio&&state.audioEl){
+         state.audioEl.play().catch(()=>{
+           state.useAudio=false;
+           try{state.ytPlayer?.playVideo?.()}catch(e){}
+         });
+       }else{
+         resumeIfNeeded();
+         setTimeout(resumeIfNeeded,400);
+       }
      }
      updateMediaSession();
    }
