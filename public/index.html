@@ -165,11 +165,15 @@ button,input{font:inherit}button{color:inherit;cursor:pointer;border:none;backgr
 .center{min-width:0}
 .topbar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .search{position:relative;flex:1;min-width:0}
-.search input{width:100%;height:58px;border-radius:30px;padding:0 52px 0 60px;background:linear-gradient(100deg,rgba(27,44,85,.8),rgba(83,48,108,.42));border:1px solid rgba(183,220,255,.48);box-shadow:inset 0 1px 0 #ffffff28,0 0 26px #39cfff12;color:white;outline:0;font-size:14px}
+.search input{width:100%;height:58px;border-radius:30px;padding:0 72px 0 60px;background:linear-gradient(100deg,rgba(27,44,85,.8),rgba(83,48,108,.42));border:1px solid rgba(183,220,255,.48);box-shadow:inset 0 1px 0 #ffffff28,0 0 26px #39cfff12;color:white;outline:0;font-size:14px}
 .search input:focus{border-color:var(--b);box-shadow:0 0 0 3px #20d8ff19,0 0 30px var(--glow)}
 .search input::placeholder{color:#d0d7ee}
 .search .mag{position:absolute;left:22px;top:15px;font-size:23px;color:#f1f4ff}
 .search .shortcut{position:absolute;right:16px;top:18px;color:var(--muted);font-size:10px}
+.search-clear{position:absolute;right:48px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:16px;line-height:1;display:none;place-items:center;cursor:pointer;z-index:2;padding:0}
+.search-clear.show{display:grid}
+.search-clear:hover{background:rgba(255,255,255,.22)}
+.search.has-text .shortcut{opacity:0;pointer-events:none}
 .search-sugg{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:120;display:none;max-height:min(360px,55vh);overflow-y:auto;border-radius:18px;background:rgba(12,18,40,.96);border:1px solid var(--line);box-shadow:0 16px 40px #000a,inset 0 1px 0 var(--shine);backdrop-filter:blur(24px) saturate(1.3);-webkit-backdrop-filter:blur(24px) saturate(1.3);padding:6px}
 .search-sugg.open{display:block}
 .search-sugg .sugg-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;cursor:pointer;text-align:left;width:100%;border:0;background:transparent;color:#fff;font:inherit}
@@ -179,8 +183,15 @@ button,input{font:inherit}button{color:inherit;cursor:pointer;border:none;backgr
 .search-sugg .sugg-info b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .search-sugg .sugg-info small{display:block;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .search-sugg .sugg-empty{padding:14px 12px;font-size:12px;color:var(--muted);text-align:center}
-.search-sugg .sugg-hint{padding:6px 12px 8px;font-size:9px;color:var(--muted);letter-spacing:.8px}
-@media(max-width:700px){.search-sugg{max-height:min(280px,45vh);border-radius:14px}}
+.search-sugg .sugg-hint{padding:6px 12px 8px;font-size:9px;color:var(--muted);letter-spacing:.8px;display:flex;align-items:center;justify-content:space-between}
+.search-sugg .sugg-hint button{border:0;background:none;color:var(--b);font-size:9px;letter-spacing:.5px;cursor:pointer;padding:2px 6px}
+.search-sugg .hist-ico{font-size:14px;opacity:.7;width:40px;text-align:center;flex-shrink:0}
+@media(max-width:700px){
+  .search-sugg{max-height:min(280px,45vh);border-radius:14px}
+  .search input{padding:0 64px 0 48px}
+  .search-clear{right:12px;width:26px;height:26px;font-size:15px}
+  .search .shortcut{display:none}
+}
 
 .avatar,.icon-btn{width:43px;height:43px;flex-shrink:0;border-radius:50%;border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 4px 14px rgba(0,0,0,.2);position:relative;overflow:hidden}
 .icon-btn::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(125deg,rgba(255,255,255,.28) 0%,transparent 50%);pointer-events:none}
@@ -348,7 +359,7 @@ body:has(.immersive-player.open) .player{display:none!important}
   .mobile-nav{display:flex!important}
   .topbar{gap:8px;margin-bottom:12px;position:relative;z-index:5}
   .search{min-width:0;flex:1}
-  .search input{height:48px;font-size:14px;padding:0 44px 0 48px;border-radius:24px}
+  .search input{height:48px;font-size:14px;padding:0 64px 0 48px;border-radius:24px}
   .search .mag{left:16px;top:12px;font-size:20px}
   .search .shortcut{display:none}
   .avatar,.icon-btn{width:44px;height:44px;font-size:16px;flex-shrink:0}
@@ -525,7 +536,7 @@ body:has(.immersive-player.open) .player{display:none!important}
 </aside>
 <main class="center">
  <header class="topbar">
-  <label class="search"><span class="mag">⌕</span><input id="search" placeholder="Search songs, artists, albums, playlists..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false"><span class="shortcut">⌘ K</span><div class="search-sugg" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div></label>
+  <label class="search"><span class="mag">⌕</span><input id="search" placeholder="Search songs, artists, albums, playlists..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false"><button type="button" class="search-clear" id="searchClear" title="Clear search" aria-label="Clear search">×</button><span class="shortcut">⌘ K</span><div class="search-sugg" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div></label>
   <button class="icon-btn" id="themeToggle" title="Theme">☼</button>
   <button class="avatar" id="profile">A</button>
  </header>
@@ -1572,6 +1583,25 @@ async function playMood(mood){
  state.queue=list;state.songs=list;state.currentIndex=0;playSong(0);
  $("#trackHeading").textContent=mood+" Mix";renderCards(list);toast(mood+" vibes ✨");
 }
+
+function loadSearchHistory(){
+  try{
+   const raw=localStorage.getItem("auraSearchHistory");
+   const arr=raw?JSON.parse(raw):[];
+   return Array.isArray(arr)?arr.filter(x=>typeof x==="string"&&x.trim()).slice(0,5):[];
+  }catch(e){return[]}
+}
+function saveSearchHistory(q){
+  q=(q||"").trim();
+  if(!q||q.length<2)return;
+  let list=loadSearchHistory().filter(x=>x.toLowerCase()!==q.toLowerCase());
+  list.unshift(q);
+  if(list.length>5)list=list.slice(0,5);
+  try{localStorage.setItem("auraSearchHistory",JSON.stringify(list))}catch(e){}
+}
+function clearSearchHistory(){
+  try{localStorage.removeItem("auraSearchHistory")}catch(e){}
+}
 let _searchReq=0;
 let _searchAbort=null;
 async function searchLocal(q){
@@ -1612,6 +1642,7 @@ async function searchLocal(q){
   state.songs=list;
   renderCards(list);
   $("#trackHeading").textContent="Search · "+list.length+" results";
+  saveSearchHistory(q);
   toast(list.length+" songs found");
  }catch(e){
   if(req!==_searchReq)return; // aborted or superseded
@@ -1758,13 +1789,32 @@ function bind(){
   const moodMap={"Chill Vibes":"Chill","Workout":"Workout","Romantic":"Romantic","Focus":"Focus","Party":"Party"};
   if(moodMap[page])playMood(moodMap[page]);
  });
- // Live search suggestions (YouTube-style) + Enter for full results
+ // Live search suggestions (YouTube-style) + history + clear + faster
  let _suggTimer=null,_suggAbort=null,_suggIdx=-1;
  const suggBox=$("#searchSuggestions");
+ const searchClearBtn=$("#searchClear");
+ const searchLabel=$(".search");
+ function updateClearBtn(){
+  const has=!!($("#search")?.value||"").trim();
+  if(searchClearBtn) searchClearBtn.classList.toggle("show",has);
+  if(searchLabel) searchLabel.classList.toggle("has-text",has);
+ }
  function hideSuggestions(){
   if(suggBox){suggBox.classList.remove("open");suggBox.innerHTML=""}
   _suggIdx=-1;
   const inp=$("#search");if(inp)inp.setAttribute("aria-expanded","false");
+ }
+ function showHistoryPanel(){
+  if(!suggBox)return;
+  const hist=loadSearchHistory();
+  if(!hist.length){hideSuggestions();return}
+  suggBox.innerHTML=`<div class="sugg-hint"><span>RECENT SEARCHES</span><button type="button" id="clearHistBtn">Clear</button></div>`+
+   hist.map((q,i)=>`<button type="button" class="sugg-item hist-item" role="option" data-hist="${escHtml(q)}" data-sugg-i="${i}"><span class="hist-ico">🕐</span><div class="sugg-info"><b>${escHtml(q)}</b><small>Recent search</small></div></button>`).join("");
+  suggBox.classList.add("open");
+  suggBox._list=null;
+  suggBox._mode="history";
+  $("#search")?.setAttribute("aria-expanded","true");
+  _suggIdx=-1;
  }
  function showSuggestions(list,q){
   if(!suggBox)return;
@@ -1783,19 +1833,20 @@ function bind(){
   $("#search")?.setAttribute("aria-expanded","true");
   _suggIdx=-1;
   suggBox._list=list;
+  suggBox._mode="sugg";
  }
  async function fetchSuggestions(q){
   q=(q||"").trim();
-  if(q.length<1){hideSuggestions();return}
+  if(q.length<1){showHistoryPanel();return}
   if(_suggAbort){try{_suggAbort.abort()}catch(e){}}
   _suggAbort=typeof AbortController!=="undefined"?new AbortController():null;
   const signal=_suggAbort?_suggAbort.signal:undefined;
   try{
-   // local catalog first for instant feel
+   // instant local catalog
    const ql=q.toLowerCase();
-   const local=CATALOG.filter(s=>s.title.toLowerCase().includes(ql)||s.artist.toLowerCase().includes(ql)).slice(0,5);
+   const local=CATALOG.filter(s=>s.title.toLowerCase().includes(ql)||s.artist.toLowerCase().includes(ql)).slice(0,6);
    if(local.length) showSuggestions(local,q);
-   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:signal||AbortSignal.timeout(6000)});
+   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:signal||AbortSignal.timeout(4500)});
    if(!res.ok)return;
    const data=await res.json();
    const list=(Array.isArray(data)?data:[]).map(v=>({
@@ -1815,8 +1866,9 @@ function bind(){
   hideSuggestions();
   const inp=$("#search");
   if(inp)inp.value=cleanSongTitle(song.title)+" — "+cleanArtistName(song.artist);
+  updateClearBtn();
+  saveSearchHistory(song.title||inp?.value||"");
   state.fromDiscovery=true;
-  // put selected first, keep other suggestions as queue context
   const rest=((suggBox&&suggBox._list)||[]).filter(s=>s.id!==song.id);
   state.queue=[song,...rest];
   state.songs=state.queue;
@@ -1824,11 +1876,20 @@ function bind(){
   $("#trackHeading").textContent="Search · "+state.songs.length+" results";
   playSong(0);
  }
+ function clearSearchBox(){
+  const inp=$("#search");
+  if(inp){inp.value="";inp.focus()}
+  updateClearBtn();
+  hideSuggestions();
+  showHistoryPanel();
+ }
  $("#search").addEventListener("input",e=>{
   const q=e.target.value;
+  updateClearBtn();
   clearTimeout(_suggTimer);
-  if(!q.trim()){hideSuggestions();return}
-  _suggTimer=setTimeout(()=>fetchSuggestions(q),280);
+  if(!q.trim()){showHistoryPanel();return}
+  // faster: 120ms debounce
+  _suggTimer=setTimeout(()=>fetchSuggestions(q),120);
  });
  $("#search").addEventListener("keydown",e=>{
   const open=suggBox&&suggBox.classList.contains("open");
@@ -1850,9 +1911,16 @@ function bind(){
   if(e.key==="Escape"){hideSuggestions();return}
   if(e.key==="Enter"){
    e.preventDefault();
-   if(open&&_suggIdx>=0&&items[_suggIdx]&&suggBox._list){
-    pickSuggestion(suggBox._list[_suggIdx]);
-    return;
+   if(open&&_suggIdx>=0&&items[_suggIdx]){
+    const histQ=items[_suggIdx].dataset.hist;
+    if(histQ){
+     $("#search").value=histQ;
+     updateClearBtn();
+     hideSuggestions();
+     searchLocal(histQ);
+     return;
+    }
+    if(suggBox._list){pickSuggestion(suggBox._list[_suggIdx]);return}
    }
    hideSuggestions();
    searchLocal(e.target.value);
@@ -1860,11 +1928,31 @@ function bind(){
  });
  $("#search").addEventListener("focus",e=>{
   const q=(e.target.value||"").trim();
+  updateClearBtn();
   if(q.length>=1) fetchSuggestions(q);
+  else showHistoryPanel();
+ });
+ searchClearBtn?.addEventListener("click",e=>{
+  e.preventDefault();e.stopPropagation();
+  clearSearchBox();
  });
  suggBox?.addEventListener("mousedown",e=>{
-  // prevent input blur before click
   e.preventDefault();
+  if(e.target.closest("#clearHistBtn")){
+   clearSearchHistory();
+   hideSuggestions();
+   toast("Search history cleared");
+   return;
+  }
+  const histItem=e.target.closest(".hist-item");
+  if(histItem){
+   const q=histItem.dataset.hist||"";
+   $("#search").value=q;
+   updateClearBtn();
+   hideSuggestions();
+   searchLocal(q);
+   return;
+  }
   const item=e.target.closest(".sugg-item");
   if(!item||!suggBox._list)return;
   const i=+item.dataset.suggI;
@@ -1873,7 +1961,7 @@ function bind(){
  document.addEventListener("click",e=>{
   if(!e.target.closest(".search")) hideSuggestions();
  });
- ["#play","#rPlay","#lyricsPlay","#minimalPlay"].forEach(sel=>$(sel)?.addEventListener("click",togglePlay));
+ ["#play"","#rPlay","#lyricsPlay","#minimalPlay"].forEach(sel=>$(sel)?.addEventListener("click",togglePlay));
  ["#next","#rNext","#lyricsNext","#minimalNext"].forEach(sel=>$(sel)?.addEventListener("click",nextSong));
  ["#prev","#rPrev","#lyricsPrev","#minimalPrev"].forEach(sel=>$(sel)?.addEventListener("click",prevSong));
  ["#shuffle","#rShuffle","#lyricsShuffle","#minimalShuffle"].forEach(sel=>$(sel)?.addEventListener("click",()=>{state.shuffle=!state.shuffle;updateNowUI();toast(state.shuffle?"Shuffle on":"Shuffle off")}));
