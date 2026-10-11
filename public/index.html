@@ -1600,41 +1600,88 @@ function closeSearchSuggest(){
 function attrEsc(s){
   return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
-function renderSearchSuggest(q){
-  const box=$("#searchSuggest");
-  if(!box)return;
-  q=(q||"").trim();
-  const ql=q.toLowerCase();
-  const hist=loadSearchHistory();
-  const histMatch=ql?hist.filter(h=>h.toLowerCase().includes(ql)):hist;
-  // Instant local catalog matches (title / artist) — no network, fast
-  const songMatch=ql?CATALOG.filter(s=>{
-    const t=(s.title||"").toLowerCase(),a=(s.artist||"").toLowerCase();
-    return t.includes(ql)||a.includes(ql);
-  }).slice(0,6):[];
+let _sgFetchReq=0;
+function buildSuggestHtml(q, histMatch, songMatch, ytList){
+  const ql=(q||"").trim().toLowerCase();
   let html="";
+  let idx=0;
   if(histMatch.length){
     html+=`<div class="sg-label">RECENT</div>`;
-    histMatch.slice(0,5).forEach((h,i)=>{
-      html+=`<button type="button" class="sg-item" role="option" data-sg="hist" data-q="${attrEsc(h)}" data-i="${i}"><span class="sg-ico">🕐</span><span><b>${escHtml(h)}</b><small>Recent search</small></span></button>`;
+    histMatch.slice(0,5).forEach((h)=>{
+      html+=`<button type="button" class="sg-item" role="option" data-sg="hist" data-q="${attrEsc(h)}" data-i="${idx++}"><span class="sg-ico">🕐</span><span><b>${escHtml(h)}</b><small>Recent search</small></span></button>`;
     });
     if(!ql) html+=`<button type="button" class="sg-clear" id="sgClearHist">Clear history</button>`;
   }
-  if(songMatch.length){
+  // YouTube-style live suggestions (from /suggest API)
+  const ytClean=(ytList||[]).filter(s=>{
+    const t=String(s||"").toLowerCase();
+    if(!t)return false;
+    // skip duplicates already in history
+    if(histMatch.some(h=>h.toLowerCase()===t))return false;
+    return true;
+  }).slice(0,8);
+  if(ytClean.length){
     html+=`<div class="sg-label">SUGGESTIONS</div>`;
-    songMatch.forEach((s,i)=>{
-      html+=`<button type="button" class="sg-item" role="option" data-sg="song" data-id="${attrEsc(s.id)}" data-q="${attrEsc(s.title)}" data-i="${histMatch.slice(0,5).length+i}"><span class="sg-ico">♫</span><span><b>${escHtml(cleanSongTitle(s.title))}</b><small>${escHtml(cleanArtistName(s.artist))}</small></span></button>`;
+    ytClean.forEach((s)=>{
+      html+=`<button type="button" class="sg-item" role="option" data-sg="yt" data-q="${attrEsc(s)}" data-i="${idx++}"><span class="sg-ico">⌕</span><span><b>${escHtml(s)}</b><small>Search suggestion</small></span></button>`;
+    });
+  }
+  // Local catalog songs
+  if(songMatch.length){
+    if(!ytClean.length) html+=`<div class="sg-label">SONGS</div>`;
+    songMatch.forEach((s)=>{
+      html+=`<button type="button" class="sg-item" role="option" data-sg="song" data-id="${attrEsc(s.id)}" data-q="${attrEsc(s.title)}" data-i="${idx++}"><span class="sg-ico">♫</span><span><b>${escHtml(cleanSongTitle(s.title))}</b><small>${escHtml(cleanArtistName(s.artist))}</small></span></button>`;
     });
   }
   if(!html){
     if(ql) html=`<div class="sg-label">Press Enter to search “${escHtml(q)}”</div>`;
-    else{closeSearchSuggest();return}
   }
-  box.innerHTML=html;
+  return html;
+}
+async function renderSearchSuggest(q){
+  const box=$("#searchSuggest");
+  if(!box)return;
+  const raw=q||"";
+  q=raw.trim();
+  const ql=q.toLowerCase();
+  const hist=loadSearchHistory();
+  const histMatch=ql?hist.filter(h=>h.toLowerCase().includes(ql)):hist;
+  const songMatch=ql?CATALOG.filter(s=>{
+    const t=(s.title||"").toLowerCase(),a=(s.artist||"").toLowerCase();
+    return t.includes(ql)||a.includes(ql);
+  }).slice(0,5):[];
+
+  // Instant paint (history + local) — no wait
+  if(!q){
+    const html=buildSuggestHtml("", histMatch, [], []);
+    if(!html){closeSearchSuggest();return}
+    box.innerHTML=html;
+    box.classList.add("open");
+    _sgIndex=-1;
+    $("#search")?.setAttribute("aria-expanded","true");
+    return;
+  }
+
+  box.innerHTML=buildSuggestHtml(q, histMatch, songMatch, []);
   box.classList.add("open");
   _sgIndex=-1;
-  const inp=$("#search");
-  if(inp)inp.setAttribute("aria-expanded","true");
+  $("#search")?.setAttribute("aria-expanded","true");
+
+  // Live YouTube-style suggestions from server
+  const req=++_sgFetchReq;
+  try{
+    const res=await fetch("/suggest?q="+encodeURIComponent(q),{signal:AbortSignal.timeout(4000)});
+    if(req!==_sgFetchReq)return;
+    if(!res.ok)return;
+    const list=await res.json();
+    if(req!==_sgFetchReq)return;
+    if(!Array.isArray(list)||!list.length)return;
+    // Only update if input still matches
+    const cur=($("#search")?.value||"").trim();
+    if(cur.toLowerCase()!==ql)return;
+    box.innerHTML=buildSuggestHtml(q, histMatch, songMatch, list);
+    _sgIndex=-1;
+  }catch(e){/* silent — local suggestions already shown */}
 }
 function pickSearchSuggest(q,songId){
   const inp=$("#search");
@@ -1851,7 +1898,7 @@ function bind(){
  $("#search").addEventListener("input",e=>{
   clearTimeout(_sgTimer);
   const v=e.target.value;
-  _sgTimer=setTimeout(()=>renderSearchSuggest(v),80);
+  _sgTimer=setTimeout(()=>renderSearchSuggest(v),120);
  });
  $("#search").addEventListener("focus",e=>{
   renderSearchSuggest(e.target.value);
