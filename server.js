@@ -120,6 +120,60 @@ app.get("/search", async (req, res) => {
 });
 
 // --------------------------------------------------
+// SUGGEST (YouTube-style autocomplete — fast)
+// --------------------------------------------------
+const suggestCache = new Map();
+const SUGGEST_TTL = 30 * 60 * 1000;
+
+app.get("/suggest", async (req, res) => {
+  const q = String(req.query.q || "").trim().slice(0, 80);
+  if (!q || q.length < 1) return res.json([]);
+
+  const key = "sg:" + q.toLowerCase();
+  const hit = suggestCache.get(key);
+  if (hit && Date.now() < hit.exp) {
+    res.setHeader("X-Cache", "HIT");
+    return res.json(hit.data);
+  }
+
+  try {
+    const url =
+      "https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=" +
+      encodeURIComponent(q);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    const r = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36",
+        Accept: "application/json",
+      },
+    });
+    clearTimeout(timer);
+    if (!r.ok) return res.json([]);
+    const data = await r.json();
+    // format: [query, [s1, s2, ...], ...]
+    let list = [];
+    if (Array.isArray(data) && Array.isArray(data[1])) {
+      list = data[1]
+        .map((x) => (typeof x === "string" ? x : x?.[0]))
+        .filter((x) => typeof x === "string" && x.trim())
+        .slice(0, 10);
+    }
+    if (suggestCache.size > 400) {
+      suggestCache.delete(suggestCache.keys().next().value);
+    }
+    suggestCache.set(key, { data: list, exp: Date.now() + SUGGEST_TTL });
+    res.setHeader("X-Cache", "MISS");
+    return res.json(list);
+  } catch (e) {
+    console.warn("Suggest fail:", e.message);
+    return res.json([]);
+  }
+});
+
+// --------------------------------------------------
 // AI SIMILAR SONGS (Groq key stays on server only)
 // --------------------------------------------------
 app.post("/api/similar", async (req, res) => {
@@ -377,5 +431,5 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Aura Music on", PORT);
-  console.log("Routes: /search /stream /download /lyrics /api/similar /health");
+  console.log("Routes: /search /suggest /stream /download /lyrics /api/similar /health");
 });
