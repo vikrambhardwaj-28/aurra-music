@@ -293,6 +293,26 @@ JSON only:
 app.get("/download", handleDownload);
 app.get("/api/download", handleDownload);
 
+function ytdlpArgs(url) {
+  return [
+    "-f",
+    "bestaudio/best",
+    "-o",
+    "-",
+    "--no-playlist",
+    "--no-warnings",
+    "--geo-bypass",
+    "--no-check-certificates",
+    "--extractor-args",
+    "youtube:player_client=android,web",
+    "--user-agent",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "--add-header",
+    "Accept-Language:en-US,en;q=0.9",
+    url,
+  ];
+}
+
 function handleDownload(req, res) {
   const id = String(req.query.id || "").trim();
   let title =
@@ -307,17 +327,7 @@ function handleDownload(req, res) {
   const url = `https://www.youtube.com/watch?v=${id}`;
   console.log("Download:", id, title);
   const bin = process.env.YTDLP_PATH || "yt-dlp";
-  const args = [
-    "-f",
-    "bestaudio[abr>=160]/bestaudio[acodec^=opus]/bestaudio[acodec^=mp4a]/bestaudio/best",
-    "-o",
-    "-",
-    "--no-playlist",
-    "--no-warnings",
-    "--geo-bypass",
-    url,
-  ];
-  const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(bin, ytdlpArgs(url), { stdio: ["ignore", "pipe", "pipe"] });
   let started = false;
   let err = "";
   child.stderr.on("data", (c) => (err += c.toString()));
@@ -337,7 +347,7 @@ function handleDownload(req, res) {
     console.error("spawn error:", e.message);
     if (!res.headersSent) {
       res.status(503).json({
-        error: "yt-dlp missing on server. Check Render build command.",
+        error: "yt-dlp not installed. On Termux run: pkg install yt-dlp",
       });
     }
   });
@@ -345,9 +355,11 @@ function handleDownload(req, res) {
     if (!started) {
       console.error("yt-dlp exit", code, err.slice(0, 400));
       if (!res.headersSent) {
+        const msg = /403|bot|sign in/i.test(err)
+          ? "YouTube blocked download on this network. Try again later."
+          : "Download failed. Make sure yt-dlp is installed and updated.";
         res.status(502).json({
-          error:
-            "Download blocked on this server (YouTube 403). Works on localhost only.",
+          error: msg,
           detail: err.slice(0, 200),
         });
       }
@@ -376,17 +388,7 @@ function handleStream(req, res) {
   const url = `https://www.youtube.com/watch?v=${id}`;
   console.log("Stream:", id);
   const bin = process.env.YTDLP_PATH || "yt-dlp";
-  const args = [
-    "-f",
-    "bestaudio[abr>=160]/bestaudio[acodec^=opus]/bestaudio[acodec^=mp4a]/bestaudio/best",
-    "-o",
-    "-",
-    "--no-playlist",
-    "--no-warnings",
-    "--geo-bypass",
-    url,
-  ];
-  const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(bin, ytdlpArgs(url), { stdio: ["ignore", "pipe", "pipe"] });
   let started = false;
   let err = "";
   child.stderr.on("data", (c) => (err += c.toString()));
