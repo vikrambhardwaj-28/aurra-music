@@ -1616,7 +1616,7 @@ async function searchLocal(q){
  const req=++_searchReq;
  if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
  _searchAbort=typeof AbortController!=="undefined"?new AbortController():null;
- const signal=_searchAbort?_searchAbort.signal:AbortSignal.timeout(12000);
+ const signal=_searchAbort?_searchAbort.signal:AbortSignal.timeout(10000);
  $("#trackHeading").textContent="Searching…";
  toast("Searching…");
  try{
@@ -1650,7 +1650,7 @@ async function searchLocal(q){
   console.warn("Search error",e);
   // fallback local filter if API down
   const ql=q.toLowerCase();
-  const list=CATALOG.filter(s=>s.title.toLowerCase().includes(ql)||s.artist.toLowerCase().includes(ql));
+  const list=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql));
   state.fromDiscovery=true;
   if(list.length){state.queue=list;state.songs=list}
   renderCards(list.length?list:CATALOG);
