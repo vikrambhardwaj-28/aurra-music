@@ -1790,7 +1790,7 @@ function bind(){
   if(moodMap[page])playMood(moodMap[page]);
  });
  // Live search suggestions (YouTube-style) + history + clear + faster
- let _suggTimer=null,_suggAbort=null,_suggIdx=-1,_suggToken=0;
+ let _suggTimer=null,_suggAbort=null,_suggIdx=-1;
  const suggBox=$("#searchSuggestions");
  const searchClearBtn=$("#searchClear");
  const searchLabel=$(".search");
@@ -1802,7 +1802,6 @@ function bind(){
  function hideSuggestions(){
   if(suggBox){suggBox.classList.remove("open");suggBox.innerHTML=""}
   _suggIdx=-1;
-  _suggToken++; // invalidate any in-flight suggestion response
   const inp=$("#search");if(inp)inp.setAttribute("aria-expanded","false");
  }
  function showHistoryPanel(){
@@ -1841,19 +1840,15 @@ function bind(){
   if(q.length<1){showHistoryPanel();return}
   if(_suggAbort){try{_suggAbort.abort()}catch(e){}}
   _suggAbort=typeof AbortController!=="undefined"?new AbortController():null;
-  const myCtrl=_suggAbort;
-  const signal=myCtrl?myCtrl.signal:undefined;
-  const token=++_suggToken;
+  const signal=_suggAbort?_suggAbort.signal:undefined;
   try{
-   // instant local catalog (only if still relevant)
+   // instant local catalog
    const ql=q.toLowerCase();
-   const local=CATALOG.filter(s=>s.title.toLowerCase().includes(ql)||s.artist.toLowerCase().includes(ql)).slice(0,6);
-   if(local.length && token===_suggToken && myCtrl===_suggAbort) showSuggestions(local,q);
+   const local=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql)).slice(0,6);
+   if(local.length) showSuggestions(local,q);
    const res=await fetch("/search?q="+encodeURIComponent(q),{signal:signal||AbortSignal.timeout(4500)});
-   if(token!==_suggToken || myCtrl!==_suggAbort)return; // superseded by newer type or Enter
    if(!res.ok)return;
    const data=await res.json();
-   if(token!==_suggToken || myCtrl!==_suggAbort)return;
    const list=(Array.isArray(data)?data:[]).map(v=>({
     id:v.id||v.videoId,
     title:v.title||"Unknown",
@@ -1916,11 +1911,10 @@ function bind(){
   if(e.key==="Escape"){hideSuggestions();return}
   if(e.key==="Enter"){
    e.preventDefault();
-   // Cancel any pending suggestion work so late results don't pop the dropdown after Enter
    clearTimeout(_suggTimer);
    if(_suggAbort){try{_suggAbort.abort()}catch(err){}}
    _suggAbort=null;
-   // Only use a suggestion if user explicitly arrowed to it
+   // Only use suggestion if user arrowed to select one
    if(open&&_suggIdx>=0&&items[_suggIdx]){
     const histQ=items[_suggIdx].dataset.hist;
     if(histQ){
@@ -1930,12 +1924,11 @@ function bind(){
      searchLocal(histQ);
      return;
     }
-    if(suggBox._list&&suggBox._list[_suggIdx]){
+    if(suggBox&&suggBox._list&&suggBox._list[_suggIdx]){
      pickSuggestion(suggBox._list[_suggIdx]);
      return;
     }
    }
-   // Fast type + Enter (or no selection) → always full search into results section
    hideSuggestions();
    searchLocal(e.target.value);
   }
