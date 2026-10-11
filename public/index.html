@@ -1599,25 +1599,28 @@ function ensureAudioEl(){
   a.playsInline=true;
   a.setAttribute("playsinline","");
   a.setAttribute("webkit-playsinline","");
-  a.crossOrigin="anonymous";
+  // Do NOT set crossOrigin — it breaks /stream and kills mobile background play
   a.addEventListener("playing",()=>{
     state.playing=true;state.wantPlaying=true;state.userPaused=false;state.useAudio=true;
     startProgress();updateNowUI();
   });
   a.addEventListener("play",()=>{
-    state.playing=true;state.wantPlaying=true;state.userPaused=false;
+    state.playing=true;state.wantPlaying=true;state.userPaused=false;state.useAudio=true;
     startProgress();updateNowUI();
   });
   a.addEventListener("pause",()=>{
     if(state.userPaused){
       state.playing=false;state.wantPlaying=false;stopProgress();updateNowUI();
-    }else if(document.hidden||document.visibilityState==="hidden"){
+      return;
+    }
+    // Background/system pause: keep wantPlaying, do not switch to YouTube
+    if(document.hidden||document.visibilityState==="hidden"){
       state.wantPlaying=true;
+      state.playing=true; // keep UI + media session as playing
       try{if(navigator.mediaSession)navigator.mediaSession.playbackState="playing"}catch(e){}
-      clearTimeout(state._bgResumeT);
-      state._bgResumeT=setTimeout(resumeIfNeeded,500);
-      setTimeout(resumeIfNeeded,2000);
-    }else if(!state.wantPlaying){
+      return;
+    }
+    if(!state.wantPlaying){
       state.playing=false;stopProgress();updateNowUI();
     }
   });
@@ -1626,8 +1629,9 @@ function ensureAudioEl(){
     else nextSong();
   });
   a.addEventListener("error",()=>{
-    // Stream failed → fall back to YouTube iframe (same song)
-    if(state.useAudio&&state.wantPlaying&&!state._audioFallback){
+    // Only fall back to YT in foreground — never while backgrounded (that kills lock-screen audio)
+    if(document.hidden||document.visibilityState==="hidden")return;
+    if(state.useAudio&&state.wantPlaying&&!state._audioFallback&&!state.userPaused){
       state._audioFallback=true;
       state.useAudio=false;
       playViaYouTube(currentSong());
@@ -2547,25 +2551,24 @@ function init(){
  setTimeout(syncRecentToCardsHeight,400);
  setTimeout(syncRecentToCardsHeight,1200);
  if(window.YT&&window.YT.Player)onYouTubeIframeAPIReady();
- // Keep playing + media notification when tab is backgrounded / phone locked
+ // Background: do not pause / do not touch the Audio element.
+ // HTML5 same-origin /stream keeps playing; Media Session keeps notification.
  document.addEventListener("visibilitychange",()=>{
   try{
    if(document.visibilityState==="hidden"){
-     // Stay marked as wanting play so OS media controls stay active
      if(state.playing||state.wantPlaying){
        state.wantPlaying=true;
        try{if(navigator.mediaSession)navigator.mediaSession.playbackState="playing"}catch(err){}
-       setTimeout(resumeIfNeeded,300);
-       setTimeout(resumeIfNeeded,1500);
+       updateMediaSession();
      }
    }else{
-     // Back to foreground — force resume if user didn't pause
+     // Back to app — resume only if needed
      if(!state.userPaused&&state.wantPlaying){
        resumeIfNeeded();
-       setTimeout(resumeIfNeeded,500);
+       setTimeout(resumeIfNeeded,400);
      }
+     updateMediaSession();
    }
-   updateMediaSession();
   }catch(e){}
  });
  window.addEventListener("pageshow",()=>{if(!state.userPaused&&state.wantPlaying)resumeIfNeeded()});
