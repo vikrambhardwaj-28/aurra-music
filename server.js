@@ -8,11 +8,11 @@ const https = require("https");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Groq — सिर्फ server पर
+// Groq API Key — ONLY on server (set via environment variable)
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-// Optional lyrics
+// Optional: YouTube captions fallback
 let lyricsHandler = null;
 try {
   lyricsHandler = require("./lyricsHandler");
@@ -71,7 +71,7 @@ if (lyricsHandler) {
 }
 
 // --------------------------------------------------
-// SEARCH (response में YouTube का नाम नहीं)
+// SEARCH  (response never mentions YouTube)
 // --------------------------------------------------
 async function doSearch(query) {
   const result = await Promise.race([
@@ -82,7 +82,6 @@ async function doSearch(query) {
     id: v.videoId,
     title: v.title,
     artist: v.author?.name || "Unknown",
-    // thumbnail अब हमारे domain से आएगा
     thumb: `/thumb/${v.videoId}`,
   }));
 }
@@ -114,7 +113,7 @@ app.get("/search", async (req, res) => {
 });
 
 // --------------------------------------------------
-// THUMBNAIL PROXY (क्लाइंट को ytimg कभी नहीं दिखेगा)
+// THUMBNAIL PROXY  (client never sees ytimg.com)
 // --------------------------------------------------
 app.get("/thumb/:id", (req, res) => {
   const id = String(req.params.id || "").trim();
@@ -136,7 +135,7 @@ app.get("/thumb/:id", (req, res) => {
 });
 
 // --------------------------------------------------
-// AI SIMILAR (Groq)
+// AI SIMILAR SONGS (Groq) — key stays on server only
 // --------------------------------------------------
 app.post("/api/similar", async (req, res) => {
   if (!GROQ_API_KEY) {
@@ -193,7 +192,15 @@ JSON only:
       list = match ? JSON.parse(match[0]) : JSON.parse(text);
     } catch {
       const objs = [...text.matchAll(/\{[^{}]*"title"\s*:\s*"[^"]+"[^{}]*\}/g)];
-      list = objs.map((m) => { try { return JSON.parse(m[0]); } catch { return null; } }).filter(Boolean);
+      list = objs
+        .map((m) => {
+          try {
+            return JSON.parse(m[0]);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
     }
 
     res.json(Array.isArray(list) ? list.filter((x) => x?.title).slice(0, 5) : []);
@@ -203,7 +210,7 @@ JSON only:
 });
 
 // --------------------------------------------------
-// STREAM (HTML5 Audio के लिए)
+// STREAM (HTML5 Audio plays from this endpoint)
 // --------------------------------------------------
 app.get("/stream", handleStream);
 app.get("/api/stream", handleStream);
@@ -227,9 +234,6 @@ function handleStream(req, res) {
 
   const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
   let started = false;
-  let err = "";
-
-  child.stderr.on("data", (c) => (err += c.toString()));
 
   child.stdout.on("data", (chunk) => {
     if (!started) {
@@ -246,7 +250,7 @@ function handleStream(req, res) {
     if (!res.headersSent) res.status(503).json({ error: "Stream unavailable" });
   });
 
-  child.on("close", (code) => {
+  child.on("close", () => {
     if (!started) {
       if (!res.headersSent) res.status(502).json({ error: "Stream failed" });
     } else {
@@ -255,7 +259,9 @@ function handleStream(req, res) {
   });
 
   req.on("close", () => {
-    try { child.kill("SIGTERM"); } catch (_) {}
+    try {
+      child.kill("SIGTERM");
+    } catch (_) {}
   });
 }
 
@@ -267,11 +273,12 @@ app.get("/api/download", handleDownload);
 
 function handleDownload(req, res) {
   const id = String(req.query.id || "").trim();
-  let title = String(req.query.title || "track")
-    .replace(/[^\w\s\u0900-\u097F-]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 80) || "track";
+  let title =
+    String(req.query.title || "track")
+      .replace(/[^\w\s\u0900-\u097F-]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80) || "track";
 
   if (!id || !/^[a-zA-Z0-9_-]{6,20}$/.test(id)) {
     return res.status(400).json({ error: "Invalid id" });
@@ -279,7 +286,14 @@ function handleDownload(req, res) {
 
   const url = `https://www.youtube.com/watch?v=${id}`;
   const bin = process.env.YTDLP_PATH || "yt-dlp";
-  const args = ["-f", "ba/bestaudio/best", "-o", "-", "--no-playlist", "--no-warnings", "--geo-bypass", url];
+  const args = [
+    "-f", "ba/bestaudio/best",
+    "-o", "-",
+    "--no-playlist",
+    "--no-warnings",
+    "--geo-bypass",
+    url,
+  ];
 
   const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
   let started = false;
@@ -288,7 +302,10 @@ function handleDownload(req, res) {
     if (!started) {
       started = true;
       res.setHeader("Content-Type", "audio/mpeg");
-      res.setHeader("Content-Disposition", `attachment; filename="${title}.mp3"`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${title}.mp3"`
+      );
       res.setHeader("Cache-Control", "no-store");
     }
     res.write(chunk);
@@ -299,11 +316,18 @@ function handleDownload(req, res) {
   });
 
   child.on("close", () => {
-    if (!started && !res.headersSent) res.status(502).json({ error: "Download failed" });
-    else res.end();
+    if (!started && !res.headersSent) {
+      res.status(502).json({ error: "Download failed" });
+    } else {
+      res.end();
+    }
   });
 
-  req.on("close", () => { try { child.kill("SIGTERM"); } catch (_) {} });
+  req.on("close", () => {
+    try {
+      child.kill("SIGTERM");
+    } catch (_) {}
+  });
 }
 
 app.get("/", (req, res) => {
@@ -312,5 +336,5 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Aura Music on", PORT);
-  if (!GROQ_API_KEY) console.warn("GROQ_API_KEY not set");
+  if (!GROQ_API_KEY) console.warn("GROQ_API_KEY not set — AI disabled");
 });
