@@ -1,17 +1,106 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop stop-color="#ff4d9a"/>
-      <stop offset="40%" stop-color="#e11d8c"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
+    <!-- Background gradient - deep purple to violet -->
+    <linearGradient id="bgGrad" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#12081f"/>
+      <stop offset="40%" stop-color="#1e0f35"/>
+      <stop offset="100%" stop-color="#3d1560"/>
     </linearGradient>
+    
+    <!-- Metallic silver for note -->
+    <linearGradient id="metal" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#f5f5fa"/>
+      <stop offset="25%" stop-color="#d8d8e2"/>
+      <stop offset="50%" stop-color="#a0a0b0"/>
+      <stop offset="75%" stop-color="#c8c8d4"/>
+      <stop offset="100%" stop-color="#ececf4"/>
+    </linearGradient>
+    
+    <!-- Soft highlight -->
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.75"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    
+    <!-- Glow filter for waves -->
+    <filter id="waveGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Outer soft glow -->
+    <filter id="outerGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <rect width="512" height="512" rx="96" fill="#0a0a12"/>
-  <circle cx="256" cy="256" r="200" fill="none" stroke="url(#g)" stroke-width="12" opacity=".55"/>
-  <circle cx="256" cy="256" r="168" fill="url(#g)"/>
-  <rect x="176" y="232" width="24" height="72" rx="12" fill="#fff"/>
-  <rect x="216" y="184" width="24" height="120" rx="12" fill="#fff"/>
-  <rect x="256" y="208" width="24" height="96" rx="12" fill="#fff"/>
-  <rect x="296" y="168" width="24" height="136" rx="12" fill="#fff"/>
-  <rect x="336" y="216" width="24" height="88" rx="12" fill="#fff"/>
+  
+  <!-- Main rounded square background -->
+  <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle border highlight -->
+  <rect x="4" y="4" width="504" height="504" rx="108" ry="108" fill="none" 
+        stroke="#8b5cf6" stroke-width="1.5" opacity="0.25"/>
+  
+  <!-- Top subtle light -->
+  <ellipse cx="256" cy="70" rx="160" ry="50" fill="#ffffff" opacity="0.035"/>
+  
+  <!-- Sound waves group -->
+  <g filter="url(#waveGlow)">
+    <!-- Inner wave -->
+    <path d="M 285 195 Q 335 256 285 317" 
+          fill="none" stroke="#d8b4fe" stroke-width="5.5" stroke-linecap="round" opacity="0.95"/>
+    <!-- Middle wave -->
+    <path d="M 315 165 Q 385 256 315 347" 
+          fill="none" stroke="#c084fc" stroke-width="4.8" stroke-linecap="round" opacity="0.8"/>
+    <!-- Outer wave -->
+    <path d="M 345 135 Q 435 256 345 377" 
+          fill="none" stroke="#a855f7" stroke-width="4" stroke-linecap="round" opacity="0.65"/>
+  </g>
+  
+  <!-- Extra soft outer glow wave -->
+  <g filter="url(#outerGlow)" opacity="0.35">
+    <path d="M 355 120 Q 455 256 355 392" 
+          fill="none" stroke="#e9d5ff" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Music Note -->
+  <g transform="translate(155, 95)">
+    <!-- Note head -->
+    <ellipse cx="48" cy="210" rx="52" ry="40" 
+             fill="url(#metal)" transform="rotate(-28 48 210)"/>
+    
+    <!-- Note head highlight -->
+    <ellipse cx="32" cy="198" rx="20" ry="14" 
+             fill="url(#shine)" transform="rotate(-28 32 198)" opacity="0.55"/>
+    
+    <!-- Stem -->
+    <rect x="88" y="35" width="14" height="185" rx="4" fill="url(#metal)"/>
+    
+    <!-- Stem highlight -->
+    <rect x="90" y="40" width="5" height="170" rx="2" fill="url(#shine)" opacity="0.45"/>
+    
+    <!-- Flag / Hook -->
+    <path d="M 102 35 
+             C 102 35, 145 28, 155 55
+             C 165 82, 145 105, 120 95
+             C 110 90, 102 75, 102 55
+             Z" 
+          fill="url(#metal)"/>
+    
+    <!-- Flag highlight -->
+    <path d="M 105 42 
+             C 105 42, 135 38, 142 55
+             C 148 70, 135 82, 118 78
+             C 110 75, 105 60, 105 50
+             Z" 
+          fill="url(#shine)" opacity="0.4"/>
+  </g>
 </svg>
