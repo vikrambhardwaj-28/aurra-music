@@ -1560,15 +1560,29 @@ async function playMood(mood){
  state.queue=list;state.songs=list;state.currentIndex=0;playSong(0);
  $("#trackHeading").textContent=mood+" Mix";renderCards(list);toast(mood+" vibes ✨");
 }
+let _searchReq=0;
+let _searchAbort=null;
 async function searchLocal(q){
  q=(q||"").trim();
- if(!q){state.songs=[...CATALOG];renderCards(CATALOG);$("#trackHeading").textContent="🔥 Trending Now";return}
+ // Only explicit searches (Enter) should update the results panel
+ if(!q){
+  if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
+  _searchReq++;
+  state.songs=[...CATALOG];renderCards(CATALOG);$("#trackHeading").textContent="🔥 Trending Now";
+  return;
+ }
+ const req=++_searchReq;
+ if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
+ _searchAbort=typeof AbortController!=="undefined"?new AbortController():null;
+ const signal=_searchAbort?_searchAbort.signal:AbortSignal.timeout(12000);
  $("#trackHeading").textContent="Searching…";
  toast("Searching…");
  try{
-  const res=await fetch("/search?q="+encodeURIComponent(q),{signal:AbortSignal.timeout(12000)});
+  const res=await fetch("/search?q="+encodeURIComponent(q),{signal});
+  if(req!==_searchReq)return; // stale — ignore
   if(!res.ok) throw new Error("HTTP "+res.status);
   const data=await res.json();
+  if(req!==_searchReq)return;
   const list=(Array.isArray(data)?data:[]).map(v=>({
    id:v.id||v.videoId,
    title:v.title||"Unknown",
@@ -1588,6 +1602,8 @@ async function searchLocal(q){
   $("#trackHeading").textContent="Search · "+list.length+" results";
   toast(list.length+" songs found");
  }catch(e){
+  if(req!==_searchReq)return; // aborted or superseded
+  if(e&&(e.name==="AbortError"||e.message==="The operation was aborted."))return;
   console.warn("Search error",e);
   // fallback local filter if API down
   const ql=q.toLowerCase();
@@ -1730,9 +1746,13 @@ function bind(){
   const moodMap={"Chill Vibes":"Chill","Workout":"Workout","Romantic":"Romantic","Focus":"Focus","Party":"Party"};
   if(moodMap[page])playMood(moodMap[page]);
  });
- let searchTimer;
- $("#search").addEventListener("input",e=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>searchLocal(e.target.value),200)});
- $("#search").addEventListener("keydown",e=>{if(e.key==="Enter")searchLocal(e.target.value)});
+ // Search ONLY on Enter — typing must not update results panel
+ $("#search").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){
+   e.preventDefault();
+   searchLocal(e.target.value);
+  }
+ });
  ["#play","#rPlay","#lyricsPlay","#minimalPlay"].forEach(sel=>$(sel)?.addEventListener("click",togglePlay));
  ["#next","#rNext","#lyricsNext","#minimalNext"].forEach(sel=>$(sel)?.addEventListener("click",nextSong));
  ["#prev","#rPrev","#lyricsPrev","#minimalPrev"].forEach(sel=>$(sel)?.addEventListener("click",prevSong));
@@ -2074,16 +2094,17 @@ function init(){
  setTimeout(syncRecentToCardsHeight,400);
  setTimeout(syncRecentToCardsHeight,1200);
  if(window.YT&&window.YT.Player)onYouTubeIframeAPIReady();
- // Live trending if server available
+ // Live trending once on load — never overwrite if user already searched (Enter)
  fetch("/search?q="+encodeURIComponent("trending bollywood hits"),{signal:AbortSignal.timeout(8000)})
   .then(r=>r.ok?r.json():null)
   .then(data=>{
+   if(_searchReq>0)return; // user already did an Enter search
    if(!Array.isArray(data)||!data.length)return;
    const list=data.map(v=>({
     id:v.id||v.videoId,title:v.title||"Unknown",artist:v.author||"Unknown",mood:"Trending",
     thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
    })).filter(s=>s.id);
-   if(list.length){state.fromDiscovery=true;state.queue=list;state.songs=list;renderCards(list);$("#trackHeading").textContent="🔥 Trending Now"}
+   if(list.length&&_searchReq===0){state.fromDiscovery=true;state.queue=list;state.songs=list;renderCards(list);$("#trackHeading").textContent="🔥 Trending Now"}
   }).catch(()=>{});
 }
 init();
