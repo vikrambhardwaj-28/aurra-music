@@ -333,7 +333,8 @@ body:has(.immersive-player.open) .player{display:none!important}
 .minimal-bottom input[type=range]{flex:1 1 auto;width:100%;height:4px;accent-color:#fff;margin:0}
 .toast{position:fixed;z-index:40;bottom:112px;left:50%;transform:translate(-50%,10px);opacity:0;transition:.2s;background:var(--b);color:#081023;font-size:11px;font-weight:800;padding:10px 16px;border-radius:12px;pointer-events:none}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-#yt-player{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0}
+/* Keep player in layout so mobile browsers are less likely to suspend audio */
+#yt-player{position:fixed;width:2px;height:2px;opacity:0.01;pointer-events:none;bottom:0;left:0;z-index:-1;overflow:hidden}
 /* Desktop: keep bottom player docked & fixed while page scrolls */
 @media(min-width:701px){
   .player,.player.glass,#playerBar{position:fixed!important;left:18px;right:18px;bottom:13px;z-index:55}
@@ -866,7 +867,7 @@ function loadPlaylists(){
   });
   return out;
 }
-const state={songs:[...CATALOG],queue:[...CATALOG],currentIndex:-1,playing:false,shuffle:false,repeat:0,volume:70,favorites:loadJSON("auraFavs",[]),likedSongs:loadJSON("auraLikedSongs",[]),customPlaylists:loadPlaylists(),profile:loadJSON("auraProfile",{}),recentPlayed:loadJSON("auraRecent",[]),bgImage:(()=>{try{return localStorage.getItem("auraBgImage")||""}catch(e){return""}})(),bgImageDim:+((()=>{try{return localStorage.getItem("auraBgDim")||55}catch(e){return55}})()),ytPlayer:null,ytReady:false,progressTimer:null,fsView:"lyrics",fromDiscovery:true,lastSuggestedFor:"",aiQueue:[],aiLoading:false,ctxSong:null,sleepMin:0,sleepEndsAt:0,sleepTimer:null,eqBands:[50,50,50,50,50],eqPreset:"flat"};
+const state={songs:[...CATALOG],queue:[...CATALOG],currentIndex:-1,playing:false,wantPlaying:false,userPaused:false,shuffle:false,repeat:0,volume:70,favorites:loadJSON("auraFavs",[]),likedSongs:loadJSON("auraLikedSongs",[]),customPlaylists:loadPlaylists(),profile:loadJSON("auraProfile",{}),recentPlayed:loadJSON("auraRecent",[]),bgImage:(()=>{try{return localStorage.getItem("auraBgImage")||""}catch(e){return""}})(),bgImageDim:+((()=>{try{return localStorage.getItem("auraBgDim")||55}catch(e){return55}})()),ytPlayer:null,ytReady:false,progressTimer:null,fsView:"lyrics",fromDiscovery:true,lastSuggestedFor:"",aiQueue:[],aiLoading:false,ctxSong:null,sleepMin:0,sleepEndsAt:0,sleepTimer:null,eqBands:[50,50,50,50,50],eqPreset:"flat"};
 const EQ_PRESETS={flat:[50,50,50,50,50],bass:[82,70,48,40,38],vocal:[40,48,72,68,45],treble:[35,42,55,75,85],electronic:[78,45,55,70,80]};
 const fmt=s=>{if(!s||!isFinite(s))return"0:00";const m=Math.floor(s/60),sec=Math.floor(s%60);return m+":"+String(sec).padStart(2,"0")};
 
@@ -1379,6 +1380,17 @@ function forceHighQuality(){
     state.ytPlayer.setPlaybackQualityRange?.(best,best);
   }catch(e){}
 }
+function resumeIfNeeded(){
+  try{
+    if(state.userPaused||!state.ytPlayer||!state.ytReady)return;
+    if(!state.wantPlaying)return;
+    const st=state.ytPlayer.getPlayerState?.();
+    // -1 unstarted, 0 ended, 2 paused
+    if(st===2||st===-1||st===0||st===YT?.PlayerState?.PAUSED){
+      state.ytPlayer.playVideo();
+    }
+  }catch(e){}
+}
 function onYouTubeIframeAPIReady(){
  state.ytPlayer=new YT.Player("yt-player",{
   height:"1",width:"1",
@@ -1386,9 +1398,35 @@ function onYouTubeIframeAPIReady(){
   events:{
    onReady:()=>{state.ytReady=true;applyPlayerVolume();forceHighQuality()},
    onStateChange:e=>{
-    if(e.data===YT.PlayerState.ENDED){if(state.repeat===2)playSong(state.currentIndex);else nextSong()}
-    if(e.data===YT.PlayerState.PLAYING){state.playing=true;startProgress();updateNowUI();forceHighQuality()}
-    if(e.data===YT.PlayerState.PAUSED){state.playing=false;stopProgress();updateNowUI()}
+    if(e.data===YT.PlayerState.ENDED){
+      state.wantPlaying=true;state.userPaused=false;
+      if(state.repeat===2)playSong(state.currentIndex);else nextSong();
+      return;
+    }
+    if(e.data===YT.PlayerState.PLAYING){
+      state.playing=true;state.wantPlaying=true;state.userPaused=false;
+      startProgress();updateNowUI();forceHighQuality();
+      return;
+    }
+    if(e.data===YT.PlayerState.PAUSED){
+      // System/background pause vs real user pause
+      if(state.userPaused){
+        state.playing=false;state.wantPlaying=false;stopProgress();updateNowUI();
+      }else if(document.hidden||document.visibilityState==="hidden"){
+        // Mobile background: keep wantPlaying, try resume, don't flip UI to paused
+        state.wantPlaying=true;
+        try{if(navigator.mediaSession)navigator.mediaSession.playbackState="playing"}catch(err){}
+        clearTimeout(state._bgResumeT);
+        state._bgResumeT=setTimeout(resumeIfNeeded,400);
+        setTimeout(resumeIfNeeded,1200);
+        setTimeout(resumeIfNeeded,3000);
+      }else{
+        // Foreground pause without user flag — treat as pause but allow media session resume
+        state.playing=false;stopProgress();updateNowUI();
+        if(state.wantPlaying){setTimeout(resumeIfNeeded,300)}
+      }
+      return;
+    }
     if(e.data===YT.PlayerState.BUFFERING||e.data===YT.PlayerState.CUED){forceHighQuality()}
    },
    onError:(e)=>{console.warn("YT error",e?.data);if(!state._skipping){state._skipping=true;setTimeout(()=>{state._skipping=false;try{nextSong()}catch(err){}},500)}}
@@ -1547,6 +1585,7 @@ async function loadLyrics(videoId, title, artist){
 function playSong(index){state._skip=false;state._skipping=false;
  if(index<0||index>=state.queue.length)return;
  state.currentIndex=index;
+ state.userPaused=false;state.wantPlaying=true;
  const s=state.queue[index];if(!s)return;
  updateNowUI();
  addToRecent(s);
@@ -1569,7 +1608,13 @@ function playSong(index){state._skip=false;state._skipping=false;
 function togglePlay(){
  if(state.currentIndex<0){playSong(0);return}
  if(!state.ytPlayer)return;
- if(state.playing){state.ytPlayer.pauseVideo();state.playing=false}else{state.ytPlayer.playVideo();state.playing=true}
+ if(state.playing||state.wantPlaying){
+  state.userPaused=true;state.wantPlaying=false;state.playing=false;
+  try{state.ytPlayer.pauseVideo()}catch(e){}
+ }else{
+  state.userPaused=false;state.wantPlaying=true;state.playing=true;
+  try{state.ytPlayer.playVideo()}catch(e){}
+ }
  updateNowUI();
 }
 function nextSong(){
@@ -2367,14 +2412,26 @@ function init(){
  // Keep playing + media notification when tab is backgrounded / phone locked
  document.addEventListener("visibilitychange",()=>{
   try{
-   if(document.visibilityState==="visible"&&state.playing&&state.ytPlayer){
-    const st=state.ytPlayer.getPlayerState?.();
-    // 2 = paused by browser — resume
-    if(st===2||st===YT?.PlayerState?.PAUSED){state.ytPlayer.playVideo()}
+   if(document.visibilityState==="hidden"){
+     // Stay marked as wanting play so OS media controls stay active
+     if(state.playing||state.wantPlaying){
+       state.wantPlaying=true;
+       try{if(navigator.mediaSession)navigator.mediaSession.playbackState="playing"}catch(err){}
+       setTimeout(resumeIfNeeded,300);
+       setTimeout(resumeIfNeeded,1500);
+     }
+   }else{
+     // Back to foreground — force resume if user didn't pause
+     if(!state.userPaused&&state.wantPlaying){
+       resumeIfNeeded();
+       setTimeout(resumeIfNeeded,500);
+     }
    }
    updateMediaSession();
   }catch(e){}
  });
+ window.addEventListener("pageshow",()=>{if(!state.userPaused&&state.wantPlaying)resumeIfNeeded()});
+ window.addEventListener("focus",()=>{if(!state.userPaused&&state.wantPlaying)resumeIfNeeded()});
  // Live trending once on load — never overwrite if user already searched (Enter)
  fetch("/search?q="+encodeURIComponent("trending bollywood hits"),{signal:AbortSignal.timeout(8000)})
   .then(r=>r.ok?r.json():null)
