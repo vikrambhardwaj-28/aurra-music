@@ -19,7 +19,7 @@ try {
   console.log("Lyrics handler loaded (YouTube captions OK)");
 } catch (e) {
   console.warn(
-    "lyricsHandler missing or broken  /lyrics disabled.",
+    "lyricsHandler missing or broken — /lyrics disabled.",
     e.message
   );
 }
@@ -47,6 +47,10 @@ function setCache(key, data) {
   }
   searchCache.set(key, { data, exp: Date.now() + CACHE_TTL });
 }
+
+// High-quality audio format preference for yt-dlp
+const HIGH_AUDIO_FORMAT =
+  "bestaudio[abr>=160]/bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best";
 
 // --------------------------------------------------
 // Middleware
@@ -151,7 +155,7 @@ app.post("/api/similar", async (req, res) => {
           {
             role: "system",
             content:
-              "You are a world-class music recommendation engine used by Spotify and Apple Music style apps. You deeply know Bollywood, Hollywood, Punjabi, Tamil, Telugu, Korean, Spanish and global hits. When given a song, you mentally play it in your head  hear the melody, bass, emotion, language and energy  then pick 5 DIFFERENT real songs that a listener would love next. Output ONLY a valid JSON array. No markdown, no explanation, no reasoning, no extra text.",
+              "You are a world-class music recommendation engine used by Spotify and Apple Music style apps. You deeply know Bollywood, Hollywood, Punjabi, Tamil, Telugu, Korean, Spanish and global hits. When given a song, you mentally play it in your head — hear the melody, bass, emotion, language and energy — then pick 5 DIFFERENT real songs that a listener would love next. Output ONLY a valid JSON array. No markdown, no explanation, no reasoning, no extra text.",
           },
           {
             role: "user",
@@ -234,14 +238,7 @@ JSON only:
 });
 
 // --------------------------------------------------
-// High-quality audio format selector for yt-dlp
-// Prefers m4a / high-bitrate audio for crystal-clear sound
-// --------------------------------------------------
-const HIGH_QUALITY_FORMAT =
-  "bestaudio[abr>=160][ext=m4a]/bestaudio[abr>=128][ext=m4a]/bestaudio[ext=m4a]/bestaudio[abr>=160]/bestaudio/best";
-
-// --------------------------------------------------
-// DOWNLOAD (yt-dlp)  high quality
+// DOWNLOAD (yt-dlp) — high quality audio
 // --------------------------------------------------
 app.get("/download", handleDownload);
 app.get("/api/download", handleDownload);
@@ -258,19 +255,16 @@ function handleDownload(req, res) {
     return res.status(400).json({ error: "Invalid id" });
   }
   const url = `https://www.youtube.com/watch?v=${id}`;
-  console.log("Download (HQ):", id, title);
+  console.log("Download:", id, title);
   const bin = process.env.YTDLP_PATH || "yt-dlp";
   const args = [
     "-f",
-    HIGH_QUALITY_FORMAT,
+    HIGH_AUDIO_FORMAT,
     "-o",
     "-",
     "--no-playlist",
     "--no-warnings",
     "--geo-bypass",
-    "--audio-quality",
-    "0",
-    "--prefer-free-formats",
     url,
   ];
   const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
@@ -319,7 +313,7 @@ function handleDownload(req, res) {
 }
 
 // --------------------------------------------------
-// STREAM (background play on phone)  high quality
+// STREAM (background play on phone) — high quality audio
 // --------------------------------------------------
 app.get("/stream", handleStream);
 app.get("/api/stream", handleStream);
@@ -330,19 +324,16 @@ function handleStream(req, res) {
     return res.status(400).json({ error: "Invalid id" });
   }
   const url = `https://www.youtube.com/watch?v=${id}`;
-  console.log("Stream (HQ):", id);
+  console.log("Stream:", id);
   const bin = process.env.YTDLP_PATH || "yt-dlp";
   const args = [
     "-f",
-    HIGH_QUALITY_FORMAT,
+    HIGH_AUDIO_FORMAT,
     "-o",
     "-",
     "--no-playlist",
     "--no-warnings",
     "--geo-bypass",
-    "--audio-quality",
-    "0",
-    "--prefer-free-formats",
     url,
   ];
   const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
@@ -391,5 +382,4 @@ app.get("/", (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Aura Music on", PORT);
   console.log("Routes: /search /stream /download /lyrics /api/similar /health");
-  console.log("Audio format: high-quality bestaudio (m4a preferred, abr>=160)");
 });
