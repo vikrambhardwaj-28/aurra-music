@@ -1,3 +1,6 @@
+server.js
+
+Files
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -309,7 +312,7 @@ function handleDownload(req, res) {
   const bin = process.env.YTDLP_PATH || "yt-dlp";
   const args = [
     "-f",
-    "ba/bestaudio/best",
+    "bestaudio[abr>=160]/bestaudio[acodec^=opus]/bestaudio[acodec^=mp4a]/bestaudio/best",
     "-o",
     "-",
     "--no-playlist",
@@ -378,7 +381,7 @@ function handleStream(req, res) {
   const bin = process.env.YTDLP_PATH || "yt-dlp";
   const args = [
     "-f",
-    "ba/bestaudio/best",
+    "bestaudio[abr>=160]/bestaudio[acodec^=opus]/bestaudio[acodec^=mp4a]/bestaudio/best",
     "-o",
     "-",
     "--no-playlist",
