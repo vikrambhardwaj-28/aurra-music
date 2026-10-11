@@ -1961,7 +1961,7 @@ function bind(){
  document.addEventListener("click",e=>{
   if(!e.target.closest(".search")) hideSuggestions();
  });
- ["#play"","#rPlay","#lyricsPlay","#minimalPlay"].forEach(sel=>$(sel)?.addEventListener("click",togglePlay));
+ ["#play","#rPlay","#lyricsPlay","#minimalPlay"].forEach(sel=>$(sel)?.addEventListener("click",togglePlay));
  ["#next","#rNext","#lyricsNext","#minimalNext"].forEach(sel=>$(sel)?.addEventListener("click",nextSong));
  ["#prev","#rPrev","#lyricsPrev","#minimalPrev"].forEach(sel=>$(sel)?.addEventListener("click",prevSong));
  ["#shuffle","#rShuffle","#lyricsShuffle","#minimalShuffle"].forEach(sel=>$(sel)?.addEventListener("click",()=>{state.shuffle=!state.shuffle;updateNowUI();toast(state.shuffle?"Shuffle on":"Shuffle off")}));
