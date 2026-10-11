@@ -1001,10 +1001,14 @@ function openSongCtx(song, x, y){
   }else{
     html+=`<div class="ctx-label" style="padding-top:8px">Pehle + se playlist banao</div>`;
   }
+  // Download — only in ⋯ menu
+  html+=`<div class="ctx-sep"></div>`;
+  html+=`<div class="ctx-label">ACTIONS</div>`;
+  html+=`<button type="button" data-download="1">⬇ Download</button>`;
   menu.innerHTML=html;
   menu.classList.add("open");
   const pad=8;
-  const mw=menu.offsetWidth||220, mh=menu.offsetHeight||160;
+  const mw=menu.offsetWidth||220, mh=menu.offsetHeight||200;
   let left=x, top=y;
   if(left+mw>window.innerWidth-pad)left=window.innerWidth-mw-pad;
   if(top+mh>window.innerHeight-pad)top=window.innerHeight-mh-pad;
@@ -1012,6 +1016,25 @@ function openSongCtx(song, x, y){
   menu.style.top=Math.max(pad,top)+"px";
 }
 function closeSongCtx(){const m=$("#songCtx");if(m)m.classList.remove("open");state.ctxSong=null}
+function downloadSong(song){
+  if(!song||!song.id){toast("Song not found");return}
+  // Only real YouTube ids — skip temp AI placeholders
+  if(String(song.id).startsWith("ai-")||!/^[a-zA-Z0-9_-]{6,20}$/.test(String(song.id))){
+    toast("Download not available for this track");
+    return;
+  }
+  const title=(song.title||"aura-song").replace(/[^\w\s\u0900-\u097F-]/g," ").replace(/\s+/g," ").trim().slice(0,80)||"aura-song";
+  toast("Downloading…");
+  const url="/download?id="+encodeURIComponent(song.id)+"&title="+encodeURIComponent(title);
+  // Trigger browser download without leaving page
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=title+".mp3";
+  a.rel="noopener";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{try{a.remove()}catch(e){}},500);
+}
 
 
 function cleanSongTitle(title=""){
@@ -1276,15 +1299,30 @@ function updateNowUI(){
  renderQueue();
 }
 
+function forceHighQuality(){
+  try{
+    const p=state.ytPlayer;
+    if(!p)return;
+    const levels=(p.getAvailableQualityLevels&&p.getAvailableQualityLevels())||[];
+    // Highest first — better video tier usually carries higher audio bitrate
+    const prefer=["highres","hd2160","hd1440","hd1080","hd720","large","medium","default"];
+    let pick=null;
+    for(const q of prefer){if(levels.includes(q)){pick=q;break}}
+    if(!pick&&levels.length)pick=levels[0];
+    if(pick&&p.setPlaybackQuality)p.setPlaybackQuality(pick);
+    try{if(p.setPlaybackQualityRange)p.setPlaybackQualityRange("hd1080","highres")}catch(e){}
+  }catch(e){}
+}
 function onYouTubeIframeAPIReady(){
  state.ytPlayer=new YT.Player("yt-player",{
   height:"1",width:"1",
   playerVars:{autoplay:0,controls:0,disablekb:1,fs:0,rel:0,modestbranding:1,playsinline:1,origin:location.origin},
   events:{
-   onReady:()=>{state.ytReady=true;applyPlayerVolume()},
+   onReady:()=>{state.ytReady=true;applyPlayerVolume();forceHighQuality()},
    onStateChange:e=>{
     if(e.data===YT.PlayerState.ENDED){if(state.repeat===2)playSong(state.currentIndex);else nextSong()}
-    if(e.data===YT.PlayerState.PLAYING){state.playing=true;startProgress();updateNowUI()}
+    if(e.data===YT.PlayerState.PLAYING){state.playing=true;forceHighQuality();startProgress();updateNowUI()}
+    if(e.data===YT.PlayerState.BUFFERING){forceHighQuality()}
     if(e.data===YT.PlayerState.PAUSED){state.playing=false;stopProgress();updateNowUI()}
    },
    onError:(e)=>{console.warn("YT error",e?.data);if(!state._skipping){state._skipping=true;setTimeout(()=>{state._skipping=false;try{nextSong()}catch(err){}},500)}}
@@ -1447,10 +1485,10 @@ function playSong(index){state._skip=false;state._skipping=false;
  updateNowUI();
  addToRecent(s);
  if(state.ytReady&&state.ytPlayer){
-  state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;
+  state.ytPlayer.loadVideoById({videoId:s.id,suggestedQuality:"highres"});applyPlayerVolume();forceHighQuality();state.ytPlayer.playVideo();state.playing=true;
  }else{
   const wait=setInterval(()=>{
-   if(state.ytReady&&state.ytPlayer){clearInterval(wait);state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;updateNowUI()}
+   if(state.ytReady&&state.ytPlayer){clearInterval(wait);state.ytPlayer.loadVideoById({videoId:s.id,suggestedQuality:"highres"});applyPlayerVolume();forceHighQuality();state.ytPlayer.playVideo();state.playing=true;updateNowUI()}
   },200);
   setTimeout(()=>clearInterval(wait),8000);
  }
@@ -2014,6 +2052,12 @@ function bind(){
   }
  });
  $("#songCtx")?.addEventListener("click",e=>{
+  const dl=e.target.closest("[data-download]");
+  if(dl){
+   if(state.ctxSong) downloadSong(state.ctxSong);
+   closeSongCtx();
+   return;
+  }
   const b=e.target.closest("[data-add-pl]");if(!b)return;
   const pl=b.dataset.addPl;
   if(state.ctxSong) addSongToPlaylist(pl, state.ctxSong);
