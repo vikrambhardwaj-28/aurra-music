@@ -1790,7 +1790,7 @@ function bind(){
   if(moodMap[page])playMood(moodMap[page]);
  });
  // Live search suggestions (YouTube-style) + history + clear + faster
- let _suggTimer=null,_suggAbort=null,_suggIdx=-1;
+ let _suggTimer=null,_suggAbort=null,_suggIdx=-1,_suggGen=0;
  const suggBox=$("#searchSuggestions");
  const searchClearBtn=$("#searchClear");
  const searchLabel=$(".search");
@@ -1824,29 +1824,87 @@ function bind(){
    $("#search")?.setAttribute("aria-expanded","true");
    return;
   }
-  suggBox.innerHTML=`<div class="sugg-hint">SUGGESTIONS</div>`+list.slice(0,8).map((s,i)=>`
-   <button type="button" class="sugg-item" role="option" data-sugg-i="${i}" data-id="${s.id}">
-    <div class="sugg-thumb" style="${s.thumb?`background-image:url('${s.thumb}')`:""}">${s.thumb?"":"♫"}</div>
-    <div class="sugg-info"><b>${cleanSongTitle(s.title)}</b><small>${cleanArtistName(s.artist)}</small></div>
-   </button>`).join("");
+  // Support two modes: text queries (YouTube-style) OR song objects
+  const isText = typeof list[0]==="string";
+  if(isText){
+   suggBox.innerHTML=`<div class="sugg-hint">SUGGESTIONS</div>`+list.slice(0,8).map((t,i)=>`
+    <button type="button" class="sugg-item" role="option" data-sugg-i="${i}" data-q="${escHtml(t)}">
+     <span class="hist-ico">⌕</span>
+     <div class="sugg-info"><b>${escHtml(t)}</b><small>Search</small></div>
+    </button>`).join("");
+   suggBox._list=null;
+   suggBox._queries=list.slice(0,8);
+   suggBox._mode="text";
+  }else{
+   suggBox.innerHTML=`<div class="sugg-hint">SUGGESTIONS</div>`+list.slice(0,8).map((s,i)=>`
+    <button type="button" class="sugg-item" role="option" data-sugg-i="${i}" data-id="${s.id}">
+     <div class="sugg-thumb" style="${s.thumb?`background-image:url('${s.thumb}')`:""}">${s.thumb?"":"♫"}</div>
+     <div class="sugg-info"><b>${cleanSongTitle(s.title)}</b><small>${cleanArtistName(s.artist)}</small></div>
+    </button>`).join("");
+   suggBox._list=list;
+   suggBox._queries=null;
+   suggBox._mode="sugg";
+  }
   suggBox.classList.add("open");
   $("#search")?.setAttribute("aria-expanded","true");
   _suggIdx=-1;
-  suggBox._list=list;
-  suggBox._mode="sugg";
+ }
+ function fetchYoutubeSuggest(q){
+  return new Promise((resolve)=>{
+   const cb="ytSugg_"+Date.now()+"_"+Math.floor(Math.random()*1e5);
+   let done=false;
+   const finish=(arr)=>{
+    if(done)return; done=true;
+    try{delete window[cb]}catch(e){}
+    if(script&&script.parentNode)script.parentNode.removeChild(script);
+    resolve(Array.isArray(arr)?arr:[]);
+   };
+   window[cb]=function(data){
+    // formats: ["q",[...strings]] OR ["q",[[str,...],...]]
+    let out=[];
+    try{
+     if(Array.isArray(data)&&Array.isArray(data[1])){
+      out=data[1].map(x=>typeof x==="string"?x:(Array.isArray(x)?x[0]:null)).filter(Boolean);
+     }
+    }catch(e){}
+    finish(out);
+   };
+   const script=document.createElement("script");
+   script.src="https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&jsonp="+cb+"&q="+encodeURIComponent(q);
+   script.onerror=()=>finish([]);
+   setTimeout(()=>finish([]),3500);
+   (document.head||document.documentElement).appendChild(script);
+  });
  }
  async function fetchSuggestions(q){
   q=(q||"").trim();
   if(q.length<1){showHistoryPanel();return}
-  if(_suggAbort){try{_suggAbort.abort()}catch(e){}}
-  _suggAbort=typeof AbortController!=="undefined"?new AbortController():null;
-  const signal=_suggAbort?_suggAbort.signal:undefined;
+  // bump generation so late responses are ignored
+  const gen=++_suggGen;
   try{
-   // instant local catalog
+   // 1) instant local catalog (songs with thumbs)
    const ql=q.toLowerCase();
-   const local=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql)).slice(0,6);
-   if(local.length) showSuggestions(local,q);
-   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:signal||AbortSignal.timeout(4500)});
+   const local=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql)).slice(0,4);
+   if(local.length && gen===_suggGen) showSuggestions(local,q);
+
+   // 2) YouTube-style text suggestions (fast, no CORS issues via JSONP)
+   const texts=await fetchYoutubeSuggest(q);
+   if(gen!==_suggGen)return;
+   if(texts&&texts.length){
+    // merge: keep local song hits first, then unique text queries
+    if(local.length){
+     // show text suggestions (YouTube style) — preferred for autocomplete feel
+     showSuggestions(texts,q);
+    }else{
+     showSuggestions(texts,q);
+    }
+    return;
+   }
+   // 3) fallback: light /search if suggest empty
+   if(_suggAbort){try{_suggAbort.abort()}catch(e){}}
+   _suggAbort=typeof AbortController!=="undefined"?new AbortController():null;
+   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:_suggAbort.signal||AbortSignal.timeout(4000)});
+   if(gen!==_suggGen)return;
    if(!res.ok)return;
    const data=await res.json();
    const list=(Array.isArray(data)?data:[]).map(v=>({
@@ -1856,7 +1914,7 @@ function bind(){
     mood:"Search",
     thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
    })).filter(s=>s.id);
-   if(list.length) showSuggestions(list,q);
+   if(list.length && gen===_suggGen) showSuggestions(list,q);
   }catch(e){
    if(e&&(e.name==="AbortError"||String(e.message||"").includes("abort")))return;
   }
@@ -1914,6 +1972,7 @@ function bind(){
    clearTimeout(_suggTimer);
    if(_suggAbort){try{_suggAbort.abort()}catch(err){}}
    _suggAbort=null;
+   _suggGen++; // cancel in-flight suggest
    // Only use suggestion if user arrowed to select one
    if(open&&_suggIdx>=0&&items[_suggIdx]){
     const histQ=items[_suggIdx].dataset.hist;
@@ -1922,6 +1981,14 @@ function bind(){
      updateClearBtn();
      hideSuggestions();
      searchLocal(histQ);
+     return;
+    }
+    const textQ=items[_suggIdx].dataset.q;
+    if(textQ){
+     $("#search").value=textQ;
+     updateClearBtn();
+     hideSuggestions();
+     searchLocal(textQ);
      return;
     }
     if(suggBox&&suggBox._list&&suggBox._list[_suggIdx]){
@@ -1961,7 +2028,17 @@ function bind(){
    return;
   }
   const item=e.target.closest(".sugg-item");
-  if(!item||!suggBox._list)return;
+  if(!item)return;
+  // text query suggestion (YouTube-style)
+  if(item.dataset.q){
+   const t=item.dataset.q;
+   $("#search").value=t;
+   updateClearBtn();
+   hideSuggestions();
+   searchLocal(t);
+   return;
+  }
+  if(!suggBox._list)return;
   const i=+item.dataset.suggI;
   pickSuggestion(suggBox._list[i]);
  });
