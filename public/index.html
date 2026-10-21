@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aura Music">
 <title>Aura Music | Listen to Unlimited Songs Online — Free Music Streaming</title>
 <meta name="description" content="Aura Music — free online music streaming. Search any song, enjoy HD audio, live lyrics, smart playlists, equalizer & sleep timer. Listen to unlimited tracks in a premium glass UI.">
 <meta name="keywords" content="Aura Music, free music, online music player, stream songs, lyrics, playlists, music app">
@@ -102,7 +106,9 @@
   --shine:rgba(255,255,255,.34);
   --gloss:1.55;
 }
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Manrope,system-ui,sans-serif;overflow-x:hidden}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;min-height:100dvh;height:100%;background:var(--bg);color:var(--text);font-family:Manrope,system-ui,sans-serif;overflow-x:hidden;overscroll-behavior:none}
+html{-webkit-text-size-adjust:100%}
+body{position:relative}
 body:before{content:"";position:fixed;inset:0;z-index:-2;background:linear-gradient(120deg,rgba(4,8,24,.76),rgba(5,9,27,.56)),radial-gradient(ellipse at 80% 0%,var(--a),transparent 28%),radial-gradient(ellipse at 10% 95%,var(--b),transparent 26%),linear-gradient(135deg,#111d42,#080d20 50%,#211035);background-attachment:fixed}
 body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.28;background-image:radial-gradient(circle at 20% 20%,#fff 0 1px,transparent 1.5px),radial-gradient(circle at 70% 70%,#fff 0 1px,transparent 1.5px);background-size:180px 180px,230px 230px}
 button,input{font:inherit}button{color:inherit;cursor:pointer;border:none;background:none}
@@ -647,8 +653,16 @@ body:has(.immersive-player.open) .player{display:none!important}
 }
 .lock-screen .lock-hint{
   font-size:12px;color:rgba(255,255,255,.22);letter-spacing:.6px;
-  margin-top:28px;font-weight:400;
+  margin-top:20px;font-weight:400;
 }
+.lock-screen .lock-sleep{
+  display:none;margin-top:14px;padding:8px 16px;border-radius:20px;
+  background:rgba(255,255,255,.08);border:0.5px solid rgba(255,255,255,.12);
+  font-size:13px;font-weight:500;color:rgba(255,255,255,.7);
+  letter-spacing:.3px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.lock-screen .lock-sleep.show{display:inline-block}
+.lock-screen .lock-sleep span{color:rgba(255,255,255,.95);font-variant-numeric:tabular-nums}
 .lock-screen .lock-now{
   text-align:center;padding:0 8px;max-width:360px;width:100%;
   display:flex;flex-direction:column;align-items:center;gap:14px;
@@ -1028,6 +1042,7 @@ body.screen-locked .toast{
     <div class="lock-time" id="lockTime">00:00</div>
     <div class="lock-date" id="lockDate"></div>
     <div class="lock-hint">Triple tap to unlock</div>
+    <div class="lock-sleep" id="lockSleep"><span id="lockSleepTime">—</span></div>
   </div>
   <div class="lock-now">
     <div class="lock-art" id="lockArt"></div>
@@ -1965,6 +1980,21 @@ function updateSleepSideUI(txt,hint){
  if($("#sleepStatus")) $("#sleepStatus").textContent=txt||"";
  if($("#sideSleepStatus")) $("#sideSleepStatus").textContent=txt||"";
  if($("#sideSleepHint")) $("#sideSleepHint").textContent=hint!=null?hint:(state.sleepMin?state.sleepMin+"m":"Off");
+ // mirror on lock screen
+ try{updateLockSleepUI()}catch(e){}
+}
+function updateLockSleepUI(){
+ const el=$("#lockSleep"), tm=$("#lockSleepTime");
+ if(!el)return;
+ if(state.sleepEndsAt&&state.sleepMin){
+  const left=Math.max(0,state.sleepEndsAt-Date.now());
+  if(left<=0){el.classList.remove("show");return}
+  const m=Math.floor(left/60000),sec=Math.floor((left%60000)/1000);
+  el.classList.add("show");
+  if(tm) tm.textContent="⏱ Sleep · "+m+":"+String(sec).padStart(2,"0");
+ }else{
+  el.classList.remove("show");
+ }
 }
 function clearSleepTimer(){
  if(state.sleepTimer){clearInterval(state.sleepTimer);state.sleepTimer=null}
@@ -1990,6 +2020,15 @@ function setSleepTimer(mins){
    clearSleepTimer();
    try{if(state.playing)togglePlay()}catch(e){}
    toast("Sleep timer — music paused 😴");
+   // Auto hard-lock screen when sleep ends (mobile)
+   setTimeout(()=>{
+    try{
+      if(window.innerWidth<=700 && typeof state._enterLock==="function"){
+        if(!state.screenLocked) state._enterLock();
+        else updateLockSleepUI();
+      }
+    }catch(e){}
+   },500);
    return;
   }
   const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);
@@ -2747,13 +2786,50 @@ function bind(){
  $("#mActSleep")?.addEventListener("click",()=>openFloat("#sleepModal"));
  $("#mActEq")?.addEventListener("click",()=>{syncEqUI();openFloat("#eqModal")});
  $("#mActPl")?.addEventListener("click",()=>openCreatePlaylist());
+ // —— App Fullscreen (browser chrome hide, no overlap) ——
+ function isAppFullscreen(){
+  return !!(document.fullscreenElement||document.webkitFullscreenElement||document.msFullscreenElement);
+ }
+ function enterAppFullscreen(){
+  if(isAppFullscreen()) return true;
+  try{
+   const el=document.documentElement;
+   const req=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen||el.msRequestFullscreen;
+   if(req){
+    const r=req.call(el);
+    if(r&&typeof r.then==="function") r.catch(()=>{});
+    return true;
+   }
+  }catch(e){}
+  return false;
+ }
+ // First real user gesture → fullscreen once (browsers require gesture)
+ if(!state._fsBound){
+  state._fsBound=true;
+  const onceFs=(e)=>{
+   // ignore if already trying lock path separately
+   enterAppFullscreen();
+   document.removeEventListener("pointerdown",onceFs,true);
+   document.removeEventListener("touchstart",onceFs,true);
+   document.removeEventListener("click",onceFs,true);
+  };
+  document.addEventListener("pointerdown",onceFs,true);
+  document.addEventListener("touchstart",onceFs,{capture:true,passive:true});
+  document.addEventListener("click",onceFs,true);
+ }
+ // If user leaves fullscreen, next interaction can restore (gentle, not loop)
+ document.addEventListener("fullscreenchange",()=>{
+  state._wasFs=isAppFullscreen();
+ });
+ document.addEventListener("webkitfullscreenchange",()=>{
+  state._wasFs=isAppFullscreen();
+ });
  // Screen Lock (mobile)
  let _lockTapCount=0,_lockTapTimer=null,_lockClockTimer=null;
  function updateLockClock(){
   const now=new Date();
   let h=now.getHours(),m=now.getMinutes();
   // Apple-style 12h clock (no leading zero on hour)
-  const ap=h>=12?"PM":"AM";
   h=h%12;if(h===0)h=12;
   if($("#lockTime")) $("#lockTime").textContent=h+":"+String(m).padStart(2,"0");
   if($("#lockDate")){
@@ -2762,6 +2838,7 @@ function bind(){
     $("#lockDate").textContent=d;
    }catch(e){$("#lockDate").textContent=""}
   }
+  try{updateLockSleepUI()}catch(e){}
  }
  function enterScreenLock(){
   if(window.innerWidth>700){toast("Lock is for mobile only");return}
@@ -2789,12 +2866,8 @@ function bind(){
     history.pushState({auraLock:1},"");
     history.pushState({auraLock:1},"");
   }catch(e){}
-  // Try fullscreen (blocks some browser chrome)
-  try{
-    const el=document.documentElement;
-    const req=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen;
-    if(req) req.call(el);
-  }catch(e){}
+  // Fullscreen so browser bars don't overlap lock UI
+  try{enterAppFullscreen()}catch(e){}
   // Keep screen awake while locked (music workaround)
   try{
     if(navigator.wakeLock&&navigator.wakeLock.request){
@@ -2803,6 +2876,7 @@ function bind(){
   }catch(e){}
   toast("Screen locked · triple tap to unlock");
  }
+ state._enterLock = enterScreenLock;
  function exitScreenLock(){
   const ls=$("#lockScreen");if(!ls)return;
   document.body.classList.remove("screen-locked");
