@@ -1635,10 +1635,42 @@ async function loadLyrics(videoId, title, artist){
 
 function getNativeAudio(){return document.getElementById("nativeAudio")}
 function isNativeMode(){return state.audioMode==="native"}
+function isMobileUA(){return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||window.innerWidth<=700}
+
+/** Unlock audio + silent AudioContext so mobile OS allows background playback */
+function unlockAudioEngine(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){
+      if(!state._actx) state._actx=new AC();
+      if(state._actx.state==="suspended") state._actx.resume().catch(()=>{});
+      // tiny silent buffer keeps session "active" on some Android builds
+      if(!state._keepNode&&state._actx){
+        const buf=state._actx.createBuffer(1,1,22050);
+        const src=state._actx.createBufferSource();
+        src.buffer=buf;
+        src.connect(state._actx.destination);
+        src.start(0);
+        state._keepNode=true;
+      }
+    }
+  }catch(e){}
+  const a=getNativeAudio();
+  if(a){
+    a.setAttribute("playsinline","");
+    a.setAttribute("webkit-playsinline","");
+    a.muted=false;
+  }
+}
 function stopNativeAudio(){
   const a=getNativeAudio();
   if(!a)return;
-  try{a.pause();a.removeAttribute("src");a.load()}catch(e){}
+  try{
+    if(state._blobUrl){URL.revokeObjectURL(state._blobUrl);state._blobUrl=null}
+    a.pause();
+    a.removeAttribute("src");
+    a.load();
+  }catch(e){}
 }
 function stopYtAudio(){
   try{if(state.ytPlayer&&state.ytPlayer.stopVideo)state.ytPlayer.stopVideo()}catch(e){}
@@ -1708,45 +1740,138 @@ function playViaYt(s){
   },200);
   setTimeout(()=>clearInterval(wait),8000);
 }
-function playViaNative(s){
+/** Piped / Invidious — direct audio URLs (background-friendly, no YT iframe) */
+async function resolveExternalAudioUrls(videoId){
+  const out=[];
+  const piped=[
+    "https://pipedapi.kavin.rocks",
+    "https://pipedapi.adminforge.de",
+    "https://pipedapi.syncpundit.io",
+    "https://pipedapi.leptons.xyz"
+  ];
+  for(const base of piped){
+    try{
+      const ctrl=typeof AbortController!=="undefined"?new AbortController():null;
+      const t=ctrl?setTimeout(()=>ctrl.abort(),7000):null;
+      const res=await fetch(base+"/streams/"+encodeURIComponent(videoId),{
+        signal:ctrl?ctrl.signal:undefined,
+        headers:{"Accept":"application/json"}
+      });
+      if(t)clearTimeout(t);
+      if(!res||!res.ok)continue;
+      const j=await res.json();
+      const list=(j.audioStreams||[]).slice().sort((a,b)=>(b.bitrate||0)-(a.bitrate||0));
+      list.forEach(x=>{if(x&&x.url)out.push(x.url)});
+      if(out.length)break;
+    }catch(e){}
+  }
+  if(!out.length){
+    const inv=[
+      "https://inv.nadeko.net",
+      "https://invidious.fdn.fr",
+      "https://yewtu.be"
+    ];
+    for(const base of inv){
+      try{
+        const ctrl=typeof AbortController!=="undefined"?new AbortController():null;
+        const t=ctrl?setTimeout(()=>ctrl.abort(),7000):null;
+        const res=await fetch(base+"/api/v1/videos/"+encodeURIComponent(videoId)+"?local=true",{
+          signal:ctrl?ctrl.signal:undefined,
+          headers:{"Accept":"application/json"}
+        });
+        if(t)clearTimeout(t);
+        if(!res||!res.ok)continue;
+        const j=await res.json();
+        const fmts=[...(j.adaptiveFormats||[]),...(j.formatStreams||[])]
+          .filter(f=>f&&f.url&&String(f.type||f.mimeType||"").includes("audio"))
+          .sort((a,b)=>(b.bitrate||0)-(a.bitrate||0));
+        fmts.forEach(f=>out.push(f.url));
+        if(out.length)break;
+      }catch(e){}
+    }
+  }
+  // unique preserve order
+  return [...new Set(out)].slice(0,6);
+}
+
+/** Native HTML5 audio — only this keeps playing in background on phones */
+async function playViaNative(s){
   const a=getNativeAudio();
-  if(!a||!s||!s.id)return Promise.reject(new Error("no audio"));
+  if(!a||!s||!s.id)throw new Error("no audio");
+  unlockAudioEngine();
   state.audioMode="native";
   stopYtAudio();
-  const urls=[
-    "/api/stream?id="+encodeURIComponent(s.id),
-    "/stream?id="+encodeURIComponent(s.id)
+  if(state._blobUrl){try{URL.revokeObjectURL(state._blobUrl)}catch(e){}state._blobUrl=null}
+
+  // 1) own server stream  2) external direct audio (Piped/Invidious)
+  let urls=[
+    "/api/stream?id="+encodeURIComponent(s.id)+"&t="+Date.now(),
+    "/stream?id="+encodeURIComponent(s.id)+"&t="+Date.now()
   ];
-  let i=0;
-  const tryUrl=()=>new Promise((resolve,reject)=>{
-    if(i>=urls.length){reject(new Error("stream fail"));return}
-    const url=urls[i++];
-    const onErr=()=>{
-      a.removeEventListener("error",onErr);
+  try{
+    const ext=await resolveExternalAudioUrls(s.id);
+    if(ext&&ext.length) urls=urls.concat(ext);
+  }catch(e){}
+
+  const tryOne=(url)=>new Promise((resolve,reject)=>{
+    let settled=false;
+    const done=(ok,err)=>{
+      if(settled)return;
+      settled=true;
+      clearTimeout(timer);
       a.removeEventListener("playing",onOk);
-      tryUrl().then(resolve).catch(reject);
-    };
-    const onOk=()=>{
+      a.removeEventListener("canplay",onOk);
+      a.removeEventListener("loadeddata",onOk);
       a.removeEventListener("error",onErr);
-      a.removeEventListener("playing",onOk);
-      resolve();
+      ok?resolve():reject(err||new Error("fail"));
     };
-    a.addEventListener("error",onErr,{once:true});
+    const onOk=()=>done(true);
+    const onErr=()=>done(false,new Error("audio error"));
+    const timer=setTimeout(()=>done(false,new Error("timeout")),14000);
     a.addEventListener("playing",onOk,{once:true});
+    a.addEventListener("canplay",onOk,{once:true});
+    a.addEventListener("loadeddata",onOk,{once:true});
+    a.addEventListener("error",onErr,{once:true});
     try{
+      // do NOT set crossOrigin — breaks many googlevideo URLs
+      a.removeAttribute("crossorigin");
+      a.preload="auto";
       a.src=url;
-      a.load();
       applyPlayerVolume();
       const p=a.play();
+      if(p&&p.then)p.then(()=>done(true)).catch(()=>{});
+    }catch(e){done(false,e)}
+  });
+
+  let lastErr=null;
+  for(const url of urls){
+    try{
+      await tryOne(url);
+      state.playing=true;
+      state.streamOk=true;
+      startProgress();
+      startBgWatchdog();
+      updateNowUI();
+      updateMediaSession(s);
+      return;
+    }catch(e){lastErr=e}
+  }
+  throw lastErr||new Error("all native sources failed");
+}
+function startBgWatchdog(){
+  if(state._bgWatch)return;
+  state._bgWatch=setInterval(()=>{
+    if(!state.playing||!isNativeMode())return;
+    const a=getNativeAudio();
+    if(!a)return;
+    // If OS paused us while we still want play — force resume
+    if(a.paused){
+      unlockAudioEngine();
+      const p=a.play();
       if(p&&p.catch)p.catch(()=>{});
-    }catch(e){onErr()}
-  });
-  return tryUrl().then(()=>{
-    state.playing=true;
-    startProgress();
-    updateNowUI();
-    updateMediaSession(s);
-  });
+    }
+    try{if(state._actx&&state._actx.state==="suspended")state._actx.resume()}catch(e){}
+  },1500);
 }
 function ensureNativeListeners(){
   if(state._nativeBound)return;
@@ -1764,26 +1889,43 @@ function ensureNativeListeners(){
   });
   a.addEventListener("pause",()=>{
     if(!isNativeMode())return;
-    // ignore pause while switching tracks
     if(state._switching)return;
+    // When tab hidden, browser may fire pause — try resume instead of giving up
+    if(document.hidden&&state.playing!==false){
+      setTimeout(()=>{
+        if(document.hidden&&isNativeMode()){
+          const el=getNativeAudio();
+          if(el&&el.paused){el.play().catch(()=>{})}
+        }
+      },300);
+      return;
+    }
     state.playing=false;stopProgress();updateNowUI();updateMediaSession(currentSong());
+  });
+  a.addEventListener("stalled",()=>{
+    if(!isNativeMode()||!state.playing)return;
+    setTimeout(()=>{try{a.play().catch(()=>{})}catch(e){}},500);
   });
 }
 function playSong(index){state._skip=false;state._skipping=false;state._switching=true;
  if(index<0||index>=state.queue.length)return;
  state.currentIndex=index;
  const s=state.queue[index];if(!s)return;
+ unlockAudioEngine();
  updateNowUI();
  addToRecent(s);
  bindMediaSessionHandlers();
  ensureNativeListeners();
- // Prefer HTML5 /stream so audio keeps playing in background / screen off
+ // Always try native stream first (only this supports true background play)
  playViaNative(s).then(()=>{
    state._switching=false;
  }).catch(()=>{
-   // Fallback: YouTube (may pause when app goes background on mobile)
+   // YouTube fallback — background usually will NOT work on mobile
    playViaYt(s);
    state._switching=false;
+   if(isMobileUA()){
+     setTimeout(()=>toast("Background: server /stream needed"),1800);
+   }
  });
  toast("▶ "+s.title);
  updateMediaSession(s);
@@ -1888,21 +2030,23 @@ function seekTo(pct){
    else state.ytPlayer?.seekTo?.(t,true);
  }catch(e){}
 }
-// Keep playing when tab/app goes background (native audio + resume attempt)
+// Keep playing when tab/app goes background
 document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible"&&state.playing){
+  unlockAudioEngine();
+  if(state.playing){
     try{
       if(isNativeMode()){
         const a=getNativeAudio();
         if(a&&a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{})}
       }else if(state.ytPlayer){
+        // YT almost always pauses in background — try anyway
         try{state.ytPlayer.playVideo()}catch(e){}
       }
     }catch(e){}
   }
 });
-// iOS / Android: resume after brief interruptions
 window.addEventListener("focus",()=>{
+  unlockAudioEngine();
   if(!state.playing)return;
   try{
     if(isNativeMode()){
@@ -1910,6 +2054,16 @@ window.addEventListener("focus",()=>{
       if(a&&a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{})}
     }
   }catch(e){}
+});
+window.addEventListener("pageshow",()=>{
+  if(state.playing&&isNativeMode()){
+    const a=getNativeAudio();
+    if(a&&a.paused)a.play().catch(()=>{});
+  }
+});
+// First tap anywhere unlocks audio engine (required on iOS/Android)
+["touchstart","click"].forEach(ev=>{
+  document.addEventListener(ev,()=>unlockAudioEngine(),{passive:true,once:false});
 });
 function toggleLike(){
  const s=currentSong();if(!s)return;
