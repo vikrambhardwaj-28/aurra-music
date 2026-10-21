@@ -2325,16 +2325,37 @@ function bind(){
      let lastErr="";
      for(const path of urls){
       try{
-       const res=await fetchWithTimeout(path,90000,{headers:{"Accept":"*/*"}});
-       if(!res){lastErr="no response";continue}
+       const res=await fetchWithTimeout(path,120000,{headers:{"Accept":"*/*"}});
+       if(!res){lastErr="Server no response";continue}
        const ct=(res.headers.get("content-type")||"").toLowerCase();
-       if(!res.ok||ct.includes("application/json")||ct.includes("text/html")||ct.includes("text/plain")){
-        try{const j=await res.json();lastErr=j.error||j.detail||("HTTP "+res.status)}catch(e){lastErr="HTTP "+res.status}
+       // JSON / HTML error — never save as mp3
+       if(!res.ok||ct.includes("json")||ct.includes("text/html")||ct.includes("text/plain")){
+        let msg="HTTP "+res.status;
+        try{
+         const j=await res.json();
+         msg=j.error||j.detail||msg;
+         if(j.error&&j.detail) msg=j.error+" — "+String(j.detail).slice(0,80);
+        }catch(e){
+         try{msg=(await res.text()).slice(0,120)||msg}catch(e2){}
+        }
+        lastErr=msg;
         continue;
        }
        const blob=await res.blob();
-       if(!blob||blob.size<2000){lastErr="empty file";continue}
-       const ext=ct.includes("webm")?".webm":ct.includes("mp4")||ct.includes("m4a")?".m4a":".mp3";
+       if(!blob||blob.size<4000){
+        try{
+         const t=await blob.text();
+         if(t.trim().startsWith("{")){const j=JSON.parse(t);lastErr=j.error||j.detail||"Server error";continue}
+        }catch(e){}
+        lastErr="Empty or invalid audio from server";
+        continue;
+       }
+       const head=await blob.slice(0,8).text().catch(()=>"");
+       if(head.trim().startsWith("{")||head.trim().startsWith("<")){
+        lastErr="Server returned error, not audio";
+        continue;
+       }
+       const ext=ct.includes("webm")?".webm":(ct.includes("mp4")||ct.includes("m4a"))?".m4a":".mp3";
        const obj=URL.createObjectURL(blob);
        const a=document.createElement("a");
        a.href=obj;
@@ -2342,24 +2363,16 @@ function bind(){
        document.body.appendChild(a);
        a.click();
        a.remove();
-       setTimeout(()=>URL.revokeObjectURL(obj),8000);
+       setTimeout(()=>URL.revokeObjectURL(obj),10000);
        toast("Downloaded · "+title);
        return;
-      }catch(err){lastErr=err&&err.message?err.message:"failed"}
+      }catch(err){
+       lastErr=(err&&err.name==="AbortError")?"Timeout — yt-dlp slow/blocked":(err&&err.message)||"Network error";
+      }
      }
-     // Fallback: let browser hit the endpoint directly (Content-Disposition)
-     try{
-      const a=document.createElement("a");
-      a.href="/api/download?"+q;
-      a.setAttribute("download",title+".mp3");
-      a.style.display="none";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      toast("Download requested · "+title);
-     }catch(e){
-      toast(lastErr?("Download failed: "+String(lastErr).slice(0,80)):"Download failed");
-     }
+     // No fake link — that was saving .mp3.json error files
+     toast(String(lastErr||"Download failed").slice(0,110));
+     console.warn("Download failed:", lastErr);
     })();
     return;
    }
