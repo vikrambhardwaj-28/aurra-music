@@ -52,6 +52,43 @@ function setCache(key, data) {
 const HIGH_AUDIO_FORMAT =
   "bestaudio[abr>=160]/bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best";
 
+// Limit concurrent yt-dlp jobs so free Render doesn't OOM / crash
+const MAX_CONCURRENT_DOWNLOADS = Math.max(
+  1,
+  parseInt(process.env.MAX_DOWNLOADS || "2", 10) || 2
+);
+let activeDownloads = 0;
+const downloadQueue = [];
+
+function runQueued(fn) {
+  return new Promise((resolve, reject) => {
+    const job = () => {
+      activeDownloads++;
+      Promise.resolve()
+        .then(fn)
+        .then((v) => {
+          activeDownloads--;
+          pumpQueue();
+          resolve(v);
+        })
+        .catch((e) => {
+          activeDownloads--;
+          pumpQueue();
+          reject(e);
+        });
+    };
+    downloadQueue.push(job);
+    pumpQueue();
+  });
+}
+
+function pumpQueue() {
+  while (activeDownloads < MAX_CONCURRENT_DOWNLOADS && downloadQueue.length) {
+    const next = downloadQueue.shift();
+    if (next) next();
+  }
+}
+
 // --------------------------------------------------
 // Middleware
 // --------------------------------------------------
@@ -66,6 +103,7 @@ app.get("/health", (req, res) => {
     cache: searchCache.size,
     lyrics: !!lyricsHandler,
     ytdlp: process.env.YTDLP_PATH || "yt-dlp",
+    downloads: { active: activeDownloads, queued: downloadQueue.length, max: MAX_CONCURRENT_DOWNLOADS },
     t: Date.now(),
   });
 });
@@ -254,8 +292,20 @@ function safeTitle(raw) {
   );
 }
 
-function buildYtDlpArgs(url, client) {
-  // client: "android" | "ios" | "web" | "tv"
+function getCookiesPath() {
+  const fs = require("fs");
+  const pathMod = require("path");
+  const cookies =
+    process.env.COOKIES_FILE ||
+    process.env.YTDLP_COOKIES ||
+    (fs.existsSync(pathMod.join(__dirname, "cookies.txt"))
+      ? pathMod.join(__dirname, "cookies.txt")
+      : "");
+  return cookies && fs.existsSync(cookies) ? cookies : "";
+}
+
+/** Stream route: pipe bestaudio to client (no convert). */
+function buildStreamArgs(url, client) {
   const args = [
     "-f",
     "bestaudio/best",
@@ -271,36 +321,87 @@ function buildYtDlpArgs(url, client) {
     "3",
     "--extractor-args",
     `youtube:player_client=${client}`,
-    url,
   ];
-  if (process.env.FORCE_MP3 === "1") {
-    // needs ffmpeg on server
-    args.splice(0, 2, "-f", "bestaudio/best", "-x", "--audio-format", "mp3", "--audio-quality", "0");
-  }
+  const cookies = getCookiesPath();
+  if (cookies) args.push("--cookies", cookies);
+  args.push(url);
+  return args;
+}
+
+/**
+ * Download route: write REAL mp3 to temp file then stream.
+ * Note: yt-dlp cannot convert to mp3 when using -o - (stdout).
+ * Must use a real file path + -x --audio-format mp3 (needs ffmpeg).
+ */
+function buildMp3FileArgs(url, client, outTemplate) {
+  const args = [
+    "-f",
+    "bestaudio/best",
+    "-x",
+    "--audio-format",
+    "mp3",
+    "--audio-quality",
+    "0",
+    "-o",
+    outTemplate,
+    "--no-playlist",
+    "--no-warnings",
+    "--geo-bypass",
+    "--no-check-certificates",
+    "--retries",
+    "3",
+    "--fragment-retries",
+    "3",
+    "--extractor-args",
+    `youtube:player_client=${client}`,
+  ];
+  const cookies = getCookiesPath();
+  if (cookies) args.push("--cookies", cookies);
+  args.push(url);
   return args;
 }
 
 function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {}) {
+  const fs = require("fs");
+  const os = require("os");
+  const pathMod = require("path");
+
   const id = String(videoId || "").trim();
   if (!id || !/^[a-zA-Z0-9_-]{6,20}$/.test(id)) {
     return res.status(400).json({ error: "Invalid id" });
   }
 
+  if (activeDownloads >= MAX_CONCURRENT_DOWNLOADS && downloadQueue.length >= 8) {
+    return res.status(429).json({
+      error: "Too many downloads — try again in a few seconds",
+      active: activeDownloads,
+      queued: downloadQueue.length,
+    });
+  }
+
   const url = `https://www.youtube.com/watch?v=${id}`;
   const bin = process.env.YTDLP_PATH || "yt-dlp";
   const safe = safeTitle(title);
-  // Try multiple YouTube clients — android/ios often bypass cloud IP blocks
+  const asMp3 = !inline;
   const clients = String(process.env.YT_CLIENTS || "android,ios,tv_embedded,web")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
 
-  console.log(inline ? "Stream:" : "Download:", id, safe, "clients=", clients.join("|"));
+  console.log(
+    inline ? "Stream:" : "Download(MP3-file):",
+    id,
+    safe,
+    "clients=",
+    clients.join("|")
+  );
 
   let attempt = 0;
   let started = false;
   let lastErr = "";
   let child = null;
+  let finished = false;
+  let tempMp3 = null;
 
   const cleanupChild = () => {
     if (child) {
@@ -311,21 +412,45 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     }
   };
 
+  const cleanupTemp = () => {
+    if (tempMp3) {
+      try {
+        fs.unlinkSync(tempMp3);
+      } catch (_) {}
+      tempMp3 = null;
+    }
+  };
+
   const fail = (code) => {
-    if (res.headersSent) return;
-    const blocked = /403|429|Sign in|bot|confirm.*not a bot|Forbidden|not available/i.test(lastErr);
+    cleanupTemp();
+    if (res.headersSent || finished) return;
+    finished = true;
+    const bot = /Sign in to confirm|not a bot|cookies/i.test(lastErr);
+    const noFfmpeg = /ffmpeg is not installed|ffprobe|Postprocessing|ERROR:.*ffmpeg/i.test(
+      lastErr
+    );
+    const blocked = bot || /403|429|Forbidden|not available/i.test(lastErr);
     res.status(502).json({
-      error: blocked
-        ? "YouTube blocked this server (502). Free Render IPs often fail — use localhost/VPS or update yt-dlp."
-        : "Download failed (502)",
+      error: noFfmpeg
+        ? "ffmpeg missing — MP3 convert needs ffmpeg on server"
+        : bot
+          ? "YouTube bot-check: need cookies.txt on server"
+          : blocked
+            ? "YouTube blocked this server IP."
+            : "Download failed (502)",
       detail: (lastErr || "no output from yt-dlp").slice(0, 280),
       code: code ?? null,
-      hint: "Build: pip install -U yt-dlp   |   Local: yt-dlp -f bestaudio -o - VIDEO_URL",
+      hint: noFfmpeg
+        ? "Build: apt-get install -y ffmpeg && pip install -U yt-dlp"
+        : bot
+          ? "Export YouTube cookies → cookies.txt → COOKIES_FILE env"
+          : "pip install -U yt-dlp | try localhost",
     });
   };
 
-  const tryNext = () => {
-    if (started || res.headersSent) return;
+  // ---- STREAM (inline): pipe raw audio ----
+  const tryStreamNext = () => {
+    if (started || res.headersSent || finished) return;
     if (attempt >= clients.length) {
       fail(1);
       return;
@@ -333,79 +458,187 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     const client = clients[attempt++];
     cleanupChild();
     lastErr = "";
-    const args = buildYtDlpArgs(url, client);
-    console.log("yt-dlp try", client, bin, args.join(" "));
+    const args = buildStreamArgs(url, client);
+    console.log("yt-dlp stream try", client);
 
     child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
-
     child.stderr.on("data", (c) => {
       lastErr += c.toString();
     });
-
     child.stdout.on("data", (chunk) => {
       if (!started) {
         started = true;
-        const ctype =
-          process.env.FORCE_MP3 === "1" ? "audio/mpeg" : "application/octet-stream";
-        const ext = process.env.FORCE_MP3 === "1" ? "mp3" : "m4a";
-        res.setHeader("Content-Type", ctype);
+        res.setHeader("Content-Type", "application/octet-stream");
         res.setHeader(
           "Content-Disposition",
-          `${inline ? "inline" : "attachment"}; filename="${safe}.${ext}"`
+          `inline; filename="${safe}.m4a"`
         );
         res.setHeader("Cache-Control", "no-store");
-        res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
       }
       res.write(chunk);
     });
-
     child.on("error", (e) => {
-      console.error("yt-dlp spawn error:", e.message);
       lastErr += e.message;
-      if (!started) {
-        // binary missing — no point retrying clients
-        if (!res.headersSent) {
-          res.status(503).json({
-            error: "yt-dlp missing on server",
-            detail: e.message,
-            hint: "Build command: pip install -U yt-dlp && npm install",
-          });
-        }
+      if (!started && !res.headersSent) {
+        finished = true;
+        res.status(503).json({
+          error: "yt-dlp missing on server",
+          detail: e.message,
+        });
       }
     });
-
     child.on("close", (code) => {
       if (started) {
-        res.end();
+        if (!finished) {
+          finished = true;
+          res.end();
+        }
         return;
       }
-      console.error("yt-dlp fail client=", client, "code=", code, lastErr.slice(0, 300));
-      // retry next player client
-      tryNext();
+      console.error("stream fail", client, code, lastErr.slice(0, 200));
+      tryStreamNext();
     });
+  };
+
+  // ---- DOWNLOAD: real MP3 via temp file ----
+  const tryMp3Next = () => {
+    if (started || res.headersSent || finished) return;
+    if (attempt >= clients.length) {
+      fail(1);
+      return;
+    }
+    const client = clients[attempt++];
+    cleanupChild();
+    cleanupTemp();
+    lastErr = "";
+
+    // Unique temp path without extension; yt-dlp adds .mp3 after convert
+    const base = pathMod.join(
+      os.tmpdir(),
+      `aura_${id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    );
+    const outTemplate = base + ".%(ext)s";
+    // After -x --audio-format mp3, file will be base.mp3
+    const expectedMp3 = base + ".mp3";
+
+    const args = buildMp3FileArgs(url, client, outTemplate);
+    console.log("yt-dlp mp3 try", client, "->", expectedMp3);
+
+    child = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"] });
+    child.stderr.on("data", (c) => {
+      lastErr += c.toString();
+    });
+    child.on("error", (e) => {
+      lastErr += e.message;
+      if (!started && !res.headersSent) {
+        finished = true;
+        res.status(503).json({
+          error: "yt-dlp missing on server",
+          detail: e.message,
+          hint: "Build: pip install -U yt-dlp && apt-get install -y ffmpeg",
+        });
+      }
+    });
+    child.on("close", (code) => {
+      if (finished || res.headersSent) {
+        cleanupTemp();
+        return;
+      }
+      // Find the mp3 file (sometimes extension varies)
+      let filePath = null;
+      if (fs.existsSync(expectedMp3)) {
+        filePath = expectedMp3;
+      } else {
+        try {
+          const dir = pathMod.dirname(base);
+          const prefix = pathMod.basename(base);
+          const found = fs.readdirSync(dir).find((f) => f.startsWith(prefix));
+          if (found) filePath = pathMod.join(dir, found);
+        } catch (_) {}
+      }
+
+      if (code === 0 && filePath && fs.existsSync(filePath)) {
+        tempMp3 = filePath;
+        started = true;
+        const stat = fs.statSync(filePath);
+        res.setHeader("Content-Type", "audio/mpeg");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${safe}.mp3"`
+        );
+        res.setHeader("Content-Length", stat.size);
+        res.setHeader("Cache-Control", "no-store");
+        res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+
+        const stream = fs.createReadStream(filePath);
+        stream.on("error", (e) => {
+          console.error("read mp3 error", e.message);
+          cleanupTemp();
+          if (!res.headersSent) fail(1);
+          else if (!finished) {
+            finished = true;
+            res.end();
+          }
+        });
+        stream.on("end", () => {
+          finished = true;
+          cleanupTemp();
+          res.end();
+        });
+        stream.pipe(res, { end: false });
+        return;
+      }
+
+      console.error(
+        "mp3 fail client=",
+        client,
+        "code=",
+        code,
+        lastErr.slice(0, 300)
+      );
+      cleanupTemp();
+      tryMp3Next();
+    });
+  };
+
+  // Concurrency slot
+  activeDownloads++;
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    activeDownloads = Math.max(0, activeDownloads - 1);
+    pumpQueue();
+  };
+  const origEnd = res.end.bind(res);
+  res.end = function (...a) {
+    release();
+    cleanupTemp();
+    return origEnd(...a);
+  };
+  const origJson = res.json.bind(res);
+  res.json = function (...a) {
+    release();
+    cleanupTemp();
+    return origJson(...a);
   };
 
   const req = res.req;
   if (req) {
-    req.on("close", () => cleanupChild());
+    req.on("close", () => {
+      cleanupChild();
+      cleanupTemp();
+      finished = true;
+      release();
+    });
   }
 
-  tryNext();
-}
-
-function reqOnClose(res, child) {
-  // Express: use res.req
-  const req = res.req;
-  if (!req) return;
-  req.on("close", () => {
-    try {
-      child.kill("SIGTERM");
-    } catch (_) {}
-  });
+  if (asMp3) tryMp3Next();
+  else tryStreamNext();
 }
 
 // --------------------------------------------------
-// DOWNLOAD
+// DOWNLOAD — always MP3
 // --------------------------------------------------
 app.get("/download", (req, res) => {
   runYtDlpAudio(req.query.id, res, {
@@ -421,7 +654,7 @@ app.get("/api/download", (req, res) => {
 });
 
 // --------------------------------------------------
-// STREAM (background play on phone)
+// STREAM (background play on phone) — raw audio, no MP3 convert
 // --------------------------------------------------
 app.get("/stream", (req, res) => {
   runYtDlpAudio(req.query.id, res, { inline: true, title: req.query.title });
