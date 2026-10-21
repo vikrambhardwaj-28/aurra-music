@@ -1500,11 +1500,19 @@ function renderLyricLines(lines){
     });
   });
 }
+function fetchWithTimeout(url, ms, opts){
+  ms=ms||8000;
+  const ctrl=typeof AbortController!=="undefined"?new AbortController():null;
+  let timer=null;
+  if(ctrl) timer=setTimeout(()=>{try{ctrl.abort()}catch(e){}},ms);
+  const o=Object.assign({},opts||{});
+  if(ctrl) o.signal=ctrl.signal;
+  return fetch(url,o).finally(()=>{if(timer)clearTimeout(timer)});
+}
 async function loadLyrics(videoId, title, artist){
   const req=++_lyricsReq;
   const box=$("#lyricsLines");
   if(box) box.innerHTML=`<p class="lyric active">Loading lyrics…</p>`;
-  // Build multiple clean title variants for better API hits
   let rawT=String(title||"");
   rawT=rawT.split("|")[0].split(" - Official")[0].split(" – Official")[0];
   const cleanTitle=rawT.replace(/\s*[\[\(\{].*?[\]\)\}]\s*/g," ").replace(/\b(Official|Lyric|Lyrics|Audio|Video|MV|HD|4K|Remastered|Live|Version|Topic|VEVO|Full Song|Video Song|Music Video|Original|Motion Picture|Soundtrack|OST)\b/gi," ").replace(/[|•·–—]/g," ").replace(/\s+/g," ").trim();
@@ -1520,7 +1528,6 @@ async function loadLyrics(videoId, title, artist){
 
   const pickBest=(arr)=>{
     if(!Array.isArray(arr)||!arr.length)return null;
-    // Prefer synced, non-instrumental, closest title match
     const scored=arr.filter(x=>x&&!x.instrumental&&(x.syncedLyrics||x.plainLyrics)).map(x=>{
       const tn=(x.trackName||x.name||"").toLowerCase();
       const ct=cleanTitle.toLowerCase();
@@ -1534,69 +1541,89 @@ async function loadLyrics(videoId, title, artist){
     return scored[0]?scored[0].x:null;
   };
 
-  try{
-    let data=null;
-    // 1) LRClib — multiple query shapes
-    const queries=[];
-    if(cleanTitle&&cleanArtist){
-      queries.push("https://lrclib.net/api/get?artist_name="+encodeURIComponent(cleanArtist)+"&track_name="+encodeURIComponent(cleanTitle));
-      if(shortTitle!==cleanTitle)queries.push("https://lrclib.net/api/get?artist_name="+encodeURIComponent(cleanArtist)+"&track_name="+encodeURIComponent(shortTitle));
-    }
-    if(cleanTitle)queries.push("https://lrclib.net/api/search?track_name="+encodeURIComponent(cleanTitle)+(cleanArtist?"&artist_name="+encodeURIComponent(cleanArtist):""));
-    if(shortTitle)queries.push("https://lrclib.net/api/search?track_name="+encodeURIComponent(shortTitle)+(cleanArtist?"&artist_name="+encodeURIComponent(cleanArtist):""));
-    queries.push("https://lrclib.net/api/search?q="+encodeURIComponent([cleanArtist,cleanTitle].filter(Boolean).join(" ")));
-    if(shortTitle&&shortTitle!==cleanTitle)queries.push("https://lrclib.net/api/search?q="+encodeURIComponent([cleanArtist,shortTitle].filter(Boolean).join(" ")));
-    for(const url of queries){
-      try{
-        const res=await fetch(url,{signal:AbortSignal.timeout(7000),headers:{"Accept":"application/json"}});
-        if(!res.ok)continue;
-        const d=await res.json();
-        if(Array.isArray(d)){
-          const best=pickBest(d);
-          if(best){data=best;break}
-        }else if(d&&(d.syncedLyrics||d.plainLyrics)&&!d.instrumental){data=d;break}
-      }catch(e){}
-    }
-    // 2) Server YouTube captions (often best sync for YT tracks)
-    if((!data||!data.syncedLyrics)&&videoId){
-      try{
-        const res=await fetch("/lyrics?id="+encodeURIComponent(videoId),{signal:AbortSignal.timeout(10000)});
-        if(res.ok){
-          const d=await res.json();
-          if(d&&Array.isArray(d.lines)&&d.lines.length){
-            state.lyricsLines=d.lines.map(l=>({time:Math.max(0,+l.time||0),text:String(l.text||"").trim()})).filter(l=>l.text);
-            if(req===_lyricsReq){renderLyricLines(state.lyricsLines);return}
-          }
-          if(d&&typeof d.lyrics==="string"&&d.lyrics.trim()&&!data){
-            data={plainLyrics:d.lyrics};
-          }
-        }
-      }catch(e){}
-    }
-    // 3) lyrics.ovh fallback
-    if((!data||(!data.syncedLyrics&&!data.plainLyrics))&&cleanTitle&&cleanArtist){
-      try{
-        const res=await fetch("https://api.lyrics.ovh/v1/"+encodeURIComponent(cleanArtist)+"/"+encodeURIComponent(shortTitle||cleanTitle),{signal:AbortSignal.timeout(7000)});
-        if(res.ok){const d=await res.json();if(d.lyrics)data={plainLyrics:d.lyrics}}
-      }catch(e){}
-    }
-    if(req!==_lyricsReq)return;
-    if(data&&data.syncedLyrics){
+  const applyData=(data)=>{
+    if(!data)return false;
+    if(data.syncedLyrics){
       state.lyricsLines=parseLrc(data.syncedLyrics);
-    }else if(data&&data.plainLyrics){
+    }else if(data.plainLyrics){
       let dur=180;
       try{dur=state.ytPlayer?.getDuration?.()||180}catch(e){}
       state.lyricsLines=plainToTimed(data.plainLyrics,dur);
     }
-    if(state.lyricsLines.length){
+    return !!(state.lyricsLines&&state.lyricsLines.length);
+  };
+
+  try{
+    let data=null;
+    const origin=(typeof location!=="undefined"&&location.origin)?location.origin:"";
+
+    // 1) Own server first (YouTube captions) — works when backend is up
+    if(videoId){
+      const serverUrls=[
+        origin+"/lyrics?id="+encodeURIComponent(videoId),
+        origin+"/api/lyrics?id="+encodeURIComponent(videoId),
+        "/lyrics?id="+encodeURIComponent(videoId),
+        "/api/lyrics?id="+encodeURIComponent(videoId)
+      ];
+      for(const url of serverUrls){
+        try{
+          const res=await fetchWithTimeout(url,12000,{headers:{"Accept":"application/json"}});
+          if(!res||!res.ok)continue;
+          const d=await res.json();
+          if(d&&Array.isArray(d.lines)&&d.lines.length){
+            state.lyricsLines=d.lines.map(l=>({time:Math.max(0,+l.time||0),text:String(l.text||"").trim()})).filter(l=>l.text);
+            if(state.lyricsLines.length&&req===_lyricsReq){renderLyricLines(state.lyricsLines);return}
+          }
+          if(d&&typeof d.lyrics==="string"&&d.lyrics.trim()){
+            data={plainLyrics:d.lyrics};
+            break;
+          }
+          if(d&&(d.syncedLyrics||d.plainLyrics)){data=d;break}
+        }catch(e){}
+      }
+    }
+
+    // 2) LRClib (public, CORS-friendly)
+    if(!data||(!data.syncedLyrics&&!data.plainLyrics)){
+      const queries=[];
+      if(cleanTitle&&cleanArtist){
+        queries.push("https://lrclib.net/api/get?artist_name="+encodeURIComponent(cleanArtist)+"&track_name="+encodeURIComponent(cleanTitle));
+        if(shortTitle!==cleanTitle)queries.push("https://lrclib.net/api/get?artist_name="+encodeURIComponent(cleanArtist)+"&track_name="+encodeURIComponent(shortTitle));
+      }
+      if(cleanTitle)queries.push("https://lrclib.net/api/search?track_name="+encodeURIComponent(cleanTitle)+(cleanArtist?"&artist_name="+encodeURIComponent(cleanArtist):""));
+      if(shortTitle)queries.push("https://lrclib.net/api/search?track_name="+encodeURIComponent(shortTitle)+(cleanArtist?"&artist_name="+encodeURIComponent(cleanArtist):""));
+      queries.push("https://lrclib.net/api/search?q="+encodeURIComponent([cleanArtist,cleanTitle].filter(Boolean).join(" ")));
+      for(const url of queries){
+        try{
+          const res=await fetchWithTimeout(url,8000,{headers:{"Accept":"application/json"}});
+          if(!res||!res.ok)continue;
+          const d=await res.json();
+          if(Array.isArray(d)){
+            const best=pickBest(d);
+            if(best){data=best;break}
+          }else if(d&&(d.syncedLyrics||d.plainLyrics)&&!d.instrumental){data=d;break}
+        }catch(e){}
+      }
+    }
+
+    // 3) lyrics.ovh
+    if((!data||(!data.syncedLyrics&&!data.plainLyrics))&&cleanTitle&&cleanArtist){
+      try{
+        const res=await fetchWithTimeout("https://api.lyrics.ovh/v1/"+encodeURIComponent(cleanArtist)+"/"+encodeURIComponent(shortTitle||cleanTitle),8000);
+        if(res&&res.ok){const d=await res.json();if(d&&d.lyrics)data={plainLyrics:d.lyrics}}
+      }catch(e){}
+    }
+
+    if(req!==_lyricsReq)return;
+    if(applyData(data)){
       renderLyricLines(state.lyricsLines);
       return;
     }
   }catch(e){console.warn("lyrics",e)}
   if(req!==_lyricsReq)return;
-  // Local fallback
+  // Local fallback — never leave blank
   const fallback=LYRICS_DB[cleanTitle]||LYRICS_DB[title]||LYRICS_DB.default;
-  state.lyricsLines=fallback.map((t,i)=>({time:i*3,text:t}));
+  state.lyricsLines=(fallback||LYRICS_DB.default).map((t,i)=>({time:i*3,text:t}));
   renderLyricLines(state.lyricsLines);
 }
 
@@ -1885,6 +1912,12 @@ function openPlayer(view){
  }
  $("#immersivePlayer").classList.add("open");$("#immersivePlayer").setAttribute("aria-hidden","false");
  document.body.style.overflow="hidden";setView(view);updateNowUI();
+ // Re-fetch lyrics when opening fullscreen (fixes blank lyrics on some hosts)
+ const s=currentSong();
+ if(s&&s.id){
+  state.lyricsKey=""; // force reload
+  try{loadLyrics(s.id,s.title,s.artist)}catch(e){}
+ }
 }
 function closePlayer(){
  $("#immersivePlayer").classList.remove("open");$("#immersivePlayer").setAttribute("aria-hidden","true");
