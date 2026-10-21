@@ -2317,44 +2317,48 @@ function bind(){
    if(!song)return;
    if(act==="download"){
     (async()=>{
-     const title=cleanSongTitle(song.title||"song")||"song";
+     const title=(cleanSongTitle(song.title||"song")||"song").replace(/[^\w\s\u0900-\u097F\-]+/g,"").trim().slice(0,60)||"song";
      const id=song.id;
      toast("Downloading…");
-     const origin=(typeof location!=="undefined"&&location.origin)?location.origin:"";
-     const urls=[
-      origin+"/api/download?id="+encodeURIComponent(id)+"&format=mp3",
-      origin+"/download?id="+encodeURIComponent(id)+"&format=mp3",
-      origin+"/api/download?id="+encodeURIComponent(id),
-      origin+"/download?id="+encodeURIComponent(id),
-      "/api/download?id="+encodeURIComponent(id)+"&format=mp3",
-      "/download?id="+encodeURIComponent(id)+"&format=mp3"
-     ];
-     let done=false;
-     for(const url of urls){
+     const q="id="+encodeURIComponent(id)+"&title="+encodeURIComponent(title);
+     const urls=["/api/download?"+q,"/download?"+q];
+     let lastErr="";
+     for(const path of urls){
       try{
-       const res=await fetchWithTimeout(url,45000,{headers:{"Accept":"audio/mpeg,application/octet-stream,*/*"}});
-       if(!res||!res.ok)continue;
+       const res=await fetchWithTimeout(path,90000,{headers:{"Accept":"*/*"}});
+       if(!res){lastErr="no response";continue}
        const ct=(res.headers.get("content-type")||"").toLowerCase();
-       // skip JSON error bodies
-       if(ct.includes("application/json")||ct.includes("text/html"))continue;
+       if(!res.ok||ct.includes("application/json")||ct.includes("text/html")||ct.includes("text/plain")){
+        try{const j=await res.json();lastErr=j.error||j.detail||("HTTP "+res.status)}catch(e){lastErr="HTTP "+res.status}
+        continue;
+       }
        const blob=await res.blob();
-       if(!blob||blob.size<1000)continue;
-       const a=document.createElement("a");
+       if(!blob||blob.size<2000){lastErr="empty file";continue}
+       const ext=ct.includes("webm")?".webm":ct.includes("mp4")||ct.includes("m4a")?".m4a":".mp3";
        const obj=URL.createObjectURL(blob);
+       const a=document.createElement("a");
        a.href=obj;
-       a.download=title.replace(/[^\w\s\-]+/g,"").trim().slice(0,60)||"song";
-       a.download+=(ct.includes("mpeg")||ct.includes("mp3")||!ct)?".mp3":".m4a";
+       a.download=title+ext;
        document.body.appendChild(a);
        a.click();
        a.remove();
-       setTimeout(()=>URL.revokeObjectURL(obj),5000);
-       done=true;
-       toast("Download started · "+title);
-       break;
-      }catch(err){}
+       setTimeout(()=>URL.revokeObjectURL(obj),8000);
+       toast("Downloaded · "+title);
+       return;
+      }catch(err){lastErr=err&&err.message?err.message:"failed"}
      }
-     if(!done){
-      toast("Download server not ready — add /api/download on backend");
+     // Fallback: let browser hit the endpoint directly (Content-Disposition)
+     try{
+      const a=document.createElement("a");
+      a.href="/api/download?"+q;
+      a.setAttribute("download",title+".mp3");
+      a.style.display="none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast("Download requested · "+title);
+     }catch(e){
+      toast(lastErr?("Download failed: "+String(lastErr).slice(0,80)):"Download failed");
      }
     })();
     return;
