@@ -352,140 +352,192 @@ body:has(.immersive-player.open) .player{display:none!important}
 }
 @media(max-width:1320px){.layout{grid-template-columns:210px minmax(0,1fr) 260px}.cards{grid-template-columns:repeat(3,minmax(0,1fr))!important}.mood-row{grid-template-columns:repeat(3,minmax(0,1fr))}.mood-row .mood:last-child{display:none}}
 @media(max-width:1000px){.layout{grid-template-columns:76px minmax(0,1fr)}.sidebar{padding:19px 8px}.brand{justify-content:center}.brand>div:last-child,.nav button:not(.active),.side-label,.playlist,.mini-promo{display:none}.nav button{justify-content:center;padding:12px 3px}.rightcol{display:none}.cards{grid-template-columns:repeat(3,minmax(0,1fr))!important}.player{grid-template-columns:1fr 1fr}.player-tools{display:none}.mobile-nav{display:none!important}}
-/* ===== MOBILE ONLY (Spotify-like compact UI) — desktop untouched ===== */
+/* ===== MOBILE ONLY — Spotify-style (desktop completely untouched) ===== */
 .mobile-only{display:none!important}
+.mobile-action-bar{display:none}
 @media(max-width:700px){
   .mobile-only{display:flex!important}
-  .layout{display:block;padding:0 0 calc(128px + env(safe-area-inset-bottom,0px));max-width:100%}
-  .sidebar{display:none!important}
-  .rightcol{display:none!important}
+  html,body{background:#121212!important}
+  body:before{display:none!important}
+  body:after{display:none!important}
+  .layout{display:block;padding:0 0 calc(122px + env(safe-area-inset-bottom,0px));max-width:100%;background:#121212}
+  .sidebar,.rightcol{display:none!important}
   .mobile-nav{display:flex!important}
-  .center{padding:0 12px}
-  .topbar{gap:8px;margin:10px 0 8px;position:sticky;top:0;z-index:40;padding:6px 0;background:linear-gradient(to bottom,var(--bg) 70%,transparent)}
+  .center{padding:0 16px;background:#121212}
+  /* Top bar */
+  .topbar{gap:10px;margin:0;padding:12px 0 8px;position:sticky;top:0;z-index:40;background:#121212}
   .search{min-width:0;flex:1}
-  .search input{height:42px;font-size:15px;padding:0 48px 0 44px;border-radius:22px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);box-shadow:none}
-  .search input:focus{border-color:var(--b);box-shadow:0 0 0 2px rgba(32,216,255,.15)}
-  .search .mag{left:14px;top:10px;font-size:18px;opacity:.85}
+  .search input{height:40px;font-size:14px;padding:0 40px 0 40px;border-radius:4px;background:#242424;border:none;box-shadow:none;color:#fff}
+  .search input::placeholder{color:#b3b3b3}
+  .search input:focus{border:none;box-shadow:0 0 0 1px #fff;background:#2a2a2a}
+  .search .mag{left:12px;top:10px;font-size:16px;color:#b3b3b3}
   .search .shortcut{display:none}
-  .search-clear{right:12px;width:24px;height:24px;font-size:14px}
-  .avatar,.icon-btn{width:40px;height:40px;font-size:15px;flex-shrink:0;border-radius:50%}
-  /* Hero — compact Spotify-style banner */
-  .hero{min-height:auto;padding:18px 16px 16px;border-radius:16px;margin:0 0 4px;background:linear-gradient(135deg,rgba(196,92,255,.25),rgba(32,216,255,.12)),var(--glass)}
-  .hero h1{font-size:clamp(22px,6.5vw,30px);letter-spacing:-1px;margin:6px 0 6px;max-width:100%;line-height:1.15}
-  .hero p{max-width:100%;font-size:12px;line-height:1.45;opacity:.85;margin:0}
-  .hero-actions{margin-top:12px;max-width:100%;gap:8px}
-  .hero-actions .btn{padding:10px 16px;font-size:12px;border-radius:24px;font-weight:700}
-  .hero-actions .btn.primary{padding:10px 20px}
-  .hero-stamp{display:none}
-  .eyebrow{font-size:9px;letter-spacing:1.5px;opacity:.8}
-  #heroGreeting{font-size:12px;margin-bottom:2px}
-  /* Mood chips — horizontal scroll like Spotify */
-  .mood-row{display:flex;overflow-x:auto;gap:8px;margin:8px 0 4px;padding:4px 0 8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;grid-template-columns:unset}
+  .search-clear{right:10px;width:22px;height:22px;font-size:14px;background:transparent}
+  .avatar,.icon-btn{width:36px;height:36px;font-size:14px;border-radius:50%;border:none;background:#282828;box-shadow:none}
+  .avatar{background:linear-gradient(135deg,#1db954,#1ed760);font-weight:700}
+  /* Quick tools — always visible on mobile */
+  .mobile-action-bar{
+    display:flex!important;gap:8px;margin:0 0 12px;padding:0;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .mobile-action-bar::-webkit-scrollbar{display:none}
+  .mobile-action-bar button{
+    flex:0 0 auto;display:flex;align-items:center;gap:6px;
+    padding:8px 14px;border-radius:999px;border:none;
+    background:#282828;color:#fff;font-size:12px;font-weight:600;
+    white-space:nowrap;cursor:pointer;
+  }
+  .mobile-action-bar button span{font-size:14px;line-height:1}
+  .mobile-action-bar button:active{background:#333}
+  /* Hero */
+  .hero{
+    min-height:auto;padding:20px 16px;border-radius:8px;margin:0 0 8px;
+    background:linear-gradient(135deg,#450a55 0%,#1a1a2e 60%,#121212 100%);
+    border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+  .hero.glass{background:linear-gradient(135deg,#450a55 0%,#1a1a2e 60%,#121212 100%);border:none;box-shadow:none;backdrop-filter:none}
+  .hero h1{font-size:clamp(24px,7vw,32px);letter-spacing:-.5px;margin:8px 0 6px;max-width:100%;line-height:1.15;font-weight:800}
+  .hero h1 span{background:none;-webkit-background-clip:unset;background-clip:unset;color:#1ed760}
+  .hero p{max-width:100%;font-size:13px;line-height:1.4;color:#b3b3b3;margin:0}
+  .hero-actions{margin-top:14px;gap:10px}
+  .hero-actions .btn{padding:10px 20px;font-size:13px;border-radius:999px;font-weight:700;border:none;background:#282828;color:#fff}
+  .hero-actions .btn.primary{background:#1db954;color:#000;box-shadow:none}
+  .hero-stamp,.hero:before,.hero:after,.hero-thumb-wrap{display:none!important}
+  .eyebrow{font-size:10px;letter-spacing:1.5px;color:#b3b3b3;text-transform:uppercase}
+  #heroGreeting{font-size:13px;color:#fff;margin-bottom:2px;font-weight:600}
+  /* Mood row */
+  .mood-row{display:flex;overflow-x:auto;gap:8px;margin:4px 0 8px;padding:4px 0 6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;grid-template-columns:unset}
   .mood-row::-webkit-scrollbar{display:none}
-  .mood-row .mood{flex:0 0 auto;width:auto;min-width:110px;scroll-snap-align:start;padding:8px 12px 8px 8px;gap:8px;border-radius:12px;background:rgba(255,255,255,.06)}
+  .mood-row .mood{flex:0 0 auto;min-width:140px;scroll-snap-align:start;padding:0;gap:0;border-radius:6px;background:#282828;border:none;overflow:hidden;align-items:stretch}
   .mood-row .mood:last-child{display:flex}
-  .mood-art{width:40px;height:40px;font-size:18px;border-radius:10px}
-  .mood b{font-size:12px;font-weight:700}.mood small{font-size:9px;opacity:.75}
-  /* Section + cards — clean 2-col grid */
-  .section{margin-top:8px;padding:12px 10px;border-radius:16px;background:transparent;border:none;box-shadow:none}
+  .mood-art{width:56px;height:56px;font-size:22px;border-radius:0;flex-shrink:0}
+  .mood b{font-size:13px;font-weight:700;padding:0 10px;color:#fff}.mood small{display:none}
+  /* Section + cards */
+  .section{margin-top:8px;padding:0;border-radius:0;background:transparent;border:none;box-shadow:none}
   .section.glass{background:transparent;border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
-  .section-head{margin-bottom:10px}
-  .section-head h2{font-size:17px;font-weight:800;letter-spacing:-.3px}
-  .section-head a{font-size:12px;color:var(--b)}
-  .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px}
-  .music-card{padding:0;border-radius:10px;background:transparent;border:none;box-shadow:none}
-  .music-card:hover{transform:none;background:transparent;border:none}
-  .music-card .art{border-radius:10px;aspect-ratio:1;box-shadow:0 4px 16px rgba(0,0,0,.35)}
-  .music-card b{font-size:12px;margin:8px 2px 1px;font-weight:700}
-  .music-card small{font-size:11px;opacity:.7}
-  .art .play-dot{width:30px;height:30px;font-size:12px;right:8px;bottom:8px;opacity:0;transition:opacity .15s}
-  .music-card:active .art .play-dot,.music-card:focus .art .play-dot{opacity:1}
-  .song-menu-btn{opacity:1;width:30px;height:30px;font-size:15px;top:6px;right:6px;background:rgba(0,0,0,.55)}
-  /* ===== Spotify-style mini player ===== */
-  .player,.player.glass,#playerBar{
-    left:8px;right:8px;
-    bottom:calc(56px + env(safe-area-inset-bottom,0px))!important;
-    min-height:58px;height:auto;padding:6px 10px 8px;border-radius:12px;
-    grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;
-    z-index:55!important;
-    background:rgba(18,24,48,.96)!important;
-    border:1px solid rgba(255,255,255,.1);
-    box-shadow:0 4px 24px rgba(0,0,0,.5);
-    backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);
-  }
-  .player .seek{grid-column:1/-1;margin:0 0 2px;order:-1;gap:0}
-  .player .seek small{display:none}
-  .seekbar{height:3px;border-radius:2px;background:rgba(255,255,255,.15)}
-  .seekbar i{border-radius:2px}
-  .player .play-controls{gap:4px}
-  .player .play-controls button{font-size:16px;min-width:32px;min-height:32px;padding:0}
-  .player .play-controls .play-main{width:36px;height:36px;font-size:15px;box-shadow:0 0 12px var(--glow)}
-  .player .play-controls #shuffle,
-  .player .play-controls #repeat,
-  .player .play-controls #prev{display:none}
-  .player .player-tools{display:none!important}
-  .now{min-width:0;gap:10px}
-  .now-art{width:44px;height:44px;border-radius:6px;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
-  .now-info b{font-size:13px;font-weight:700}.now-info small{font-size:11px;opacity:.75}
-  .heart{font-size:20px;min-width:32px;min-height:32px;margin-left:2px}
-  .toast{bottom:calc(130px + env(safe-area-inset-bottom,0px));font-size:13px;padding:11px 16px;z-index:70;border-radius:10px}
-  /* Theme panel + mobile tools */
-  .theme-panel{top:auto;bottom:calc(64px + env(safe-area-inset-bottom,0px));right:8px;left:8px;width:auto;max-height:min(70vh,520px);z-index:80;border-radius:16px;padding:16px 14px}
-  .mobile-tools-row{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
-  .m-tool-btn{flex:1;min-width:90px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.07);color:#fff;font-size:11px;font-weight:700;cursor:pointer}
-  .m-tool-btn span{font-size:20px;line-height:1}
-  .m-tool-btn:active{background:rgba(32,216,255,.15);border-color:var(--b)}
-  .float-box,.profile-box,.pl-box{width:min(400px,94vw);padding:20px 16px;border-radius:18px}
-  .float-modal,.profile-modal,.pl-modal{z-index:220;padding:12px}
-  .lyrics-layout{grid-template-columns:1fr;gap:12px;padding:52px 14px 20px;overflow:auto}
-  .lyrics-album{width:min(220px,65vw);max-width:220px;margin:0 auto}
-  .lyrics-column{max-width:100%;max-height:28dvh}
-  .immersive-top{right:10px;bottom:10px;left:10px;justify-content:center;flex-wrap:wrap}
-  .view-switch{font-size:12px;padding:10px 14px;border-radius:20px}
-  .only-lyrics-mode .lyric{font-size:clamp(22px,5.5vw,32px)!important}
-  /* Lighter glass for performance */
-  .glass{backdrop-filter:blur(12px) saturate(1.1);-webkit-backdrop-filter:blur(12px) saturate(1.1);box-shadow:inset 0 1px 0 var(--shine),0 6px 20px #0004}
-  .player.glass{backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15)}
-  body:before{background-attachment:scroll}
-  .hero:before,.hero:after{display:none}
-  .hero.playing .hero-thumb,.hero.playing .hero-thumb .beat-ring{animation:none}
-  .eq-viz.live i{animation:none}
-  /* Bottom nav — Spotify style (3 tabs only) */
-  .mobile-nav{
-    height:calc(56px + env(safe-area-inset-bottom,0px));
-    padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));
-    background:#000;
-    border-top:1px solid rgba(255,255,255,.06);
-    backdrop-filter:none;-webkit-backdrop-filter:none;
-  }
-  .mobile-nav button{font-size:10px;gap:3px;min-height:44px;font-weight:500;letter-spacing:.1px;color:#b3b3b3}
-  .mobile-nav button span{font-size:24px;width:auto;height:auto;border-radius:0;background:none!important;box-shadow:none!important;filter:none!important}
-  .mobile-nav button.active{color:#fff}
-  .mobile-nav button.active span{background:none!important;box-shadow:none!important;filter:none!important;color:#fff}
-  /* Mini player closer to Spotify */
+  .section-head{margin-bottom:12px;padding:0}
+  .section-head h2{font-size:20px;font-weight:800;letter-spacing:-.4px;color:#fff}
+  .section-head a{font-size:12px;color:#b3b3b3;font-weight:600}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px}
+  .music-card{padding:0;border-radius:0;background:transparent;border:none;box-shadow:none}
+  .music-card:hover,.music-card:active{transform:none;background:transparent;border:none}
+  .music-card .art{border-radius:6px;aspect-ratio:1;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .music-card b{font-size:13px;margin:10px 0 2px;font-weight:600;color:#fff}
+  .music-card small{font-size:12px;color:#b3b3b3}
+  .art .play-dot{width:40px;height:40px;font-size:14px;right:8px;bottom:8px;opacity:0;background:#1db954;color:#000;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  .music-card:active .art .play-dot{opacity:1}
+  .song-menu-btn{opacity:1;width:28px;height:28px;font-size:16px;top:6px;right:6px;background:rgba(0,0,0,.6);border:none}
+  /* Mini player — Spotify exact feel */
   .player,.player.glass,#playerBar{
     left:8px;right:8px;
     bottom:calc(58px + env(safe-area-inset-bottom,0px))!important;
-    min-height:56px;border-radius:8px;
-    background:#282828!important;
-    border:none;
-    box-shadow:0 4px 20px rgba(0,0,0,.45);
+    min-height:56px;height:56px;padding:0 8px;border-radius:8px;
+    grid-template-columns:1fr auto;gap:0 8px;align-items:center;
+    z-index:55!important;
+    background:#282828!important;border:none;
+    box-shadow:0 0 0 0;backdrop-filter:none;-webkit-backdrop-filter:none;
   }
-  .now-art{border-radius:4px}
-  .seekbar{height:2px;border-radius:1px}
+  .player .seek{grid-column:1/-1;margin:0;order:-1;position:absolute;left:0;right:0;top:0;height:2px;gap:0}
+  .player .seek small{display:none}
+  .seekbar{height:2px;border-radius:0;background:rgba(255,255,255,.1)}
+  .seekbar i{height:2px;border-radius:0;background:#1db954}
+  .player .play-controls{gap:0}
+  .player .play-controls button{font-size:18px;min-width:40px;min-height:40px;padding:0;color:#fff}
+  .player .play-controls .play-main{width:36px;height:36px;font-size:16px;background:#fff;color:#000;border-radius:50%;box-shadow:none}
+  .player .play-controls .play-main::after{display:none}
+  .player .play-controls #shuffle,
+  .player .play-controls #repeat,
+  .player .play-controls #prev{display:none!important}
+  .player .player-tools{display:none!important}
+  .now{min-width:0;gap:10px;padding:6px 0}
+  .now-art{width:40px;height:40px;border-radius:4px;font-size:16px;box-shadow:none}
+  .now-info b{font-size:13px;font-weight:600;color:#fff}.now-info small{font-size:11px;color:#b3b3b3}
+  .heart{font-size:20px;min-width:36px;min-height:36px;color:#1db954;filter:none;text-shadow:none}
+  .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px));font-size:13px;padding:12px 16px;z-index:70;border-radius:8px;background:#1db954;color:#000}
+  /* Theme / modals */
+  .theme-panel{top:auto;bottom:calc(64px + env(safe-area-inset-bottom,0px));right:8px;left:8px;width:auto;max-height:min(72vh,540px);z-index:80;border-radius:12px;padding:16px 14px;background:#282828;border:none}
+  .mobile-tools-row{display:none!important}
+  .float-box,.profile-box,.pl-box{width:min(400px,94vw);padding:20px 16px;border-radius:12px;background:#282828;border:none}
+  .float-modal,.profile-modal,.pl-modal{z-index:220;padding:12px;background:rgba(0,0,0,.7)}
+  /* Immersive player — mobile: 2 views only, no overlap */
+  .immersive-close{top:12px;left:12px;width:40px;height:40px;font-size:28px;background:rgba(0,0,0,.45);z-index:30}
+  .immersive-top{
+    top:12px;right:12px;bottom:auto;left:auto;
+    justify-content:flex-end;flex-wrap:nowrap;gap:6px;z-index:30;
+  }
+  .view-switch{font-size:12px;padding:8px 14px;border-radius:20px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2)}
+  .view-switch.active{background:#fff;color:#000;border-color:#fff}
+  .desktop-view-btn{display:none!important}
+  /* Classic view (minimal) */
+  .minimal-layout{
+    min-height:100dvh;height:100dvh;padding:72px 20px 40px;
+    display:none;align-items:center;justify-content:center;
+    overflow:hidden;box-sizing:border-box;
+  }
+  .minimal-content{width:min(320px,88vw);padding:0;text-align:center}
+  .minimal-cover{width:min(280px,72vw);aspect-ratio:1;margin:0 auto 20px;border-radius:8px;box-shadow:0 16px 48px rgba(0,0,0,.55)}
+  .minimal-content h2{font-size:18px;font-weight:700;margin:0 0 4px;color:#fff}
+  .minimal-content p{font-size:13px;color:#b3b3b3;margin:0 0 18px}
+  .minimal-content .big-timeline{max-width:100%;margin:0}
+  .minimal-content .timeline-labels{max-width:100%;margin:6px auto 0;font-size:11px;color:#b3b3b3}
+  .minimal-content .big-controls{gap:22px;margin:18px 0 0}
+  .minimal-content .big-controls .big-play{width:56px;height:56px;font-size:28px;background:#fff;color:#000;border-radius:50%}
+  .minimal-content .big-controls button{font-size:20px;color:#fff}
+  .minimal-bottom{max-width:100%;margin:20px auto 0;gap:10px}
+  .minimal-bottom input[type=range]{accent-color:#1db954}
+  /* Lyrics-only view */
+  .lyrics-layout{
+    grid-template-columns:1fr!important;gap:0;padding:0!important;
+    min-height:100dvh;height:100dvh;overflow:hidden;align-items:stretch;
+  }
+  .lyrics-layout.only-lyrics-mode{
+    display:flex!important;flex-direction:column;align-items:center;justify-content:center;
+    padding:64px 16px 32px!important;background:transparent!important;
+  }
+  .only-lyrics-mode .lyrics-album{display:none!important}
+  .only-lyrics-mode .lyrics-column{
+    width:100%;max-width:100%;max-height:none;flex:1;
+    padding:12vh 12px 12vh;mask-image:linear-gradient(to bottom,transparent 0%,#000 8%,#000 92%,transparent 100%);
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 8%,#000 92%,transparent 100%);
+    overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;
+  }
+  .only-lyrics-mode .lyric{
+    font-size:clamp(20px,5.5vw,28px)!important;line-height:1.35!important;
+    margin:0 0 22px!important;text-align:center;opacity:.45!important;color:#ffffff60!important;
+    font-weight:700;
+  }
+  .only-lyrics-mode .lyric.active{
+    color:#fff!important;opacity:1!important;
+    text-shadow:0 2px 20px rgba(0,0,0,.5)!important;
+  }
+  .lyrics-album{display:none}
+  .ai-layout{display:none!important}
+  .glass{backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;background:#181818;border:none}
+  .eq-viz.live i{animation:none}
+  /* Bottom nav */
+  .mobile-nav{
+    height:calc(56px + env(safe-area-inset-bottom,0px));
+    padding:6px 0 calc(4px + env(safe-area-inset-bottom,0px));
+    background:#000;border-top:1px solid #282828;
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+  .mobile-nav button{font-size:10px;gap:2px;min-height:44px;font-weight:500;color:#b3b3b3}
+  .mobile-nav button span{font-size:24px;width:auto;height:auto;border-radius:0;background:none!important;box-shadow:none!important;filter:none!important}
+  .mobile-nav button.active{color:#fff}
+  .mobile-nav button.active span{color:#fff;background:none!important}
 }
 @media(max-width:400px){
-  .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
+  .cards{gap:12px}
   .hero h1{font-size:22px}
-  .mood-row .mood{min-width:100px}
-  .player .play-controls{gap:2px}
-  .now-art{width:40px;height:40px}
+  .mood-row .mood{min-width:120px}
+  .now-art{width:38px;height:38px}
   .now-info b{font-size:12px}
+  .mobile-action-bar button{padding:7px 12px;font-size:11px}
 }
-/* mobile bottom nav base (shown only ≤700px via media) */
+/* mobile bottom nav base */
 .mobile-nav{display:none;position:fixed;z-index:65;left:0;right:0;bottom:0;align-items:flex-start;justify-content:space-around;box-sizing:border-box}
-.mobile-nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 2px;color:var(--muted);border:0;background:none;cursor:pointer;min-width:0}
-.mobile-nav button span{display:grid;place-items:center;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.mobile-nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 2px;border:0;background:none;cursor:pointer;min-width:0}
+.mobile-nav button span{display:grid;place-items:center;line-height:1}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
@@ -595,6 +647,11 @@ body:has(.immersive-player.open) .player{display:none!important}
   <button class="icon-btn" id="themeToggle" title="Theme">☼</button>
   <button class="avatar" id="profile">A</button>
  </header>
+ <div class="mobile-action-bar mobile-only" id="mobileActionBar" aria-label="Quick tools">
+  <button type="button" id="mActSleep"><span>⏱</span>Sleep</button>
+  <button type="button" id="mActEq"><span>🎚</span>EQ</button>
+  <button type="button" id="mActPl"><span>＋</span>Playlist</button>
+ </div>
  <section class="hero glass" id="heroPanel">
   <div class="hero-thumb-wrap" id="heroThumbWrap" aria-hidden="true">
    <div class="hero-thumb" id="heroThumb"><span class="hero-thumb-ico">♫</span><i class="beat-ring"></i><i class="beat-ring r2"></i><i class="beat-ring r3"></i></div>
@@ -693,9 +750,9 @@ body:has(.immersive-player.open) .player{display:none!important}
 <div class="immersive-player" id="immersivePlayer" aria-hidden="true">
  <button class="immersive-close" id="immersiveClose" aria-label="Close">×</button>
  <div class="immersive-top">
-  <button class="view-switch active" data-view="lyrics">Lyrics view</button>
-  <button class="view-switch" data-view="minimal">Classic view</button>
-  <button class="view-switch" data-view="only-lyrics">Only lyrics</button>
+  <button class="view-switch active desktop-view-btn" data-view="lyrics">Lyrics view</button>
+  <button class="view-switch" data-view="minimal">Classic</button>
+  <button class="view-switch" data-view="only-lyrics">Lyrics</button>
  </div>
  <section class="lyrics-layout" id="lyricsView">
   <div class="lyrics-album">
@@ -891,32 +948,59 @@ const CATALOG=[
 ];
 const LYRICS_DB={"Apna Bana Le":["Jo tum na ho","Toh yeh raatein","Na jaane kyun","Yeh dil meri","Apna bana le","Piya","Apna bana le"],"Kesariya":["Kesariya tera","Ishq hai piya","Rang jaaun jo","Main haathon mein","Tera naam likh doon"],"Satranga":["Satranga re","Dil yeh mera","Satranga re","O saathiya","Main hoon tera"],"Perfect":["I found a love","For me","Darling just dive right in","And follow my lead","Well I found a girl"],"Shape of You":["The club isn't the best place","To find a lover","So the bar is where I go","Me and my friends"],"default":["Feel the rhythm","Let the music take you","Somewhere beautiful","Every moment","Feels like a new beginning","Keep the vibe alive"]};
 function loadJSON(key,fallback){
+  const tryParse=(raw)=>{
+    if(raw==null||raw==="")return null;
+    try{
+      const v=JSON.parse(raw);
+      if(v==null)return null;
+      if(Array.isArray(fallback)&&!Array.isArray(v))return null;
+      if(!Array.isArray(fallback)&&fallback&&typeof fallback==="object"&&(typeof v!=="object"||Array.isArray(v)))return null;
+      return v;
+    }catch(e){return null}
+  };
   try{
-    const raw=localStorage.getItem(key);
-    if(raw==null||raw==="")return fallback;
-    const v=JSON.parse(raw);
-    if(v==null)return fallback;
-    if(Array.isArray(fallback)&&!Array.isArray(v))return fallback;
-    if(!Array.isArray(fallback)&&typeof fallback==="object"&&(typeof v!=="object"||Array.isArray(v)))return fallback;
-    return v;
+    // 1) primary key  2) backup key  3) unified snapshot
+    let v=tryParse(localStorage.getItem(key));
+    if(v==null) v=tryParse(localStorage.getItem(key+"__bak"));
+    if(v==null){
+      try{
+        const snap=JSON.parse(localStorage.getItem("auraDataSnapshot")||"null");
+        if(snap&&snap[key]!=null) v=tryParse(JSON.stringify(snap[key]));
+      }catch(e){}
+    }
+    return v!=null?v:fallback;
   }catch(e){return fallback}
 }
 function saveJSON(key,val){
   try{
-    localStorage.setItem(key,JSON.stringify(val));
-    // mirror backup key so data survives accidental clears of one key
-    localStorage.setItem(key+"__bak",JSON.stringify(val));
+    const str=JSON.stringify(val);
+    localStorage.setItem(key,str);
+    localStorage.setItem(key+"__bak",str);
+    // keep a unified snapshot of all user data (extra safety)
+    try{
+      const snap=JSON.parse(localStorage.getItem("auraDataSnapshot")||"{}")||{};
+      snap[key]=val;
+      snap._updated=Date.now();
+      localStorage.setItem("auraDataSnapshot",JSON.stringify(snap));
+    }catch(e){}
     return true;
   }catch(e){
     console.warn("save failed",key,e);
     return false;
   }
 }
+function persistAllUserData(){
+  try{
+    saveJSON("auraFavs",state.favorites||[]);
+    saveJSON("auraLikedSongs",state.likedSongs||[]);
+    saveJSON("auraPlaylists",state.customPlaylists||{});
+    saveJSON("auraRecent",state.recentPlayed||[]);
+    saveJSON("auraProfile",state.profile||{});
+  }catch(e){}
+}
 function loadPlaylists(){
   let pl=loadJSON("auraPlaylists",null);
-  if(!pl||typeof pl!=="object"||Array.isArray(pl)) pl=loadJSON("auraPlaylists__bak",{});
   if(!pl||typeof pl!=="object"||Array.isArray(pl)) pl={};
-  // normalize: each playlist must be an array of song objects
   const out={};
   Object.keys(pl).forEach(name=>{
     const list=pl[name];
@@ -965,7 +1049,7 @@ function saveProfile(){
   const first=($("#profFirst").value||"").trim().slice(0,24);
   const last=($("#profLast").value||"").trim().slice(0,24);
   state.profile={first,last};
-  localStorage.setItem("auraProfile",JSON.stringify(state.profile));
+  saveJSON("auraProfile",state.profile);
   updateProfileUI();
   closeProfileModal();
   toast(first?"Welcome, "+first+"!":"Profile cleared");
@@ -984,8 +1068,9 @@ const savePlaylists=()=>{
   return saveJSON("auraPlaylists",state.customPlaylists);
 };
 // Persist playlists when tab closes / refreshes
-window.addEventListener("beforeunload",()=>{try{savePlaylists();saveFavs();saveLikedSongs()}catch(e){}});
-window.addEventListener("pagehide",()=>{try{savePlaylists();saveFavs();saveLikedSongs()}catch(e){}});
+window.addEventListener("beforeunload",()=>{try{persistAllUserData()}catch(e){}});
+window.addEventListener("pagehide",()=>{try{persistAllUserData()}catch(e){}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){try{persistAllUserData()}catch(e){}}});
 function songPayload(s){
   if(!s)return null;
   return {id:s.id,title:s.title||"Unknown",artist:s.artist||"Unknown",thumb:s.thumb||"",mood:s.mood||"Playlist"};
@@ -1261,7 +1346,7 @@ function renderMix(){
  box.innerHTML=mixes.map(m=>`<div class="mix-item" data-mood="${m.mood}"><div class="mix-cover">${m.ico||"✦"}</div><div><b>${m.name}</b><small>${m.desc}</small></div><button data-mood="${m.mood}">▶</button></div>`).join("");
 }
 function saveRecent(){
- try{localStorage.setItem("auraRecent",JSON.stringify(state.recentPlayed||[]))}catch(e){}
+ saveJSON("auraRecent",state.recentPlayed||[]);
 }
 function addToRecent(song){
  if(!song||!song.id)return;
@@ -1790,7 +1875,14 @@ function applyEqPreset(name){
  setEqBands(p,name);
  toast("EQ · "+(name==="electronic"?"EDM":name.charAt(0).toUpperCase()+name.slice(1)));
 }
-function openPlayer(view="lyrics"){
+function openPlayer(view){
+ const isMobile=window.innerWidth<=700;
+ // Mobile: only Classic or Lyrics — default Classic
+ if(isMobile){
+  if(!view||view==="lyrics"||view==="ai") view="minimal";
+ }else if(!view){
+  view="lyrics";
+ }
  $("#immersivePlayer").classList.add("open");$("#immersivePlayer").setAttribute("aria-hidden","false");
  document.body.style.overflow="hidden";setView(view);updateNowUI();
 }
@@ -1799,11 +1891,14 @@ function closePlayer(){
  document.body.style.overflow="";
 }
 function setView(which){
+ const isMobile=window.innerWidth<=700;
+ // On mobile force only-lyrics mode when lyrics requested (no split layout)
+ if(isMobile&&which==="lyrics") which="only-lyrics";
  state.fsView=which;
  $("#lyricsView").style.display=(which==="lyrics"||which==="only-lyrics")?"grid":"none";
  $("#minimalView").style.display=which==="minimal"?"flex":"none";
  $("#aiView").style.display=which==="ai"?"block":"none";
- $("#lyricsView").classList.toggle("only-lyrics-mode",which==="only-lyrics");
+ $("#lyricsView").classList.toggle("only-lyrics-mode",which==="only-lyrics"||(isMobile&&which==="lyrics"));
  $$(".view-switch").forEach(b=>b.classList.toggle("active",b.dataset.view===which));
  if(which==="ai") renderAiQueue();
 }
@@ -2186,27 +2281,9 @@ function bind(){
    closeSongCtx();
    if(!song)return;
    if(act==="download"){
-    // Best-effort: save thumbnail + open YouTube watch page; full audio offline needs native app / backend
-    try{
-     const title=cleanSongTitle(song.title||"track");
-     const a=document.createElement("a");
-     if(song.thumb){
-      a.href=song.thumb;
-      a.download=(title||"cover")+".jpg";
-      a.target="_blank";
-      a.rel="noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-     }
-     // Open official watch page so user can use YouTube/system download if available
-     setTimeout(()=>{
-      window.open("https://www.youtube.com/watch?v="+encodeURIComponent(song.id),"_blank","noopener");
-     },300);
-     toast("Thumbnail saved · Full track via YouTube");
-    }catch(err){
-     toast("Download not available for this track");
-    }
+    // Pure browser cannot legally/reliably extract YouTube audio as MP3.
+    // Needs a server-side downloader (e.g. yt-dlp backend). Honest UX only.
+    toast("MP3 download needs server — not available in web player");
     return;
    }
    if(act==="like"){
@@ -2446,6 +2523,10 @@ function bind(){
  $("#mobileOpenSleep")?.addEventListener("click",()=>{closeThemePanel();openFloat("#sleepModal")});
  $("#mobileOpenEq")?.addEventListener("click",()=>{closeThemePanel();syncEqUI();openFloat("#eqModal")});
  $("#mobileNewPl")?.addEventListener("click",()=>{closeThemePanel();openCreatePlaylist()});
+ // Always-visible mobile action bar
+ $("#mActSleep")?.addEventListener("click",()=>openFloat("#sleepModal"));
+ $("#mActEq")?.addEventListener("click",()=>{syncEqUI();openFloat("#eqModal")});
+ $("#mActPl")?.addEventListener("click",()=>openCreatePlaylist());
  $("#sleepModalClose")?.addEventListener("click",()=>closeFloat("#sleepModal"));
  $("#eqModalClose")?.addEventListener("click",()=>closeFloat("#eqModal"));
  $("#eqDone")?.addEventListener("click",()=>closeFloat("#eqModal"));
