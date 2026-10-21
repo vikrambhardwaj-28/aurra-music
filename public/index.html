@@ -1937,6 +1937,8 @@ function setView(which){
 }
 function bind(){
  $("#cards").addEventListener("click",e=>{
+  // ⋯ menu must not start playback
+  if(e.target.closest(".song-menu-btn")) return;
   const card=e.target.closest(".music-card");if(!card)return;
   const id=card.dataset.id;
   const idx=state.queue.findIndex(s=>s.id===id);
@@ -2314,9 +2316,47 @@ function bind(){
    closeSongCtx();
    if(!song)return;
    if(act==="download"){
-    // Pure browser cannot legally/reliably extract YouTube audio as MP3.
-    // Needs a server-side downloader (e.g. yt-dlp backend). Honest UX only.
-    toast("MP3 download needs server — not available in web player");
+    (async()=>{
+     const title=cleanSongTitle(song.title||"song")||"song";
+     const id=song.id;
+     toast("Downloading…");
+     const origin=(typeof location!=="undefined"&&location.origin)?location.origin:"";
+     const urls=[
+      origin+"/api/download?id="+encodeURIComponent(id)+"&format=mp3",
+      origin+"/download?id="+encodeURIComponent(id)+"&format=mp3",
+      origin+"/api/download?id="+encodeURIComponent(id),
+      origin+"/download?id="+encodeURIComponent(id),
+      "/api/download?id="+encodeURIComponent(id)+"&format=mp3",
+      "/download?id="+encodeURIComponent(id)+"&format=mp3"
+     ];
+     let done=false;
+     for(const url of urls){
+      try{
+       const res=await fetchWithTimeout(url,45000,{headers:{"Accept":"audio/mpeg,application/octet-stream,*/*"}});
+       if(!res||!res.ok)continue;
+       const ct=(res.headers.get("content-type")||"").toLowerCase();
+       // skip JSON error bodies
+       if(ct.includes("application/json")||ct.includes("text/html"))continue;
+       const blob=await res.blob();
+       if(!blob||blob.size<1000)continue;
+       const a=document.createElement("a");
+       const obj=URL.createObjectURL(blob);
+       a.href=obj;
+       a.download=title.replace(/[^\w\s\-]+/g,"").trim().slice(0,60)||"song";
+       a.download+=(ct.includes("mpeg")||ct.includes("mp3")||!ct)?".mp3":".m4a";
+       document.body.appendChild(a);
+       a.click();
+       a.remove();
+       setTimeout(()=>URL.revokeObjectURL(obj),5000);
+       done=true;
+       toast("Download started · "+title);
+       break;
+      }catch(err){}
+     }
+     if(!done){
+      toast("Download server not ready — add /api/download on backend");
+     }
+    })();
     return;
    }
    if(act==="like"){
