@@ -921,6 +921,7 @@ body:has(.immersive-player.open) .player{display:none!important}
 </div>
 <div class="toast" id="toast"></div>
 <div id="yt-player"></div>
+<audio id="nativeAudio" playsinline webkit-playsinline preload="auto" style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0"></audio>
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 (()=>{
@@ -1013,7 +1014,7 @@ function loadPlaylists(){
   });
   return out;
 }
-const state={songs:[...CATALOG],queue:[...CATALOG],currentIndex:-1,playing:false,shuffle:false,repeat:0,volume:70,favorites:loadJSON("auraFavs",[]),likedSongs:loadJSON("auraLikedSongs",[]),customPlaylists:loadPlaylists(),profile:loadJSON("auraProfile",{}),recentPlayed:loadJSON("auraRecent",[]),bgImage:(()=>{try{return localStorage.getItem("auraBgImage")||""}catch(e){return""}})(),bgImageDim:+((()=>{try{return localStorage.getItem("auraBgDim")||55}catch(e){return55}})()),ytPlayer:null,ytReady:false,progressTimer:null,fsView:"lyrics",fromDiscovery:true,lastSuggestedFor:"",aiQueue:[],aiLoading:false,ctxSong:null,sleepMin:0,sleepEndsAt:0,sleepTimer:null,eqBands:[50,50,50,50,50],eqPreset:"flat"};
+const state={songs:[...CATALOG],queue:[...CATALOG],currentIndex:-1,playing:false,shuffle:false,repeat:0,volume:70,favorites:loadJSON("auraFavs",[]),likedSongs:loadJSON("auraLikedSongs",[]),customPlaylists:loadPlaylists(),profile:loadJSON("auraProfile",{}),recentPlayed:loadJSON("auraRecent",[]),bgImage:(()=>{try{return localStorage.getItem("auraBgImage")||""}catch(e){return""}})(),bgImageDim:+((()=>{try{return localStorage.getItem("auraBgDim")||55}catch(e){return55}})()),ytPlayer:null,ytReady:false,audioMode:"yt",progressTimer:null,fsView:"lyrics",fromDiscovery:true,lastSuggestedFor:"",aiQueue:[],aiLoading:false,ctxSong:null,sleepMin:0,sleepEndsAt:0,sleepTimer:null,eqBands:[50,50,50,50,50],eqPreset:"flat"};
 const EQ_PRESETS={flat:[50,50,50,50,50],bass:[82,70,48,40,38],vocal:[40,48,72,68,45],treble:[35,42,55,75,85],electronic:[78,45,55,70,80]};
 const fmt=s=>{if(!s||!isFinite(s))return"0:00";const m=Math.floor(s/60),sec=Math.floor(s%60);return m+":"+String(sec).padStart(2,"0")};
 
@@ -1632,58 +1633,212 @@ async function loadLyrics(videoId, title, artist){
   renderLyricLines(state.lyricsLines);
 }
 
-function playSong(index){state._skip=false;state._skipping=false;
+function getNativeAudio(){return document.getElementById("nativeAudio")}
+function isNativeMode(){return state.audioMode==="native"}
+function stopNativeAudio(){
+  const a=getNativeAudio();
+  if(!a)return;
+  try{a.pause();a.removeAttribute("src");a.load()}catch(e){}
+}
+function stopYtAudio(){
+  try{if(state.ytPlayer&&state.ytPlayer.stopVideo)state.ytPlayer.stopVideo()}catch(e){}
+  try{if(state.ytPlayer&&state.ytPlayer.pauseVideo)state.ytPlayer.pauseVideo()}catch(e){}
+}
+function getPlaybackTime(){
+  try{
+    if(isNativeMode()){
+      const a=getNativeAudio();
+      return {cur:a?.currentTime||0,dur:a?.duration&&isFinite(a.duration)?a.duration:0};
+    }
+    return {
+      cur:state.ytPlayer?.getCurrentTime?.()||0,
+      dur:state.ytPlayer?.getDuration?.()||0
+    };
+  }catch(e){return{cur:0,dur:0}}
+}
+function updateMediaSession(s){
+  if(!("mediaSession" in navigator)||!s)return;
+  try{
+    navigator.mediaSession.metadata=new MediaMetadata({
+      title:cleanSongTitle(s.title||"Aura Music"),
+      artist:cleanArtistName(s.artist||"Aura"),
+      album:"Aura Music",
+      artwork:s.thumb?[
+        {src:s.thumb,sizes:"96x96",type:"image/jpeg"},
+        {src:s.thumb,sizes:"256x256",type:"image/jpeg"},
+        {src:s.thumb,sizes:"512x512",type:"image/jpeg"}
+      ]:[]
+    });
+    navigator.mediaSession.playbackState=state.playing?"playing":"paused";
+  }catch(e){}
+}
+function bindMediaSessionHandlers(){
+  if(!("mediaSession" in navigator)||state._msBound)return;
+  state._msBound=true;
+  try{
+    navigator.mediaSession.setActionHandler("play",()=>{if(!state.playing)togglePlay()});
+    navigator.mediaSession.setActionHandler("pause",()=>{if(state.playing)togglePlay()});
+    navigator.mediaSession.setActionHandler("previoustrack",()=>prevSong());
+    navigator.mediaSession.setActionHandler("nexttrack",()=>nextSong());
+    navigator.mediaSession.setActionHandler("seekto",(d)=>{
+      if(d&&typeof d.seekTime==="number"){
+        const {dur}=getPlaybackTime();
+        if(dur>0) seekTo((d.seekTime/dur)*100);
+      }
+    });
+  }catch(e){}
+}
+function playViaYt(s){
+  state.audioMode="yt";
+  stopNativeAudio();
+  const go=()=>{
+    try{
+      state.ytPlayer.loadVideoById(s.id);
+      applyPlayerVolume();
+      state.ytPlayer.playVideo();
+      state.playing=true;
+      startProgress();
+      updateNowUI();
+      updateMediaSession(s);
+    }catch(e){console.warn("YT play",e)}
+  };
+  if(state.ytReady&&state.ytPlayer){go();return}
+  const wait=setInterval(()=>{
+    if(state.ytReady&&state.ytPlayer){clearInterval(wait);go()}
+  },200);
+  setTimeout(()=>clearInterval(wait),8000);
+}
+function playViaNative(s){
+  const a=getNativeAudio();
+  if(!a||!s||!s.id)return Promise.reject(new Error("no audio"));
+  state.audioMode="native";
+  stopYtAudio();
+  const urls=[
+    "/api/stream?id="+encodeURIComponent(s.id),
+    "/stream?id="+encodeURIComponent(s.id)
+  ];
+  let i=0;
+  const tryUrl=()=>new Promise((resolve,reject)=>{
+    if(i>=urls.length){reject(new Error("stream fail"));return}
+    const url=urls[i++];
+    const onErr=()=>{
+      a.removeEventListener("error",onErr);
+      a.removeEventListener("playing",onOk);
+      tryUrl().then(resolve).catch(reject);
+    };
+    const onOk=()=>{
+      a.removeEventListener("error",onErr);
+      a.removeEventListener("playing",onOk);
+      resolve();
+    };
+    a.addEventListener("error",onErr,{once:true});
+    a.addEventListener("playing",onOk,{once:true});
+    try{
+      a.src=url;
+      a.load();
+      applyPlayerVolume();
+      const p=a.play();
+      if(p&&p.catch)p.catch(()=>{});
+    }catch(e){onErr()}
+  });
+  return tryUrl().then(()=>{
+    state.playing=true;
+    startProgress();
+    updateNowUI();
+    updateMediaSession(s);
+  });
+}
+function ensureNativeListeners(){
+  if(state._nativeBound)return;
+  state._nativeBound=true;
+  const a=getNativeAudio();
+  if(!a)return;
+  a.addEventListener("ended",()=>{
+    if(!isNativeMode())return;
+    if(state.repeat===2)playSong(state.currentIndex);
+    else nextSong();
+  });
+  a.addEventListener("play",()=>{
+    if(!isNativeMode())return;
+    state.playing=true;startProgress();updateNowUI();updateMediaSession(currentSong());
+  });
+  a.addEventListener("pause",()=>{
+    if(!isNativeMode())return;
+    // ignore pause while switching tracks
+    if(state._switching)return;
+    state.playing=false;stopProgress();updateNowUI();updateMediaSession(currentSong());
+  });
+}
+function playSong(index){state._skip=false;state._skipping=false;state._switching=true;
  if(index<0||index>=state.queue.length)return;
  state.currentIndex=index;
  const s=state.queue[index];if(!s)return;
  updateNowUI();
  addToRecent(s);
- if(state.ytReady&&state.ytPlayer){
-  state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;
- }else{
-  const wait=setInterval(()=>{
-   if(state.ytReady&&state.ytPlayer){clearInterval(wait);state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;updateNowUI()}
-  },200);
-  setTimeout(()=>clearInterval(wait),8000);
- }
+ bindMediaSessionHandlers();
+ ensureNativeListeners();
+ // Prefer HTML5 /stream so audio keeps playing in background / screen off
+ playViaNative(s).then(()=>{
+   state._switching=false;
+ }).catch(()=>{
+   // Fallback: YouTube (may pause when app goes background on mobile)
+   playViaYt(s);
+   state._switching=false;
+ });
  toast("▶ "+s.title);
- // AI best-effort only — never blocks or replaces search queue
+ updateMediaSession(s);
  if(state.fromDiscovery){
   setTimeout(()=>{try{addSimilarToQueue(s)}catch(e){}},1500);
  }
 }
 function togglePlay(){
  if(state.currentIndex<0){playSong(0);return}
- if(!state.ytPlayer)return;
- if(state.playing){state.ytPlayer.pauseVideo();state.playing=false}else{state.ytPlayer.playVideo();state.playing=true}
+ if(isNativeMode()){
+   const a=getNativeAudio();
+   if(!a)return;
+   if(state.playing){a.pause();state.playing=false}
+   else{const p=a.play();if(p&&p.catch)p.catch(()=>{});state.playing=true;startProgress()}
+ }else{
+   if(!state.ytPlayer)return;
+   if(state.playing){state.ytPlayer.pauseVideo();state.playing=false}
+   else{state.ytPlayer.playVideo();state.playing=true}
+ }
  updateNowUI();
+ updateMediaSession(currentSong());
 }
 function nextSong(){
  if(!state.queue.length)return;
  let idx;
  if(state.shuffle)idx=Math.floor(Math.random()*state.queue.length);
- else{idx=state.currentIndex+1;if(idx>=state.queue.length){if(state.repeat===1)idx=0;else{state.playing=false;updateNowUI();return}}}
+ else{idx=state.currentIndex+1;if(idx>=state.queue.length){if(state.repeat===1)idx=0;else{state.playing=false;updateNowUI();updateMediaSession(currentSong());return}}}
  playSong(idx);
 }
 function prevSong(){
  if(!state.queue.length)return;
- try{const t=state.ytPlayer?.getCurrentTime?.()||0;if(t>3){state.ytPlayer.seekTo(0);return}}catch(e){}
+ try{
+   const {cur}=getPlaybackTime();
+   if(cur>3){
+     if(isNativeMode()){const a=getNativeAudio();if(a)a.currentTime=0}
+     else state.ytPlayer?.seekTo?.(0);
+     return;
+   }
+ }catch(e){}
  let idx=state.currentIndex-1;if(idx<0)idx=state.repeat===1?state.queue.length-1:0;
  playSong(idx);
 }
 function startProgress(){
  stopProgress();
  state.progressTimer=setInterval(()=>{
-  if(!state.ytPlayer||!state.playing)return;
+  if(!state.playing)return;
   try{
-   const cur=state.ytPlayer.getCurrentTime()||0,dur=state.ytPlayer.getDuration()||0,pct=dur?(cur/dur)*100:0;
+   const {cur,dur}=getPlaybackTime();
+   const pct=dur?(cur/dur)*100:0;
    $("#seekFill").style.width=pct+"%";$("#rFill").style.width=pct+"%";
    $("#elapsed").textContent=fmt(cur);$("#duration").textContent=fmt(dur);
    $("#rElapsed").textContent=fmt(cur);$("#rDuration").textContent=fmt(dur);
    $("#lyricsElapsed").textContent=fmt(cur);$("#lyricsDuration").textContent="-"+fmt(Math.max(0,dur-cur));
    $("#minimalElapsed").textContent=fmt(cur);$("#minimalDuration").textContent="-"+fmt(Math.max(0,dur-cur));
    $("#lyricsTimeline").value=pct;$("#minimalTimeline").value=pct;
-   // sync active lyric — keep centered inside lyrics column only (no page jump)
    if(state.lyricsLines&&state.lyricsLines.length){
      let idx=0;
      for(let i=0;i<state.lyricsLines.length;i++){
@@ -1701,12 +1856,14 @@ function startProgress(){
        }
      }
    }
+   if("mediaSession" in navigator&&dur>0){
+     try{navigator.mediaSession.setPositionState({duration:dur,playbackRate:1,position:Math.min(cur,dur)})}catch(e){}
+   }
   }catch(e){}
  },400);
 }
 function stopProgress(){if(state.progressTimer)clearInterval(state.progressTimer);state.progressTimer=null}
 function eqGain(){
- // YouTube iframe can't expose real DSP; apply mild presence/bass bias via volume curve
  const b=state.eqBands||[50,50,50,50,50];
  const bass=(b[0]+b[1])/2, mid=b[2], treb=(b[3]+b[4])/2;
  const bias=((bass-50)*0.18+(mid-50)*0.08+(treb-50)*0.12)/100;
@@ -1715,13 +1872,45 @@ function eqGain(){
 function applyPlayerVolume(){
  const eff=Math.round(Math.max(0,Math.min(100,state.volume*eqGain())));
  try{state.ytPlayer?.setVolume?.(eff)}catch(e){}
+ try{const a=getNativeAudio();if(a)a.volume=Math.max(0,Math.min(1,eff/100))}catch(e){}
 }
 function setVolume(v){
  state.volume=Math.max(0,Math.min(100,v));
  $("#volFill").style.width=state.volume+"%";$("#lyricsVol").value=state.volume;$("#minimalVol").value=state.volume;
  applyPlayerVolume();
 }
-function seekTo(pct){try{const dur=state.ytPlayer?.getDuration?.()||0;if(dur)state.ytPlayer.seekTo((pct/100)*dur,true)}catch(e){}}
+function seekTo(pct){
+ try{
+   const {dur}=getPlaybackTime();
+   if(!dur)return;
+   const t=(pct/100)*dur;
+   if(isNativeMode()){const a=getNativeAudio();if(a)a.currentTime=t}
+   else state.ytPlayer?.seekTo?.(t,true);
+ }catch(e){}
+}
+// Keep playing when tab/app goes background (native audio + resume attempt)
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"&&state.playing){
+    try{
+      if(isNativeMode()){
+        const a=getNativeAudio();
+        if(a&&a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{})}
+      }else if(state.ytPlayer){
+        try{state.ytPlayer.playVideo()}catch(e){}
+      }
+    }catch(e){}
+  }
+});
+// iOS / Android: resume after brief interruptions
+window.addEventListener("focus",()=>{
+  if(!state.playing)return;
+  try{
+    if(isNativeMode()){
+      const a=getNativeAudio();
+      if(a&&a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{})}
+    }
+  }catch(e){}
+});
 function toggleLike(){
  const s=currentSong();if(!s)return;
  const i=state.favorites.indexOf(s.id);
