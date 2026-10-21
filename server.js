@@ -48,7 +48,7 @@ function setCache(key, data) {
   searchCache.set(key, { data, exp: Date.now() + CACHE_TTL });
 }
 
-// High-quality audio format preference for yt-dlp
+// Prefer high quality audio; fallback chain for yt-dlp
 const HIGH_AUDIO_FORMAT =
   "bestaudio[abr>=160]/bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best";
 
@@ -65,6 +65,7 @@ app.get("/health", (req, res) => {
     ok: true,
     cache: searchCache.size,
     lyrics: !!lyricsHandler,
+    ytdlp: process.env.YTDLP_PATH || "yt-dlp",
     t: Date.now(),
   });
 });
@@ -100,12 +101,14 @@ async function doSearch(query) {
 app.get("/search", async (req, res) => {
   const query = String(req.query.q || "").trim();
   if (!query) return res.status(400).json({ error: "query required" });
+
   const key = query.toLowerCase();
   const hit = getCache(key);
   if (hit) {
     res.setHeader("X-Cache", "HIT");
     return res.json(hit);
   }
+
   let lastErr;
   for (let i = 0; i < 3; i++) {
     try {
@@ -130,6 +133,7 @@ app.post("/api/similar", async (req, res) => {
   if (!GROQ_API_KEY) {
     return res.status(503).json({ error: "AI not configured" });
   }
+
   const title = String(req.body?.title || "").trim().slice(0, 120);
   const artist = String(req.body?.artist || "").trim().slice(0, 80);
   if (!title) return res.status(400).json({ error: "title required" });
@@ -205,8 +209,8 @@ JSON only:
     if (!text.trim() && msg && msg.reasoning) {
       text = msg.reasoning;
     }
-
     text = text.replace(/```json|```/g, "").trim();
+
     let list = [];
     try {
       const match = text.match(/\[[\s\S]*\]/);
@@ -238,25 +242,31 @@ JSON only:
 });
 
 // --------------------------------------------------
-// DOWNLOAD (yt-dlp) — high quality audio
+// DOWNLOAD / STREAM helpers (yt-dlp)
 // --------------------------------------------------
-app.get("/download", handleDownload);
-app.get("/api/download", handleDownload);
-
-function handleDownload(req, res) {
-  const id = String(req.query.id || "").trim();
-  let title =
-    String(req.query.title || "aura-song")
-      .replace(/[^\w\s\u0900-\u097F-]/g, "")
+function safeTitle(raw) {
+  return (
+    String(raw || "aura-song")
+      .replace(/[^\w\s\u0900-\u097F\-]/g, "")
       .replace(/\s+/g, " ")
       .trim()
-      .slice(0, 80) || "aura-song";
+      .slice(0, 80) || "aura-song"
+  );
+}
+
+function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {}) {
+  const id = String(videoId || "").trim();
   if (!id || !/^[a-zA-Z0-9_-]{6,20}$/.test(id)) {
     return res.status(400).json({ error: "Invalid id" });
   }
+
   const url = `https://www.youtube.com/watch?v=${id}`;
-  console.log("Download:", id, title);
   const bin = process.env.YTDLP_PATH || "yt-dlp";
+  const safe = safeTitle(title);
+
+  console.log(inline ? "Stream:" : "Download:", id, safe);
+
+  // Stream best audio to stdout. (MP3 convert needs ffmpeg; without it we send original audio)
   const args = [
     "-f",
     HIGH_AUDIO_FORMAT,
@@ -265,46 +275,78 @@ function handleDownload(req, res) {
     "--no-playlist",
     "--no-warnings",
     "--geo-bypass",
+    "--newline",
     url,
   ];
+
+  // If ffmpeg exists, try real mp3 extract (optional — set FORCE_MP3=1)
+  if (process.env.FORCE_MP3 === "1") {
+    args.splice(0, 2, "-f", "bestaudio/best", "-x", "--audio-format", "mp3", "--audio-quality", "0");
+  }
+
   const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
   let started = false;
   let err = "";
-  child.stderr.on("data", (c) => (err += c.toString()));
+
+  child.stderr.on("data", (c) => {
+    err += c.toString();
+  });
+
   child.stdout.on("data", (chunk) => {
     if (!started) {
       started = true;
-      res.setHeader("Content-Type", "audio/mpeg");
+      // Without ffmpeg convert, container may be webm/m4a — still playable/downloadable
+      const ctype =
+        process.env.FORCE_MP3 === "1" ? "audio/mpeg" : "application/octet-stream";
+      const ext = process.env.FORCE_MP3 === "1" ? "mp3" : "m4a";
+      res.setHeader("Content-Type", ctype);
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${title}.mp3"`
+        `${inline ? "inline" : "attachment"}; filename="${safe}.${ext}"`
       );
       res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
     }
     res.write(chunk);
   });
+
   child.on("error", (e) => {
-    console.error("spawn error:", e.message);
+    console.error("yt-dlp spawn error:", e.message);
     if (!res.headersSent) {
       res.status(503).json({
-        error: "yt-dlp missing on server. Check Render build command.",
+        error: "yt-dlp missing on server",
+        detail: e.message,
+        hint: "Install yt-dlp in build (see README) or set YTDLP_PATH",
       });
     }
   });
+
   child.on("close", (code) => {
     if (!started) {
-      console.error("yt-dlp exit", code, err.slice(0, 400));
+      console.error("yt-dlp exit", code, err.slice(0, 500));
       if (!res.headersSent) {
+        const blocked =
+          /403|429|Sign in|bot|confirm.*not a bot/i.test(err) || code === 1;
         res.status(502).json({
-          error:
-            "Download blocked on this server (YouTube 403). Works on localhost only.",
-          detail: err.slice(0, 200),
+          error: blocked
+            ? "YouTube blocked this server IP (common on free Render). Try localhost or a VPS."
+            : "Download failed",
+          detail: err.slice(0, 240),
+          code,
         });
       }
     } else {
       res.end();
     }
   });
+
+  reqOnClose(res, child);
+}
+
+function reqOnClose(res, child) {
+  // Express: use res.req
+  const req = res.req;
+  if (!req) return;
   req.on("close", () => {
     try {
       child.kill("SIGTERM");
@@ -313,68 +355,34 @@ function handleDownload(req, res) {
 }
 
 // --------------------------------------------------
-// STREAM (background play on phone) — high quality audio
+// DOWNLOAD
 // --------------------------------------------------
-app.get("/stream", handleStream);
-app.get("/api/stream", handleStream);
+app.get("/download", (req, res) => {
+  runYtDlpAudio(req.query.id, res, {
+    inline: false,
+    title: req.query.title,
+  });
+});
+app.get("/api/download", (req, res) => {
+  runYtDlpAudio(req.query.id, res, {
+    inline: false,
+    title: req.query.title,
+  });
+});
 
-function handleStream(req, res) {
-  const id = String(req.query.id || "").trim();
-  if (!id || !/^[a-zA-Z0-9_-]{6,20}$/.test(id)) {
-    return res.status(400).json({ error: "Invalid id" });
-  }
-  const url = `https://www.youtube.com/watch?v=${id}`;
-  console.log("Stream:", id);
-  const bin = process.env.YTDLP_PATH || "yt-dlp";
-  const args = [
-    "-f",
-    HIGH_AUDIO_FORMAT,
-    "-o",
-    "-",
-    "--no-playlist",
-    "--no-warnings",
-    "--geo-bypass",
-    url,
-  ];
-  const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
-  let started = false;
-  let err = "";
-  child.stderr.on("data", (c) => (err += c.toString()));
-  child.stdout.on("data", (chunk) => {
-    if (!started) {
-      started = true;
-      res.setHeader("Content-Type", "audio/mpeg");
-      res.setHeader("Content-Disposition", "inline");
-      res.setHeader("Cache-Control", "no-store");
-    }
-    res.write(chunk);
-  });
-  child.on("error", (e) => {
-    console.error("stream spawn error:", e.message);
-    if (!res.headersSent) {
-      res.status(503).json({ error: "yt-dlp missing on server." });
-    }
-  });
-  child.on("close", (code) => {
-    if (!started) {
-      console.error("stream exit", code, err.slice(0, 400));
-      if (!res.headersSent) {
-        res.status(502).json({
-          error: "Stream failed",
-          detail: err.slice(0, 200),
-        });
-      }
-    } else {
-      res.end();
-    }
-  });
-  req.on("close", () => {
-    try {
-      child.kill("SIGTERM");
-    } catch (_) {}
-  });
-}
+// --------------------------------------------------
+// STREAM (background play on phone)
+// --------------------------------------------------
+app.get("/stream", (req, res) => {
+  runYtDlpAudio(req.query.id, res, { inline: true, title: req.query.title });
+});
+app.get("/api/stream", (req, res) => {
+  runYtDlpAudio(req.query.id, res, { inline: true, title: req.query.title });
+});
 
+// --------------------------------------------------
+// Static index
+// --------------------------------------------------
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -382,4 +390,5 @@ app.get("/", (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Aura Music on", PORT);
   console.log("Routes: /search /stream /download /lyrics /api/similar /health");
+  console.log("yt-dlp bin:", process.env.YTDLP_PATH || "yt-dlp");
 });
