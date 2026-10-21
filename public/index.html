@@ -622,60 +622,88 @@ body:has(.immersive-player.open) .player{display:none!important}
 .theme-row input[type=range]{width:110px;accent-color:var(--b)}
 
 
-/* ===== Screen Lock (mobile only) ===== */
+/* ===== Screen Lock (mobile only) — Apple-style ===== */
 .lock-screen{
-  display:none;position:fixed;inset:0;z-index:9999;background:#000;
+  display:none;position:fixed;inset:0;z-index:99999;background:#000;
   color:#fff;flex-direction:column;align-items:center;justify-content:space-between;
-  padding:env(safe-area-inset-top,12px) 24px env(safe-area-inset-bottom,24px);
-  -webkit-user-select:none;user-select:none;touch-action:manipulation;
-  font-family:Manrope,system-ui,sans-serif;
+  padding:calc(env(safe-area-inset-top,0px) + 28px) 28px calc(env(safe-area-inset-bottom,0px) + 36px);
+  -webkit-user-select:none;user-select:none;touch-action:none;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Manrope,system-ui,sans-serif;
+  overscroll-behavior:none;-webkit-touch-callout:none;
 }
 .lock-screen.open{display:flex}
-.lock-screen .lock-clock{margin-top:12vh;text-align:center}
+.lock-screen .lock-clock{
+  margin-top:min(14vh,120px);text-align:center;width:100%;
+}
 .lock-screen .lock-time{
-  font-size:clamp(56px,16vw,84px);font-weight:200;letter-spacing:-2px;
+  font-size:clamp(72px,22vw,96px);font-weight:200;letter-spacing:-4px;
   line-height:1;color:#fff;font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum";
+  text-shadow:0 2px 40px rgba(255,255,255,.08);
 }
 .lock-screen .lock-date{
-  margin-top:8px;font-size:15px;font-weight:500;color:rgba(255,255,255,.55);
-  letter-spacing:.3px;
+  margin-top:6px;font-size:clamp(17px,4.5vw,20px);font-weight:400;
+  color:rgba(255,255,255,.72);letter-spacing:.2px;
 }
 .lock-screen .lock-hint{
-  font-size:11px;color:rgba(255,255,255,.28);letter-spacing:1.2px;
-  margin-top:18px;text-transform:uppercase;
+  font-size:12px;color:rgba(255,255,255,.22);letter-spacing:.6px;
+  margin-top:28px;font-weight:400;
 }
 .lock-screen .lock-now{
-  text-align:center;padding:0 12px;max-width:340px;width:100%;
+  text-align:center;padding:0 8px;max-width:360px;width:100%;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
 }
+.lock-screen .lock-art{
+  width:64px;height:64px;border-radius:14px;
+  background:linear-gradient(145deg,#c45cff,#20d8ff);
+  background-size:cover;background-position:center;
+  box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 0 0.5px rgba(255,255,255,.12);
+  flex-shrink:0;
+}
+.lock-screen .lock-meta{min-width:0;width:100%}
 .lock-screen .lock-title{
-  font-size:15px;font-weight:600;color:#fff;
+  font-size:16px;font-weight:600;color:#fff;letter-spacing:-.2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .lock-screen .lock-artist{
-  font-size:13px;color:rgba(255,255,255,.45);margin-top:4px;
+  font-size:14px;font-weight:400;color:rgba(255,255,255,.48);margin-top:3px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .lock-screen .lock-controls{
-  display:flex;align-items:center;justify-content:center;gap:36px;
-  margin-bottom:8vh;padding-bottom:env(safe-area-inset-bottom,8px);
+  display:flex;align-items:center;justify-content:center;gap:40px;
+  margin-bottom:min(6vh,48px);width:100%;
 }
 .lock-screen .lock-controls button{
   border:0;background:transparent;color:#fff;cursor:pointer;
-  display:grid;place-items:center;padding:8px;
+  display:grid;place-items:center;padding:0;
   -webkit-tap-highlight-color:transparent;
+  transition:opacity .15s,transform .12s;
 }
 .lock-screen .lock-controls .lock-prev,
 .lock-screen .lock-controls .lock-next{
-  font-size:22px;opacity:.85;width:52px;height:52px;
+  width:56px;height:56px;font-size:18px;opacity:.9;
+  color:#fff;
 }
 .lock-screen .lock-controls .lock-play{
-  width:64px;height:64px;border-radius:50%;background:#fff;color:#000;
-  font-size:24px;box-shadow:0 4px 24px rgba(255,255,255,.15);
+  width:72px;height:72px;border-radius:50%;
+  background:rgba(255,255,255,.12);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  color:#fff;font-size:26px;
+  box-shadow:inset 0 0 0 0.5px rgba(255,255,255,.18);
 }
 .lock-screen .lock-controls .lock-play:active,
 .lock-screen .lock-controls .lock-prev:active,
-.lock-screen .lock-controls .lock-next:active{opacity:.6;transform:scale(.94)}
-body.screen-locked{overflow:hidden!important}
+.lock-screen .lock-controls .lock-next:active{
+  opacity:.55;transform:scale(.92);
+}
+body.screen-locked{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:none!important;
+  position:fixed!important;
+  width:100%!important;
+  height:100%!important;
+}
 body.screen-locked .layout,
 body.screen-locked .player,
 body.screen-locked .mobile-nav,
@@ -693,6 +721,7 @@ body.screen-locked .toast{
   .lock-screen{display:none!important}
   #mActLock{display:none!important}
 }
+
 
 </style>
 </head>
@@ -1001,13 +1030,16 @@ body.screen-locked .toast{
     <div class="lock-hint">Triple tap to unlock</div>
   </div>
   <div class="lock-now">
-    <div class="lock-title" id="lockTitle">Select a song</div>
-    <div class="lock-artist" id="lockArtist">Aura Music</div>
+    <div class="lock-art" id="lockArt"></div>
+    <div class="lock-meta">
+      <div class="lock-title" id="lockTitle">Select a song</div>
+      <div class="lock-artist" id="lockArtist">Aura Music</div>
+    </div>
   </div>
   <div class="lock-controls">
-    <button type="button" class="lock-prev" id="lockPrev" aria-label="Previous">◀◀</button>
+    <button type="button" class="lock-prev" id="lockPrev" aria-label="Previous">⏮</button>
     <button type="button" class="lock-play" id="lockPlay" aria-label="Play/Pause">▶</button>
-    <button type="button" class="lock-next" id="lockNext" aria-label="Next">▶▶</button>
+    <button type="button" class="lock-next" id="lockNext" aria-label="Next">⏭</button>
   </div>
 </div>
 <div id="yt-player"></div>
@@ -1496,6 +1528,7 @@ function updateNowUI(){
  $("#minimalTitle").textContent=title;$("#minimalArtist").textContent=artist+(s?" — Single":"");
  if($("#lockTitle")) $("#lockTitle").textContent=title;
  if($("#lockArtist")) $("#lockArtist").textContent=artist;
+ setArt($("#lockArt"));
  const liked=s&&isFav(s.id);
  $("#like").textContent=liked?"♥":"♡";$("#rLike").textContent=liked?"♥":"♡";$("#immersiveLike").textContent=liked?"♥":"♡";
  const icon=state.playing?"Ⅱ":"▶";
@@ -2718,10 +2751,16 @@ function bind(){
  let _lockTapCount=0,_lockTapTimer=null,_lockClockTimer=null;
  function updateLockClock(){
   const now=new Date();
-  const h=now.getHours(),m=now.getMinutes();
-  if($("#lockTime")) $("#lockTime").textContent=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+  let h=now.getHours(),m=now.getMinutes();
+  // Apple-style 12h clock (no leading zero on hour)
+  const ap=h>=12?"PM":"AM";
+  h=h%12;if(h===0)h=12;
+  if($("#lockTime")) $("#lockTime").textContent=h+":"+String(m).padStart(2,"0");
   if($("#lockDate")){
-   try{$("#lockDate").textContent=now.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}catch(e){$("#lockDate").textContent=""}
+   try{
+    const d=now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+    $("#lockDate").textContent=d;
+   }catch(e){$("#lockDate").textContent=""}
   }
  }
  function enterScreenLock(){
@@ -2734,7 +2773,10 @@ function bind(){
   try{closeProfileModal()}catch(e){}
   try{closePlModal()}catch(e){}
   try{closeSongCtx()}catch(e){}
+  // freeze scroll position
+  state._lockScrollY=window.scrollY||0;
   document.body.classList.add("screen-locked");
+  document.body.style.top=(-state._lockScrollY)+"px";
   ls.classList.add("open");
   ls.setAttribute("aria-hidden","false");
   state.screenLocked=true;
@@ -2742,36 +2784,90 @@ function bind(){
   updateNowUI();
   if(_lockClockTimer)clearInterval(_lockClockTimer);
   _lockClockTimer=setInterval(updateLockClock,1000);
+  // Trap Android back button via history
+  try{
+    history.pushState({auraLock:1},"");
+    history.pushState({auraLock:1},"");
+  }catch(e){}
+  // Try fullscreen (blocks some browser chrome)
+  try{
+    const el=document.documentElement;
+    const req=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen;
+    if(req) req.call(el);
+  }catch(e){}
+  // Keep screen awake while locked (music workaround)
+  try{
+    if(navigator.wakeLock&&navigator.wakeLock.request){
+      navigator.wakeLock.request("screen").then(lock=>{state._wakeLock=lock}).catch(()=>{});
+    }
+  }catch(e){}
   toast("Screen locked · triple tap to unlock");
  }
  function exitScreenLock(){
   const ls=$("#lockScreen");if(!ls)return;
   document.body.classList.remove("screen-locked");
+  document.body.style.top="";
   ls.classList.remove("open");
   ls.setAttribute("aria-hidden","true");
   state.screenLocked=false;
   if(_lockClockTimer){clearInterval(_lockClockTimer);_lockClockTimer=null}
   _lockTapCount=0;
+  // restore scroll
+  try{window.scrollTo(0,state._lockScrollY||0)}catch(e){}
+  // release wake lock
+  try{if(state._wakeLock){state._wakeLock.release();state._wakeLock=null}}catch(e){}
+  // exit fullscreen
+  try{
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      const x=document.exitFullscreen||document.webkitExitFullscreen;
+      if(x) x.call(document);
+    }
+  }catch(e){}
   toast("Unlocked");
  }
  $("#mActLock")?.addEventListener("click",()=>enterScreenLock());
- $("#lockPlay")?.addEventListener("click",e=>{e.stopPropagation();togglePlay()});
- $("#lockPrev")?.addEventListener("click",e=>{e.stopPropagation();prevSong()});
- $("#lockNext")?.addEventListener("click",e=>{e.stopPropagation();nextSong()});
- $("#lockScreen")?.addEventListener("click",e=>{
+ $("#lockPlay")?.addEventListener("click",e=>{e.stopPropagation();e.preventDefault();togglePlay()});
+ $("#lockPrev")?.addEventListener("click",e=>{e.stopPropagation();e.preventDefault();prevSong()});
+ $("#lockNext")?.addEventListener("click",e=>{e.stopPropagation();e.preventDefault();nextSong()});
+ // Triple-tap unlock only
+ $("#lockScreen")?.addEventListener("pointerdown",e=>{
   if(!state.screenLocked)return;
   if(e.target.closest(".lock-controls"))return;
+  e.preventDefault();
   _lockTapCount++;
   if(_lockTapTimer)clearTimeout(_lockTapTimer);
   if(_lockTapCount>=3){_lockTapCount=0;exitScreenLock();return}
-  _lockTapTimer=setTimeout(()=>{_lockTapCount=0},500);
- },{passive:true});
- document.addEventListener("touchstart",e=>{
+  _lockTapTimer=setTimeout(()=>{_lockTapCount=0},450);
+ },{passive:false});
+ // Block ALL gestures outside lock controls while locked
+ const blockWhileLocked=(e)=>{
   if(!state.screenLocked)return;
-  if(e.target.closest("#lockScreen"))return;
+  if(e.target&&e.target.closest&&e.target.closest(".lock-controls"))return;
+  if(e.target&&e.target.closest&&e.target.closest("#lockScreen")&&e.type==="pointerdown")return;
   e.preventDefault();
   e.stopPropagation();
- },{passive:false,capture:true});
+ };
+ ["touchstart","touchmove","touchend","gesturestart","gesturechange","gestureend"].forEach(ev=>{
+  document.addEventListener(ev,blockWhileLocked,{passive:false,capture:true});
+ });
+ document.addEventListener("contextmenu",e=>{if(state.screenLocked){e.preventDefault();e.stopPropagation()}},{capture:true});
+ document.addEventListener("keydown",e=>{
+  if(!state.screenLocked)return;
+  // block Escape / Backspace / etc — only allow nothing
+  e.preventDefault();
+  e.stopPropagation();
+ },{capture:true});
+ // Android browser back → stay locked
+ window.addEventListener("popstate",e=>{
+  if(!state.screenLocked)return;
+  try{history.pushState({auraLock:1},"")}catch(err){}
+ });
+ // If page becomes hidden then visible, stay locked
+ document.addEventListener("visibilitychange",()=>{
+  if(state.screenLocked&&document.visibilityState==="visible"){
+    try{if(navigator.wakeLock&&navigator.wakeLock.request){navigator.wakeLock.request("screen").then(lock=>{state._wakeLock=lock}).catch(()=>{})}}catch(e){}
+  }
+ });
  $("#sleepModalClose")?.addEventListener("click",()=>closeFloat("#sleepModal"));
  $("#eqModalClose")?.addEventListener("click",()=>closeFloat("#eqModal"));
  $("#eqDone")?.addEventListener("click",()=>closeFloat("#eqModal"));
