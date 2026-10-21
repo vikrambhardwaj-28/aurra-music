@@ -304,12 +304,11 @@ function getCookiesPath() {
   return cookies && fs.existsSync(cookies) ? cookies : "";
 }
 
-/** Stream route: prefer m4a/AAC so iOS + Android HTML5 audio can play (background OK). */
+/** Stream route: pipe bestaudio to client (no convert). */
 function buildStreamArgs(url, client) {
   const args = [
     "-f",
-    // m4a first (Safari/iOS + Chrome), then webm/opus, then any audio
-    "bestaudio[ext=m4a]/bestaudio[acodec^=mp4a]/bestaudio[ext=webm]/bestaudio/best",
+    "bestaudio/best",
     "-o",
     "-",
     "--no-playlist",
