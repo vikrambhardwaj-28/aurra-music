@@ -4,7 +4,6 @@ const cors = require("cors");
 const path = require("path");
 const { spawn } = require("child_process");
 const ytSearch = require("yt-search");
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -103,7 +102,11 @@ app.get("/health", (req, res) => {
     cache: searchCache.size,
     lyrics: !!lyricsHandler,
     ytdlp: process.env.YTDLP_PATH || "yt-dlp",
-    downloads: { active: activeDownloads, queued: downloadQueue.length, max: MAX_CONCURRENT_DOWNLOADS },
+    downloads: {
+      active: activeDownloads,
+      queued: downloadQueue.length,
+      max: MAX_CONCURRENT_DOWNLOADS,
+    },
     t: Date.now(),
   });
 });
@@ -172,8 +175,12 @@ app.post("/api/similar", async (req, res) => {
     return res.status(503).json({ error: "AI not configured" });
   }
 
-  const title = String(req.body?.title || "").trim().slice(0, 120);
-  const artist = String(req.body?.artist || "").trim().slice(0, 80);
+  const title = String(req.body?.title || "")
+    .trim()
+    .slice(0, 120);
+  const artist = String(req.body?.artist || "")
+    .trim()
+    .slice(0, 80);
   if (!title) return res.status(400).json({ error: "title required" });
 
   const cleanArtist = artist
@@ -197,7 +204,7 @@ app.post("/api/similar", async (req, res) => {
           {
             role: "system",
             content:
-              "You are a world-class music recommendation engine used by Spotify and Apple Music style apps. You deeply know Bollywood, Hollywood, Punjabi, Tamil, Telugu, Korean, Spanish and global hits. When given a song, you mentally play it in your head — hear the melody, bass, emotion, language and energy — then pick 5 DIFFERENT real songs that a listener would love next. Output ONLY a valid JSON array. No markdown, no explanation, no reasoning, no extra text.",
+              "You are a music recommendation engine. Output ONLY a valid JSON array of 5 similar songs. No extra text.",
           },
           {
             role: "user",
@@ -205,26 +212,10 @@ app.post("/api/similar", async (req, res) => {
 Title: ${title}
 Artist: ${cleanArtist || "Unknown"}
 
-Think step by step silently:
-- Detect language (Hindi / English / Punjabi / Haryanvi / Spanish / etc.)
-- Detect mood (romantic, sad, party, workout, chill, emotional, motivational)
-- Detect energy (slow, mid, high BPM feel)
-- Detect era / style (classic, modern, EDM, acoustic, filmi, indie)
-
-Then return 5 real popular songs that match ALL of: same language + same mood + same energy + same style.
-
-HARD RULES:
-1. Same language as input song (mandatory)
-2. Same mood and emotional feeling (mandatory)
-3. Similar energy / tempo feel
-4. NEVER the same song title, never a remix of the same song
-5. Prefer different artists
-6. Only real famous songs people actually search and play (no fake names)
-7. Titles must be clean real song names (not YouTube junk)
-8. Exactly 5 items
+First understand the song (language, mood, energy), then give 5 real similar songs.
 
 JSON only:
-[{"title":"Exact Song Name","artist":"Artist Name"},{"title":"Exact Song Name","artist":"Artist Name"},{"title":"Exact Song Name","artist":"Artist Name"},{"title":"Exact Song Name","artist":"Artist Name"},{"title":"Exact Song Name","artist":"Artist Name"}]`,
+[{"title":"Song Name","artist":"Artist Name"},{"title":"Song Name","artist":"Artist Name"},{"title":"Song Name","artist":"Artist Name"},{"title":"Song Name","artist":"Artist Name"},{"title":"Song Name","artist":"Artist Name"}]`,
           },
         ],
         temperature: 0.3,
@@ -361,7 +352,11 @@ function buildMp3FileArgs(url, client, outTemplate) {
   return args;
 }
 
-function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {}) {
+function runYtDlpAudio(
+  videoId,
+  res,
+  { inline = false, title = "aura-song" } = {}
+) {
   const fs = require("fs");
   const os = require("os");
   const pathMod = require("path");
@@ -371,7 +366,10 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     return res.status(400).json({ error: "Invalid id" });
   }
 
-  if (activeDownloads >= MAX_CONCURRENT_DOWNLOADS && downloadQueue.length >= 8) {
+  if (
+    activeDownloads >= MAX_CONCURRENT_DOWNLOADS &&
+    downloadQueue.length >= 8
+  ) {
     return res.status(429).json({
       error: "Too many downloads — try again in a few seconds",
       active: activeDownloads,
@@ -383,7 +381,9 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
   const bin = process.env.YTDLP_PATH || "yt-dlp";
   const safe = safeTitle(title);
   const asMp3 = !inline;
-  const clients = String(process.env.YT_CLIENTS || "android,ios,tv_embedded,web")
+  const clients = String(
+    process.env.YT_CLIENTS || "android,ios,tv_embedded,web"
+  )
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -426,10 +426,12 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     if (res.headersSent || finished) return;
     finished = true;
     const bot = /Sign in to confirm|not a bot|cookies/i.test(lastErr);
-    const noFfmpeg = /ffmpeg is not installed|ffprobe|Postprocessing|ERROR:.*ffmpeg/i.test(
-      lastErr
-    );
-    const blocked = bot || /403|429|Forbidden|not available/i.test(lastErr);
+    const noFfmpeg =
+      /ffmpeg is not installed|ffprobe|Postprocessing|ERROR:.*ffmpeg/i.test(
+        lastErr
+      );
+    const blocked =
+      bot || /403|429|Forbidden|not available/i.test(lastErr);
     res.status(502).json({
       error: noFfmpeg
         ? "ffmpeg missing — MP3 convert needs ffmpeg on server"
@@ -460,7 +462,6 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     lastErr = "";
     const args = buildStreamArgs(url, client);
     console.log("yt-dlp stream try", client);
-
     child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
     child.stderr.on("data", (c) => {
       lastErr += c.toString();
@@ -511,7 +512,6 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     cleanupChild();
     cleanupTemp();
     lastErr = "";
-
     // Unique temp path without extension; yt-dlp adds .mp3 after convert
     const base = pathMod.join(
       os.tmpdir(),
@@ -520,10 +520,8 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     const outTemplate = base + ".%(ext)s";
     // After -x --audio-format mp3, file will be base.mp3
     const expectedMp3 = base + ".mp3";
-
     const args = buildMp3FileArgs(url, client, outTemplate);
     console.log("yt-dlp mp3 try", client, "->", expectedMp3);
-
     child = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"] });
     child.stderr.on("data", (c) => {
       lastErr += c.toString();
@@ -552,11 +550,12 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
         try {
           const dir = pathMod.dirname(base);
           const prefix = pathMod.basename(base);
-          const found = fs.readdirSync(dir).find((f) => f.startsWith(prefix));
+          const found = fs
+            .readdirSync(dir)
+            .find((f) => f.startsWith(prefix));
           if (found) filePath = pathMod.join(dir, found);
         } catch (_) {}
       }
-
       if (code === 0 && filePath && fs.existsSync(filePath)) {
         tempMp3 = filePath;
         started = true;
@@ -568,8 +567,10 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
         );
         res.setHeader("Content-Length", stat.size);
         res.setHeader("Cache-Control", "no-store");
-        res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-
+        res.setHeader(
+          "Access-Control-Expose-Headers",
+          "Content-Disposition"
+        );
         const stream = fs.createReadStream(filePath);
         stream.on("error", (e) => {
           console.error("read mp3 error", e.message);
@@ -588,7 +589,6 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
         stream.pipe(res, { end: false });
         return;
       }
-
       console.error(
         "mp3 fail client=",
         client,
@@ -610,12 +610,14 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     activeDownloads = Math.max(0, activeDownloads - 1);
     pumpQueue();
   };
+
   const origEnd = res.end.bind(res);
   res.end = function (...a) {
     release();
     cleanupTemp();
     return origEnd(...a);
   };
+
   const origJson = res.json.bind(res);
   res.json = function (...a) {
     release();
@@ -646,6 +648,7 @@ app.get("/download", (req, res) => {
     title: req.query.title,
   });
 });
+
 app.get("/api/download", (req, res) => {
   runYtDlpAudio(req.query.id, res, {
     inline: false,
@@ -657,10 +660,17 @@ app.get("/api/download", (req, res) => {
 // STREAM (background play on phone) — raw audio, no MP3 convert
 // --------------------------------------------------
 app.get("/stream", (req, res) => {
-  runYtDlpAudio(req.query.id, res, { inline: true, title: req.query.title });
+  runYtDlpAudio(req.query.id, res, {
+    inline: true,
+    title: req.query.title,
+  });
 });
+
 app.get("/api/stream", (req, res) => {
-  runYtDlpAudio(req.query.id, res, { inline: true, title: req.query.title });
+  runYtDlpAudio(req.query.id, res, {
+    inline: true,
+    title: req.query.title,
+  });
 });
 
 // --------------------------------------------------
@@ -672,6 +682,8 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Aura Music on", PORT);
-  console.log("Routes: /search /stream /download /lyrics /api/similar /health");
+  console.log(
+    "Routes: /search /stream /download /lyrics /api/similar /health"
+  );
   console.log("yt-dlp bin:", process.env.YTDLP_PATH || "yt-dlp");
 });
