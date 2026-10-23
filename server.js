@@ -84,7 +84,7 @@ if (lyricsHandler) {
 // --------------------------------------------------
 // SEARCH — videos + channels + playlists
 // --------------------------------------------------
-const SEARCH_PAGE_SIZE = 24;
+const SEARCH_PAGE_SIZE = 12;
 
 async function doSearch(query, page = 1) {
   page = Math.max(1, page | 0);
@@ -147,9 +147,8 @@ async function doSearch(query, page = 1) {
       .filter((p) => p.id && p.id.length >= 10);
   }
 
-  const hasMore =
-    allVideos.length > start + SEARCH_PAGE_SIZE ||
-    (slice.length >= SEARCH_PAGE_SIZE && needPages < 5);
+  // Full page of videos => likely more exist (page 2 will confirm)
+  const hasMore = videos.length >= SEARCH_PAGE_SIZE;
 
   const items = page === 1 ? [...channels, ...playlists, ...videos] : videos;
   return { items, page, hasMore, total: allVideos.length };
@@ -187,7 +186,7 @@ app.get("/search", async (req, res) => {
 // --------------------------------------------------
 // PLAYLIST videos — yt-dlp primary (reliable), yt-search fallback
 // --------------------------------------------------
-const PLAYLIST_PAGE_SIZE = 40;
+const PLAYLIST_PAGE_SIZE = 25;
 
 function fetchPlaylistViaYtDlp(listId, page = 1) {
   return new Promise((resolve, reject) => {
@@ -437,8 +436,8 @@ async function handleChannel(req, res) {
     });
 
     // page slice: page1 = 0-24, page2 = 24-48, etc
-    const start = (page - 1) * 24;
-    const slice = all.slice(start, start + 24);
+    const start = (page - 1) * 12;
+    const slice = all.slice(start, start + 12);
 
     const videos = slice.map((v) => ({
       type: "video",
@@ -452,7 +451,7 @@ async function handleChannel(req, res) {
       mood: "Channel",
     }));
 
-    const hasMore = videos.length >= 24 && all.length > start + 24; // only if full page
+    const hasMore = videos.length >= 12; // full page => more may exist
 
     res.json({
       title: channelName || "Channel",
