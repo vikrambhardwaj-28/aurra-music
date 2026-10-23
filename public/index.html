@@ -263,6 +263,8 @@ button,input{font:inherit}button{color:inherit;cursor:pointer;border:none;backgr
 .art.violet{background:radial-gradient(circle at 50% 20%,#b79aff,transparent 34%),linear-gradient(145deg,#5a3c91,#111b3a)}
 .music-card b{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:7px 2px 2px}
 .music-card small{display:block;font-size:8px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 2px 3px}
+.music-card.is-playing{border-color:var(--a);background:color-mix(in srgb, var(--a) 14%, rgba(5,13,35,.5));box-shadow:0 0 20px var(--glow),0 4px 16px rgba(0,0,0,.3)}
+.music-card.is-playing .art .play-dot{opacity:1}
 .rightcol{min-width:0;display:flex;flex-direction:column;gap:13px;position:sticky;top:16px;max-height:calc(100vh - 140px);overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(206,218,255,.25) transparent;-webkit-overflow-scrolling:touch}
 .rightcol::-webkit-scrollbar{width:4px}.rightcol::-webkit-scrollbar-thumb{background:rgba(206,218,255,.25);border-radius:4px}
 .right-card{border-radius:22px;padding:17px;flex-shrink:0}
@@ -389,24 +391,33 @@ body:has(.immersive-player.open) .player{display:none!important}
 .mobile-action-bar{display:none}
 @media(max-width:700px){
   .mobile-only{display:flex!important}
-  html,body{background:#121212!important}
-  body:before{display:none!important}
+  html,body{background:#0a0c14!important}
+  /* Theme glow visible on mobile */
+  body:before{
+    display:block!important;
+    background:
+      radial-gradient(ellipse 90% 55% at 50% -10%, color-mix(in srgb, var(--a) 45%, transparent), transparent 55%),
+      radial-gradient(ellipse 70% 40% at 100% 30%, color-mix(in srgb, var(--b) 28%, transparent), transparent 50%),
+      radial-gradient(ellipse 60% 35% at 0% 80%, color-mix(in srgb, var(--a) 22%, transparent), transparent 50%),
+      linear-gradient(180deg,#0a0c14 0%,#0d1020 100%) !important;
+    opacity:1;
+  }
   body:after{display:none!important}
-  .layout{display:block;padding:0 0 calc(128px + env(safe-area-inset-bottom,0px));max-width:100%;background:#121212}
+  .layout{display:block;padding:0 0 calc(128px + env(safe-area-inset-bottom,0px));max-width:100%;background:transparent}
   .sidebar,.rightcol{display:none!important}
   .mobile-nav{display:flex!important}
-  .center{padding:0 16px;background:#121212}
+  .center{padding:0 16px;background:transparent}
   /* Top bar */
-  .topbar{gap:12px;margin:0;padding:14px 0 10px;position:sticky;top:0;z-index:40;background:#121212;align-items:center}
+  .topbar{gap:12px;margin:0;padding:14px 0 10px;position:sticky;top:0;z-index:40;background:rgba(10,12,20,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);align-items:center}
   .search{min-width:0;flex:1}
-  .search input{height:48px;font-size:15px;padding:0 44px 0 46px;border-radius:6px;background:#242424;border:none;box-shadow:none;color:#fff}
-  .search input::placeholder{color:#b3b3b3}
-  .search input:focus{border:none;box-shadow:0 0 0 1px #fff;background:#2a2a2a}
-  .search .mag{left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#b3b3b3}
+  .search input{height:48px;font-size:15px;padding:0 44px 0 46px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);color:#fff}
+  .search input::placeholder{color:#a8a8b8}
+  .search input:focus{border-color:color-mix(in srgb, var(--b) 70%, #fff);box-shadow:0 0 0 2px color-mix(in srgb, var(--b) 25%, transparent),0 0 20px var(--glow);background:rgba(255,255,255,.1)}
+  .search .mag{left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--b)}
   .search .shortcut{display:none}
   .search-clear{right:12px;width:26px;height:26px;font-size:16px;background:transparent}
-  .avatar,.icon-btn{width:44px;height:44px;font-size:16px;border-radius:50%;border:none;background:#282828;box-shadow:none}
-  .avatar{background:linear-gradient(135deg,#1db954,#1ed760);font-weight:700;font-size:17px}
+  .avatar,.icon-btn{width:44px;height:44px;font-size:16px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);box-shadow:0 0 16px color-mix(in srgb, var(--glow) 40%, transparent)}
+  .avatar{background:linear-gradient(135deg,var(--a),var(--b));font-weight:700;font-size:17px;border:none;box-shadow:0 0 18px var(--glow)}
   /* Quick tools — always visible on mobile */
   .mobile-action-bar{
     display:flex!important;gap:10px;margin:0 0 14px;padding:2px 0;
@@ -415,35 +426,44 @@ body:has(.immersive-player.open) .player{display:none!important}
   .mobile-action-bar::-webkit-scrollbar{display:none}
   .mobile-action-bar button{
     flex:0 0 auto;display:flex;align-items:center;gap:8px;
-    padding:12px 18px;border-radius:999px;border:none;
-    background:#282828;color:#fff;font-size:14px;font-weight:700;
+    padding:12px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.06);color:#fff;font-size:14px;font-weight:700;
     white-space:nowrap;cursor:pointer;min-height:44px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
   }
   .mobile-action-bar button span{font-size:18px;line-height:1}
-  .mobile-action-bar button:active{background:#333}
-  /* Hero */
+  .mobile-action-bar button:active{background:color-mix(in srgb, var(--a) 25%, rgba(255,255,255,.08));border-color:var(--a)}
+  /* Hero — theme-tinted */
   .hero{
-    min-height:auto;padding:20px 16px;border-radius:8px;margin:0 0 8px;
-    background:linear-gradient(135deg,#450a55 0%,#1a1a2e 60%,#121212 100%);
-    border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+    min-height:auto;padding:20px 16px;border-radius:16px;margin:0 0 8px;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--a) 55%, #1a1028) 0%, color-mix(in srgb, var(--b) 25%, #12182a) 55%, #0e1220 100%);
+    border:1px solid color-mix(in srgb, var(--a) 35%, transparent);
+    box-shadow:0 8px 28px rgba(0,0,0,.35), 0 0 40px color-mix(in srgb, var(--glow) 35%, transparent);
+    backdrop-filter:none;-webkit-backdrop-filter:none;
   }
-  .hero.glass{background:linear-gradient(135deg,#450a55 0%,#1a1a2e 60%,#121212 100%);border:none;box-shadow:none;backdrop-filter:none}
+  .hero.glass{
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--a) 55%, #1a1028) 0%, color-mix(in srgb, var(--b) 25%, #12182a) 55%, #0e1220 100%);
+    border:1px solid color-mix(in srgb, var(--a) 35%, transparent);
+    box-shadow:0 8px 28px rgba(0,0,0,.35), 0 0 40px color-mix(in srgb, var(--glow) 35%, transparent);
+  }
   .hero h1{font-size:clamp(24px,7vw,32px);letter-spacing:-.5px;margin:8px 0 6px;max-width:100%;line-height:1.15;font-weight:800}
-  .hero h1 span{background:none;-webkit-background-clip:unset;background-clip:unset;color:#1ed760}
-  .hero p{max-width:100%;font-size:13px;line-height:1.4;color:#b3b3b3;margin:0}
+  .hero h1 span{background:linear-gradient(90deg,var(--b),#fff,var(--a));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{max-width:100%;font-size:13px;line-height:1.4;color:#c8c8d8;margin:0}
   .hero-actions{margin-top:14px;gap:10px}
-  .hero-actions .btn{padding:10px 20px;font-size:13px;border-radius:999px;font-weight:700;border:none;background:#282828;color:#fff}
-  .hero-actions .btn.primary{background:#1db954;color:#000;box-shadow:none}
+  .hero-actions .btn{padding:10px 20px;font-size:13px;border-radius:999px;font-weight:700;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff}
+  .hero-actions .btn.primary{background:linear-gradient(110deg,var(--a),var(--b));color:#fff;border:none;box-shadow:0 4px 18px var(--glow)}
   .hero-stamp,.hero:before,.hero:after,.hero-thumb-wrap{display:none!important}
-  .eyebrow{font-size:10px;letter-spacing:1.5px;color:#b3b3b3;text-transform:uppercase}
+  .eyebrow{font-size:10px;letter-spacing:1.5px;color:color-mix(in srgb, var(--b) 80%, #fff);text-transform:uppercase}
   #heroGreeting{font-size:13px;color:#fff;margin-bottom:2px;font-weight:600}
-  /* Mood row — Spotify chips, label centered */
+  /* Mood row */
   .mood-row{display:flex;overflow-x:auto;gap:10px;margin:4px 0 10px;padding:4px 0 8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;grid-template-columns:unset}
   .mood-row::-webkit-scrollbar{display:none}
-  .mood-row .mood{flex:0 0 auto;min-width:148px;scroll-snap-align:start;padding:0;gap:0;border-radius:6px;background:#282828;border:none;overflow:hidden;align-items:center;justify-content:flex-start}
+  .mood-row .mood{flex:0 0 auto;min-width:148px;scroll-snap-align:start;padding:0;gap:0;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);overflow:hidden;align-items:center;justify-content:flex-start}
   .mood-row .mood:last-child{display:flex}
   .mood-row .mood > span:not(.mood-art){flex:1;display:flex;align-items:center;justify-content:center;min-width:0;padding:0 8px}
-  .mood-art{width:56px;height:56px;font-size:22px;border-radius:0;flex-shrink:0;display:grid;place-items:center}
+  .mood-art{width:56px;height:56px;font-size:22px;border-radius:0;flex-shrink:0;display:grid;place-items:center;background:linear-gradient(145deg,var(--a),var(--b))!important}
   .mood b{font-size:13px;font-weight:700;padding:0;color:#fff;text-align:center;width:100%;display:block}.mood small{display:none}
   /* Section + cards */
   .section{margin-top:8px;padding:0;border-radius:0;background:transparent;border:none;box-shadow:none}
@@ -451,19 +471,20 @@ body:has(.immersive-player.open) .player{display:none!important}
   .section-head{margin-bottom:12px;padding:0}
   .section-head h2{font-size:20px;font-weight:800;letter-spacing:-.4px;color:#fff}
   .section-head a{font-size:12px;color:#b3b3b3;font-weight:600}
-  /* Compact premium song grid — more cards, clean look */
+  /* Compact premium song grid */
   .cards{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px 8px}
   .music-card{
     padding:6px;
     border-radius:12px;
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.09);
     box-shadow:0 2px 10px rgba(0,0,0,.22);
+    transition:border-color .25s, box-shadow .25s, background .25s, transform .2s;
   }
   .music-card:hover,.music-card:active{
     transform:none;
     background:rgba(255,255,255,.08);
-    border-color:rgba(255,255,255,.14);
+    border-color:color-mix(in srgb, var(--b) 40%, rgba(255,255,255,.14));
   }
   .music-card .art{
     border-radius:8px;
@@ -485,46 +506,65 @@ body:has(.immersive-player.open) .player{display:none!important}
   .art .play-dot{
     width:26px;height:26px;font-size:10px;
     right:5px;bottom:5px;opacity:0;
-    background:#1db954;color:#000;
-    box-shadow:0 2px 8px rgba(0,0,0,.35);
+    background:linear-gradient(145deg,var(--a),var(--b));color:#fff;
+    box-shadow:0 2px 10px var(--glow);
   }
   .music-card:active .art .play-dot{opacity:1}
   .song-menu-btn{
     opacity:.9;width:22px;height:22px;font-size:13px;
     top:4px;right:4px;background:rgba(0,0,0,.55);border:none;
   }
-  /* Channel / playlist cards stay readable */
-  .music-card.channel-card .art,
-  .music-card.playlist-card .art{border-radius:50%}
+  /* Now playing card — glow + pulse */
+  .music-card.is-playing{
+    background:color-mix(in srgb, var(--a) 18%, rgba(255,255,255,.06));
+    border-color:color-mix(in srgb, var(--a) 65%, #fff);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--b) 40%, transparent),
+      0 0 22px var(--glow),
+      0 4px 16px rgba(0,0,0,.35);
+    animation:playingPulse 2.4s ease-in-out infinite;
+  }
+  .music-card.is-playing .art{
+    box-shadow:0 0 18px color-mix(in srgb, var(--glow) 70%, transparent), 0 4px 14px rgba(0,0,0,.4);
+  }
+  .music-card.is-playing .art .play-dot{opacity:1}
+  .music-card.is-playing b{color:#fff}
+  .music-card.is-playing small{color:color-mix(in srgb, var(--b) 70%, #ccc)}
+  @keyframes playingPulse{
+    0%,100%{box-shadow:0 0 0 1px color-mix(in srgb, var(--b) 35%, transparent),0 0 18px var(--glow),0 4px 14px rgba(0,0,0,.3)}
+    50%{box-shadow:0 0 0 1px color-mix(in srgb, var(--a) 55%, transparent),0 0 28px var(--glow),0 4px 18px rgba(0,0,0,.35)}
+  }
   .music-card.channel-card .art{border-radius:50%}
   .music-card.playlist-card .art{border-radius:8px}
-  /* Mini player — Spotify exact feel (sits above bottom nav) */
+  /* Mini player — theme glow */
   .player,.player.glass,#playerBar{
     left:8px;right:8px;
     bottom:calc(62px + env(safe-area-inset-bottom,0px))!important;
-    min-height:56px;height:56px;padding:0 8px;border-radius:8px;
+    min-height:56px;height:56px;padding:0 8px;border-radius:12px;
     grid-template-columns:1fr auto;gap:0 8px;align-items:center;
     z-index:55!important;
-    background:#282828!important;border:none;
-    box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:none;-webkit-backdrop-filter:none;
+    background:rgba(18,22,40,.92)!important;
+    border:1px solid color-mix(in srgb, var(--a) 30%, transparent);
+    box-shadow:0 8px 28px rgba(0,0,0,.45),0 0 24px color-mix(in srgb, var(--glow) 40%, transparent);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   }
   .player .seek{grid-column:1/-1;margin:0;order:-1;position:absolute;left:0;right:0;top:0;height:2px;gap:0}
   .player .seek small{display:none}
-  .seekbar{height:2px;border-radius:0;background:rgba(255,255,255,.1)}
-  .seekbar i{height:2px;border-radius:0;background:#1db954}
+  .seekbar{height:2px;border-radius:0;background:rgba(255,255,255,.12)}
+  .seekbar i{height:2px;border-radius:0;background:linear-gradient(90deg,var(--a),var(--b))}
   .player .play-controls{gap:0}
   .player .play-controls button{font-size:18px;min-width:40px;min-height:40px;padding:0;color:#fff}
-  .player .play-controls .play-main{width:36px;height:36px;font-size:16px;background:#fff;color:#000;border-radius:50%;box-shadow:none}
+  .player .play-controls .play-main{width:36px;height:36px;font-size:16px;background:linear-gradient(145deg,var(--a),var(--b));color:#fff;border-radius:50%;box-shadow:0 0 14px var(--glow)}
   .player .play-controls .play-main::after{display:none}
   .player .play-controls #shuffle,
   .player .play-controls #repeat,
   .player .play-controls #prev{display:none!important}
   .player .player-tools{display:none!important}
   .now{min-width:0;gap:10px;padding:6px 0}
-  .now-art{width:40px;height:40px;border-radius:4px;font-size:16px;box-shadow:none}
+  .now-art{width:40px;height:40px;border-radius:8px;font-size:16px;box-shadow:0 0 12px color-mix(in srgb, var(--glow) 50%, transparent)}
   .now-info b{font-size:13px;font-weight:600;color:#fff}.now-info small{font-size:11px;color:#b3b3b3}
-  .heart{font-size:20px;min-width:36px;min-height:36px;color:#1db954;filter:none;text-shadow:none}
-  .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px));font-size:13px;padding:12px 16px;z-index:70;border-radius:8px;background:#1db954;color:#000}
+  .heart{font-size:20px;min-width:36px;min-height:36px;color:var(--a);filter:drop-shadow(0 0 6px var(--glow));text-shadow:none}
+  .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px));font-size:13px;padding:12px 16px;z-index:70;border-radius:12px;background:linear-gradient(110deg,var(--a),var(--b));color:#fff;box-shadow:0 4px 16px var(--glow)}
   /* Theme / modals */
   .theme-panel{top:auto;bottom:calc(64px + env(safe-area-inset-bottom,0px));right:8px;left:8px;width:auto;max-height:min(72vh,540px);z-index:80;border-radius:12px;padding:16px 14px;background:#282828;border:none}
   .mobile-tools-row{display:none!important}
@@ -590,14 +630,16 @@ body:has(.immersive-player.open) .player{display:none!important}
     height:auto;
     min-height:56px;
     padding:8px 0 max(2px, env(safe-area-inset-bottom, 0px));
-    background:#000;border-top:1px solid #282828;
-    backdrop-filter:none;-webkit-backdrop-filter:none;
+    background:rgba(8,10,18,.92);
+    border-top:1px solid color-mix(in srgb, var(--a) 25%, #282828);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
     bottom:0!important;left:0;right:0;margin:0;
+    box-shadow:0 -4px 24px color-mix(in srgb, var(--glow) 20%, transparent);
   }
-  .mobile-nav button{font-size:11px;gap:4px;min-height:48px;font-weight:600;color:#b3b3b3;padding:6px 2px 4px}
+  .mobile-nav button{font-size:11px;gap:4px;min-height:48px;font-weight:600;color:#a8a8b8;padding:6px 2px 4px}
   .mobile-nav button span{font-size:28px;width:auto;height:auto;border-radius:0;background:none!important;box-shadow:none!important;filter:none!important;line-height:1}
   .mobile-nav button.active{color:#fff}
-  .mobile-nav button.active span{color:#fff;background:none!important}
+  .mobile-nav button.active span{color:var(--b);background:none!important;filter:drop-shadow(0 0 8px var(--glow))!important}
 }
 @media(max-width:400px){
   .cards{gap:12px}
@@ -1507,7 +1549,9 @@ function renderCards(list){
     <small>${cleanArtistName(s.author||s.artist||"")}${s.videoCount?" · "+s.videoCount+" tracks":""}</small>
    </div>`;
   }
-  return `<div class="music-card" data-type="video" data-id="${s.id}" role="button" tabindex="0">
+  const playingId=state.queue[state.currentIndex]&&state.queue[state.currentIndex].id;
+  const isPlay=playingId&&s.id===playingId;
+  return `<div class="music-card${isPlay?" is-playing":""}" data-type="video" data-id="${s.id}" role="button" tabindex="0">
    <div class="art ${arts[i%arts.length]}" style="background-image:url('${s.thumb||s.thumbnail||""}');background-size:cover;background-position:center"><i class="play-dot">▶</i></div>
    <button type="button" class="song-menu-btn" data-menu-id="${s.id}" title="More">⋯</button>
    <b>${cleanSongTitle(s.title)}</b>
@@ -1522,6 +1566,13 @@ function renderCards(list){
  }
  box.innerHTML=html;
  requestAnimationFrame(syncRecentToCardsHeight);
+}
+function highlightPlayingCard(){
+ const id=state.queue[state.currentIndex]&&state.queue[state.currentIndex].id;
+ $$("#cards .music-card").forEach(c=>{
+  if(c.dataset.type==="video"&&c.dataset.id&&id&&c.dataset.id===id) c.classList.add("is-playing");
+  else c.classList.remove("is-playing");
+ });
 }
 function renderQueue(){
  const box=$("#queueList");if(!box)return;
@@ -1591,6 +1642,7 @@ function syncRecentToCardsHeight(){
 }
 function updateNowUI(){
  const s=currentSong();
+ try{highlightPlayingCard()}catch(e){}
  const rawTitle=s?s.title:"Select a song",rawArtist=s?s.artist:"Aura Music",thumb=s?s.thumb:"";
  const title=s?cleanSongTitle(rawTitle):rawTitle;
  const artist=s?cleanArtistName(rawArtist):rawArtist;
