@@ -408,7 +408,7 @@ body:has(.immersive-player.open) .player{display:none!important}
   .mobile-nav{display:flex!important}
   .center{padding:0 16px;background:transparent}
   /* Top bar */
-  .topbar{gap:12px;margin:0;padding:14px 0 10px;position:sticky;top:0;z-index:40;background:rgba(10,12,20,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);align-items:center}
+  .topbar{gap:12px;margin:0;padding:calc(10px + env(safe-area-inset-top, 0px)) 0 10px;position:sticky;top:0;z-index:40;background:rgba(10,12,20,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);align-items:center}
   .search{min-width:0;flex:1}
   .search input{height:48px;font-size:15px;padding:0 44px 0 46px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);color:#fff}
   .search input::placeholder{color:#a8a8b8}
@@ -897,6 +897,34 @@ body.screen-locked .toast{
 @media(max-width:700px){
   .lib-view{padding-bottom:8px}
   .cards:has(.lib-view){display:block!important;grid-template-columns:unset!important}
+}
+
+
+/* Fullscreen like music apps: content full, TOP stays clear of notch/camera */
+html.app-fs, body.app-fs{
+  /* reserve space under status bar / punch-hole camera */
+  --fs-top: max(env(safe-area-inset-top, 0px), 32px);
+}
+body.app-fs .layout{
+  padding-top: 0;
+}
+body.app-fs .topbar{
+  padding-top: calc(var(--fs-top) + 8px) !important;
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+}
+body.app-fs .mobile-action-bar{
+  padding-left: max(10px, env(safe-area-inset-left, 0px));
+  padding-right: max(10px, env(safe-area-inset-right, 0px));
+}
+body.app-fs .player{
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+body.app-fs .lock-screen{
+  padding-top: calc(var(--fs-top) + 40px) !important;
+}
+body.app-fs .immersive-player{
+  padding-top: var(--fs-top);
 }
 
 </style>
@@ -3276,24 +3304,39 @@ function bind(){
  function isAppFullscreen(){
   return !!(document.fullscreenElement||document.webkitFullscreenElement||document.msFullscreenElement);
  }
+ function syncFsClass(){
+  const on=isAppFullscreen();
+  document.documentElement.classList.toggle("app-fs", on);
+  document.body.classList.toggle("app-fs", on);
+  state._wasFs=on;
+  const b=$("#mActFs");
+  if(b) b.innerHTML=(on||state.preferFs)?'<span>⛶</span>Full ✓':'<span>⛶</span>Full';
+ }
  function enterAppFullscreen(){
-  if(isAppFullscreen()) return true;
+  if(isAppFullscreen()){ syncFsClass(); return true; }
   try{
    const el=document.documentElement;
    const req=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen||el.msRequestFullscreen;
    if(req){
     const r=req.call(el);
-    if(r&&typeof r.then==="function") r.catch(()=>{});
+    if(r&&typeof r.then==="function") r.then(syncFsClass).catch(()=>{});
+    else setTimeout(syncFsClass, 50);
     return true;
    }
   }catch(e){}
+  // Fallback: CSS-only immersive (status bar stays visible)
+  document.documentElement.classList.add("app-fs");
+  document.body.classList.add("app-fs");
   return false;
  }
  function exitAppFullscreen(){
   try{
    const x=document.exitFullscreen||document.webkitExitFullscreen||document.msExitFullscreen;
-   if(x) x.call(document);
+   if(x && isAppFullscreen()) x.call(document);
   }catch(e){}
+  document.documentElement.classList.remove("app-fs");
+  document.body.classList.remove("app-fs");
+  syncFsClass();
  }
  function setPreferFullscreen(on){
   try{localStorage.setItem("auraPreferFs", on?"1":"0")}catch(e){}
@@ -3302,7 +3345,7 @@ function bind(){
   if(b) b.innerHTML=on?'<span>⛶</span>Full ✓':'<span>⛶</span>Full';
  }
  function toggleAppFullscreen(){
-  if(isAppFullscreen()){
+  if(isAppFullscreen() || document.body.classList.contains("app-fs")){
    exitAppFullscreen();
    setPreferFullscreen(false);
    toast("Fullscreen off");
@@ -3312,12 +3355,11 @@ function bind(){
    toast("Fullscreen on");
   }
  }
- // restore preference
+ // restore preference — enter only after user gesture (browser rule)
  try{ state.preferFs=localStorage.getItem("auraPreferFs")==="1"; }catch(e){ state.preferFs=false; }
  if(state.preferFs){
   const b=$("#mActFs");
   if(b) b.innerHTML='<span>⛶</span>Full ✓';
-  // browsers need a user gesture — enter on first tap anywhere
   if(!state._fsBound){
    state._fsBound=true;
    const onceFs=()=>{
@@ -3330,20 +3372,8 @@ function bind(){
   }
  }
  $("#mActFs")?.addEventListener("click",e=>{e.preventDefault();toggleAppFullscreen()});
- document.addEventListener("fullscreenchange",()=>{
-  state._wasFs=isAppFullscreen();
-  if(!isAppFullscreen() && state.preferFs){
-   // user exited via system UI — keep preference, restore on next gesture
-   if(!state._fsRebound){
-    state._fsRebound=true;
-    const reb=()=>{ if(state.preferFs&&!isAppFullscreen()) enterAppFullscreen(); document.removeEventListener("pointerdown",reb,true); state._fsRebound=false; };
-    document.addEventListener("pointerdown",reb,true);
-   }
-  }
- });
- document.addEventListener("webkitfullscreenchange",()=>{
-  state._wasFs=isAppFullscreen();
- });
+ document.addEventListener("fullscreenchange", syncFsClass);
+ document.addEventListener("webkitfullscreenchange", syncFsClass);
  // Screen Lock (mobile)
  let _lockTapCount=0,_lockTapTimer=null,_lockClockTimer=null;
  function updateLockClock(){
