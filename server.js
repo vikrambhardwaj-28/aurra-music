@@ -7,10 +7,6 @@ const ytSearch = require("yt-search");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Groq key ONLY on server
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-
 // Optional: YouTube captions
 let lyricsHandler = null;
 try {
@@ -240,13 +236,14 @@ function fetchPlaylistViaYtDlp(listId) {
             title = j.title || j.playlist_title || title;
             continue;
           }
-          const vid = j.id || j.url;
-          if (!vid || String(vid).length < 6) continue;
+          let vid = String(j.id || j.url || "").replace(/^.*v=/, "").replace(/[^a-zA-Z0-9_-]/g, "");
+          if (!vid || vid.length < 6 || vid.length > 20) continue;
           // skip deleted/private
           if (j.title && /\[Deleted|\[Private/i.test(j.title)) continue;
+          // Always use high-quality YouTube thumb (flat-playlist thumbs are tiny/blurry)
           videos.push({
             type: "video",
-            id: String(vid).replace(/^.*v=/, "").slice(0, 20),
+            id: vid,
             title: j.title || j.fulltitle || "Unknown",
             author:
               j.uploader ||
@@ -254,10 +251,7 @@ function fetchPlaylistViaYtDlp(listId) {
               j.playlist_uploader ||
               title ||
               "Unknown",
-            thumbnail:
-              (j.thumbnails && j.thumbnails[0] && j.thumbnails[0].url) ||
-              j.thumbnail ||
-              `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,
+            thumbnail: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,
             timestamp: j.duration_string || "",
             mood: "Playlist",
           });
@@ -297,9 +291,7 @@ async function fetchPlaylistViaYtSearch(listId) {
       id: v.videoId,
       title: v.title,
       author: (v.author && v.author.name) || result.title || "Unknown",
-      thumbnail:
-        v.thumbnail ||
-        `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
+      thumbnail: `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
       timestamp: v.timestamp || "",
       mood: "Playlist",
     }));
@@ -435,103 +427,6 @@ async function handleChannel(req, res) {
 
 app.get("/channel", handleChannel);
 app.get("/api/channel", handleChannel);
-
-// --------------------------------------------------
-// AI SIMILAR (simple prompt)
-// --------------------------------------------------
-app.post("/api/similar", async (req, res) => {
-  if (!GROQ_API_KEY) {
-    return res.status(503).json({ error: "AI not configured" });
-  }
-
-  const title = String(req.body?.title || "").trim().slice(0, 120);
-  const artist = String(req.body?.artist || "").trim().slice(0, 80);
-  if (!title) return res.status(400).json({ error: "title required" });
-
-  const cleanArtist = artist
-    .replace(/\s*-\s*Topic$/i, "")
-    .replace(/\s*VEVO$/i, "")
-    .trim();
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
-
-    const response = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + GROQ_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "qwen/qwen3.8-27b",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a music recommendation engine. Output ONLY a valid JSON array of 5 similar songs. No extra text.",
-          },
-          {
-            role: "user",
-            content: `Recommend 5 similar songs for:
-Title: ${title}
-Artist: ${cleanArtist || "Unknown"}
-
-First understand the song (language, mood, energy), then give 5 real similar songs.
-
-JSON only:
-[{"title":"Song Name","artist":"Artist Name"},{"title":"Song Name","artist":"Artist Name"},{"title":"Song Name","artist":"Artist Name"},{"title":"Song Name","artist":"Artist Name"},{"title":"Song Name","artist":"Artist Name"}]`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 500,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timer);
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      console.warn("Groq HTTP", response.status, errText.slice(0, 200));
-      return res.status(502).json({ error: "AI unavailable" });
-    }
-
-    const data = await response.json();
-    const msg = data.choices && data.choices[0] && data.choices[0].message;
-    let text = (msg && msg.content) || "";
-    if (!text.trim() && msg && msg.reasoning) text = msg.reasoning;
-    text = text.replace(/```json|```/g, "").trim();
-
-    let list = [];
-    try {
-      const match = text.match(/\[[\s\S]*\]/);
-      if (match) list = JSON.parse(match[0]);
-      else list = JSON.parse(text);
-    } catch (parseErr) {
-      const objs = [
-        ...text.matchAll(/\{[^{}]*"title"\s*:\s*"[^"]+"[^{}]*\}/g),
-      ];
-      list = objs
-        .map((m) => {
-          try {
-            return JSON.parse(m[0]);
-          } catch (e) {
-            return null;
-          }
-        })
-        .filter(Boolean);
-    }
-
-    const result = Array.isArray(list)
-      ? list.filter((x) => x && x.title).slice(0, 5)
-      : [];
-    return res.json(result);
-  } catch (e) {
-    console.warn("Similar songs error:", e.message);
-    return res.status(502).json({ error: "AI failed" });
-  }
-});
 
 // --------------------------------------------------
 // DOWNLOAD / STREAM
@@ -792,6 +687,6 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Aura Music on", PORT);
-  console.log("Routes: /search /playlist /channel /stream /download /lyrics /api/similar /health");
+  console.log("Routes: /search /playlist /channel /stream /download /lyrics /health");
   console.log("yt-dlp bin:", process.env.YTDLP_PATH || "yt-dlp");
 });
