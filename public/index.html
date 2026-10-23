@@ -793,6 +793,15 @@ body.screen-locked .toast{
 }
 
 
+
+.channel-art{border-radius:50%!important}
+.type-badge{position:absolute;left:6px;top:6px;z-index:3;font-size:9px;font-weight:700;padding:3px 7px;border-radius:8px;background:rgba(0,0,0,.65);color:#fff;letter-spacing:.3px}
+.pl-badge{background:linear-gradient(110deg,var(--a),var(--b));font-size:8px}
+.pl-stack{position:absolute;inset:0;border-radius:inherit;box-shadow:6px 0 0 -2px rgba(255,255,255,.12),12px 0 0 -4px rgba(255,255,255,.08);pointer-events:none}
+.playlist-card .art{overflow:visible}
+.show-more-card:hover{border-color:var(--b)!important;background:rgba(32,216,255,.08)}
+.channel-card .art{border-radius:50%!important}
+
 </style>
 </head>
 <body>
@@ -1544,19 +1553,26 @@ async function addSimilarToQueue(song){
 function renderCards(list){
  const box=$("#cards");if(!box)return;
  const arts=["","pink","gold","blue","green","violet"];
- box.innerHTML=(list||[]).slice(0,30).map((s,i)=>{
+ const items=(list||[]).slice(0,36);
+ let html=items.map((s,i)=>{
   if(s.type==="channel"){
+   const subs=s.subscribers?String(s.subscribers):"";
    return `<div class="music-card channel-card" data-type="channel" data-id="${s.id||""}" data-name="${escHtml(s.title||s.author||'')}" role="button" tabindex="0">
-    <div class="art" style="background-image:url('${s.thumb||s.thumbnail||""}');background-size:cover;background-position:center;border-radius:50%"><i class="play-dot">▶</i></div>
+    <div class="art channel-art" style="background-image:url('${s.thumb||s.thumbnail||""}');background-size:cover;background-position:center;border-radius:50%;border:2px solid var(--line)">
+     <span class="type-badge">📢</span>
+    </div>
     <b>${cleanSongTitle(s.title||s.author||"Channel")}</b>
-    <small>Channel${s.videoCount?" · "+s.videoCount:""}</small>
+    <small>${subs?subs+" subs":"Channel"}${s.videoCount?" · "+s.videoCount:""}</small>
    </div>`;
   }
   if(s.type==="playlist"){
    return `<div class="music-card playlist-card" data-type="playlist" data-id="${s.id||""}" role="button" tabindex="0">
-    <div class="art violet" style="background-image:url('${s.thumb||s.thumbnail||""}');background-size:cover;background-position:center"><i class="play-dot">▶</i></div>
+    <div class="art" style="background-image:url('${s.thumb||s.thumbnail||""}');background-size:cover;background-position:center;position:relative">
+     <div class="pl-stack"></div>
+     <span class="type-badge pl-badge">♫ Playlist</span>
+    </div>
     <b>${cleanSongTitle(s.title||"Playlist")}</b>
-    <small>Playlist · ${cleanArtistName(s.author||s.artist||"")}${s.videoCount?" · "+s.videoCount:""}</small>
+    <small>${cleanArtistName(s.author||s.artist||"")}${s.videoCount?" · "+s.videoCount+" tracks":""}</small>
    </div>`;
   }
   return `<div class="music-card" data-type="video" data-id="${s.id}" role="button" tabindex="0">
@@ -1566,6 +1582,13 @@ function renderCards(list){
    <small>${cleanArtistName(s.artist||s.author||"")}</small>
   </div>`;
  }).join("");
+ // Show More button for channel browse
+ if(state._channelMore&&state._channelMore.hasMore){
+  html+=`<div class="music-card show-more-card" data-type="show-more" role="button" tabindex="0" style="display:flex;align-items:center;justify-content:center;min-height:140px;border:1px dashed var(--line);border-radius:14px">
+   <div style="text-align:center"><b style="font-size:13px">Show More</b><small style="display:block;margin-top:6px;color:var(--muted)">Load more videos</small></div>
+  </div>`;
+ }
+ box.innerHTML=html;
  requestAnimationFrame(syncRecentToCardsHeight);
 }
 function renderQueue(){
@@ -2071,7 +2094,7 @@ async function searchLocal(q){
   if(req!==_searchReq)return;
   const list=(Array.isArray(data)?data:[]).map(v=>{
    if(v.type==="channel"){
-    return{type:"channel",id:v.id,title:v.title||v.author,author:v.author||v.title,thumb:v.thumbnail||"",videoCount:v.videoCount};
+    return{type:"channel",id:v.id,title:v.title||v.author,author:v.author||v.title,thumb:v.thumbnail||"",videoCount:v.videoCount,subscribers:v.subscribers||""};
    }
    if(v.type==="playlist"){
     return{type:"playlist",id:v.id,title:v.title,author:v.author,thumb:v.thumbnail||"",videoCount:v.videoCount};
@@ -2285,46 +2308,65 @@ function setView(which){
 }
 
 async function loadPlaylist(listId){
- if(!listId)return;
+ if(!listId){toast("Playlist id missing");return}
+ state._channelMore=null;
  $("#trackHeading").textContent="Loading playlist…";
  toast("Playlist load ho rahi hai…");
  try{
-  const res=await fetch("/playlist?list="+encodeURIComponent(listId),{signal:AbortSignal.timeout(20000)});
-  if(!res.ok)throw new Error("HTTP "+res.status);
-  const data=await res.json();
+  const res=await fetch("/playlist?list="+encodeURIComponent(listId),{signal:AbortSignal.timeout(25000)});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok){
+   console.warn("playlist HTTP",res.status,data);
+   toast(data.error||("Playlist fail "+res.status));
+   $("#trackHeading").textContent="Playlist failed";
+   return;
+  }
   const list=(data.videos||[]).map(v=>({
    id:v.id,title:v.title,artist:v.author,mood:"Playlist",thumb:v.thumbnail
   })).filter(s=>s.id);
   if(!list.length){toast("Playlist empty");$("#trackHeading").textContent="Playlist empty";return}
-  // AI OFF for playlist
+  // ★ AI OFF for playlist
   state.fromDiscovery=false;
   state.queue=list;state.songs=list;state.currentIndex=0;
   playSong(0);renderCards(list);
   $("#trackHeading").textContent="♫ "+(data.title||"Playlist");
   toast("Playlist · "+list.length+" songs");
- }catch(e){console.warn(e);toast("Playlist load fail");$("#trackHeading").textContent="Playlist failed"}
+ }catch(e){console.warn("loadPlaylist",e);toast("Playlist load fail");$("#trackHeading").textContent="Playlist failed"}
 }
-async function loadChannel(channelId,channelName){
+async function loadChannel(channelId,channelName,page){
  if(!channelId&&!channelName)return;
- $("#trackHeading").textContent="Loading channel…";
- toast("Channel videos load ho rahe hain…");
+ page=page||1;
+ $("#trackHeading").textContent=page>1?"Loading more…":"Loading channel…";
+ if(page===1) toast("Channel videos load ho rahe hain…");
  try{
   const q=new URLSearchParams();
   if(channelId)q.set("id",channelId);
   if(channelName)q.set("q",channelName);
-  const res=await fetch("/channel?"+q.toString(),{signal:AbortSignal.timeout(20000)});
-  if(!res.ok)throw new Error("HTTP "+res.status);
-  const data=await res.json();
+  q.set("page",String(page));
+  const res=await fetch("/channel?"+q.toString(),{signal:AbortSignal.timeout(25000)});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok){toast(data.error||"Channel fail");return}
   const list=(data.videos||[]).map(v=>({
    id:v.id,title:v.title,artist:v.author,mood:"Channel",thumb:v.thumbnail
   })).filter(s=>s.id);
-  if(!list.length){toast("Channel videos nahi mile");$("#trackHeading").textContent="No videos";return}
-  state.fromDiscovery=true;
-  state.queue=list;state.songs=list;state.currentIndex=0;
-  playSong(0);renderCards(list);
+  if(!list.length&&page===1){toast("Channel videos nahi mile");$("#trackHeading").textContent="No videos";return}
+  // ★ AI OFF for channel
+  state.fromDiscovery=false;
+  state._channelMore={id:channelId,name:channelName,page:page,hasMore:!!data.hasMore};
+  if(page===1){
+   state.queue=list;state.songs=list;state.currentIndex=0;
+   if(list.length) playSong(0);
+  }else{
+   // append
+   const existing=new Set((state.songs||[]).map(s=>s.id));
+   const extra=list.filter(s=>!existing.has(s.id));
+   state.songs=[...(state.songs||[]),...extra];
+   state.queue=[...(state.queue||[]),...extra];
+  }
+  renderCards(state.songs);
   $("#trackHeading").textContent="📢 "+(data.title||channelName||"Channel");
-  toast("Channel · "+list.length+" videos");
- }catch(e){console.warn(e);toast("Channel load fail");$("#trackHeading").textContent="Channel failed"}
+  toast(page>1?("+"+list.length+" more"):("Channel · "+list.length+" videos"));
+ }catch(e){console.warn("loadChannel",e);toast("Channel load fail");if(page===1)$("#trackHeading").textContent="Channel failed"}
 }
 
 function bind(){
@@ -2333,8 +2375,13 @@ function bind(){
   const card=e.target.closest(".music-card");if(!card)return;
   const type=card.dataset.type||"video";
   const id=card.dataset.id;
+  if(type==="show-more"){
+   const m=state._channelMore;
+   if(m) loadChannel(m.id,m.name,(m.page||1)+1);
+   return;
+  }
   if(type==="channel"){
-   loadChannel(id,card.dataset.name||"");
+   loadChannel(id,card.dataset.name||"",1);
    return;
   }
   if(type==="playlist"){
