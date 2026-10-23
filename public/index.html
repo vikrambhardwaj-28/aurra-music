@@ -1527,7 +1527,7 @@ function renderAiQueue(){ /* AI removed */ }
 function renderCards(list){
  const box=$("#cards");if(!box)return;
  const arts=["","pink","gold","blue","green","violet"];
- const items=(list||[]).slice(0,36);
+ const items=(list||[]).slice(0,120);
  let html=items.map((s,i)=>{
   if(s.type==="channel"){
    const subs=s.subscribers?String(s.subscribers):"";
@@ -1558,14 +1558,24 @@ function renderCards(list){
    <small>${cleanArtistName(s.artist||s.author||"")}</small>
   </div>`;
  }).join("");
- // Show More — search / playlist / channel (only if real more results)
- const canMore=(state._searchMore&&state._searchMore.hasMore)||(state._playlistMore&&state._playlistMore.hasMore)||(state._channelMore&&state._channelMore.hasMore);
- if(canMore){
-  html+=`<div class="music-card show-more-card" data-type="show-more" role="button" tabindex="0" style="display:flex;align-items:center;justify-content:center;min-height:140px;border:1px dashed var(--line);border-radius:14px">
-   <div style="text-align:center"><b style="font-size:13px">Show More</b><small style="display:block;margin-top:6px;color:var(--muted)">Load more results</small></div>
-  </div>`;
- }
+ // Show More — search / playlist / channel
+ const canMore=!!((state._searchMore&&state._searchMore.hasMore)||(state._playlistMore&&state._playlistMore.hasMore)||(state._channelMore&&state._channelMore.hasMore));
  box.innerHTML=html;
+ // full-width button under grid so it is always visible
+ let moreBar=$("#showMoreBar");
+ if(!moreBar){
+  moreBar=document.createElement("div");
+  moreBar.id="showMoreBar";
+  moreBar.style.cssText="grid-column:1/-1;width:100%;margin:12px 0 8px";
+  box.parentNode&&box.parentNode.insertBefore(moreBar, box.nextSibling);
+ }
+ if(canMore){
+  moreBar.style.display="block";
+  moreBar.innerHTML=`<button type="button" id="showMoreBtn" data-type="show-more" style="width:100%;padding:14px 16px;border-radius:14px;border:1px dashed color-mix(in srgb,var(--b) 50%,#fff);background:color-mix(in srgb,var(--a) 12%,rgba(255,255,255,.04));color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 0 16px color-mix(in srgb,var(--glow) 30%,transparent)">Show More · Load more results</button>`;
+ }else{
+  moreBar.style.display="none";
+  moreBar.innerHTML="";
+ }
  requestAnimationFrame(syncRecentToCardsHeight);
 }
 function highlightPlayingCard(){
@@ -1900,6 +1910,13 @@ function playSong(index){state._skip=false;state._skipping=false;
   setTimeout(()=>clearInterval(wait),8000);
  }
  toast("▶ "+s.title);
+ // Prefetch more when near end of queue
+ try{
+  if(state.currentIndex>=state.queue.length-2){
+   const can=(state._searchMore&&state._searchMore.hasMore)||(state._playlistMore&&state._playlistMore.hasMore)||(state._channelMore&&state._channelMore.hasMore);
+   if(can&&!state._loadingMore) loadMoreResults();
+  }
+ }catch(e){}
 }
 function togglePlay(){
  if(state.currentIndex<0){playSong(0);return}
@@ -2095,7 +2112,8 @@ async function searchLocal(q, page){
   if(req!==_searchReq)return;
   const raw=Array.isArray(data)?data:(data.items||[]);
   const list=raw.map(mapSearchItem).filter(s=>s.id);
-  const hasMore=Array.isArray(data)?(list.filter(s=>s.type==="video").length>=20):!!data.hasMore;
+  const vidCount=list.filter(s=>s.type==="video"||!s.type).length;
+  const hasMore=Array.isArray(data)?(vidCount>=10):!!(data.hasMore||vidCount>=10);
   if(!list.length&&page===1){
    state._searchMore=null;
    $("#trackHeading").textContent="No results";
@@ -2441,6 +2459,13 @@ async function loadMoreResults(){
 }
 
 function bind(){
+ // Show More bar (outside cards grid)
+ document.addEventListener("click",e=>{
+  if(e.target&&(e.target.id==="showMoreBtn"||e.target.closest("#showMoreBtn"))){
+   e.preventDefault();
+   loadMoreResults();
+  }
+ });
  $("#cards").addEventListener("click",e=>{
   if(e.target.closest(".song-menu-btn")) return;
   const card=e.target.closest(".music-card");if(!card)return;
