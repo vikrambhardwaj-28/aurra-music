@@ -1847,8 +1847,6 @@ function playSong(index){state._skip=false;state._skipping=false;
   setTimeout(()=>clearInterval(wait),8000);
  }
  toast("▶ "+s.title);
-
- }
 }
 function togglePlay(){
  if(state.currentIndex<0){playSong(0);return}
