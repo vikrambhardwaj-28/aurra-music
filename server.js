@@ -114,6 +114,7 @@ async function doSearch(query) {
     author: c.name || c.title || "Channel",
     thumbnail: c.image || c.thumbnail || "",
     videoCount: c.videoCount || c.videos || "",
+    subscribers: c.subCountLabel || c.subscriberCount || c.subscribers || c.subCount || "",
     url: c.url || "",
   }));
 
@@ -162,24 +163,34 @@ app.get("/search", async (req, res) => {
 // PLAYLIST videos
 // --------------------------------------------------
 async function handlePlaylist(req, res) {
-  const listId = String(req.query.list || req.query.id || "").trim();
-  if (!listId) return res.status(400).json({ error: "list id required" });
+  let listId = String(req.query.list || req.query.id || "").trim();
+  // strip full URL if user pasted one
+  if (listId.includes("list=")) {
+    try { listId = new URL(listId).searchParams.get("list") || listId; } catch (_) {
+      const m = listId.match(/[?&]list=([^&]+)/);
+      if (m) listId = m[1];
+    }
+  }
+  if (!listId || listId.length < 6) {
+    return res.status(400).json({ error: "list id required" });
+  }
 
   try {
+    console.log("Playlist load:", listId);
     const result = await Promise.race([
       ytSearch({ listId }),
       new Promise((_, rej) =>
-        setTimeout(() => rej(new Error("timeout")), 18000)
+        setTimeout(() => rej(new Error("timeout")), 22000)
       ),
     ]);
 
     const videos = (result.videos || [])
-      .filter((v) => v.videoId)
+      .filter((v) => v && v.videoId && !String(v.title || "").includes("[Deleted") && !String(v.title || "").includes("[Private"))
       .map((v) => ({
         type: "video",
         id: v.videoId,
         title: v.title,
-        author: v.author?.name || result.title || "Unknown",
+        author: (v.author && v.author.name) || result.title || "Unknown",
         thumbnail:
           v.thumbnail ||
           `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
@@ -187,10 +198,14 @@ async function handlePlaylist(req, res) {
         mood: "Playlist",
       }));
 
-    res.json({ title: result.title || "Playlist", videos });
+    if (!videos.length) {
+      return res.status(404).json({ error: "Playlist empty or not found", listId });
+    }
+
+    res.json({ title: result.title || "Playlist", videos, listId });
   } catch (e) {
-    console.error("Playlist fail:", e.message);
-    res.status(500).json({ error: "Playlist failed", detail: e.message });
+    console.error("Playlist fail:", listId, e.message);
+    res.status(500).json({ error: "Playlist failed", detail: e.message, listId });
   }
 }
 
@@ -203,6 +218,8 @@ app.get("/api/playlist", handlePlaylist);
 async function handleChannel(req, res) {
   const channelId = String(req.query.id || "").trim();
   const channelName = String(req.query.q || req.query.name || "").trim();
+  const page = Math.max(1, parseInt(req.query.page || "1", 10) || 1);
+  const pages = page === 1 ? 2 : Math.min(page + 1, 4);
 
   if (!channelId && !channelName) {
     return res.status(400).json({ error: "channel id or name required" });
@@ -210,53 +227,45 @@ async function handleChannel(req, res) {
 
   try {
     const query = channelName || channelId;
+    console.log("Channel load:", query, "page", page);
     const result = await Promise.race([
-      ytSearch({ query: query + " songs", pages: 2 }),
+      ytSearch({ query: query, pages }),
       new Promise((_, rej) =>
-        setTimeout(() => rej(new Error("timeout")), 18000)
+        setTimeout(() => rej(new Error("timeout")), 22000)
       ),
     ]);
 
-    let videos = (result.videos || [])
-      .filter((v) => {
-        if (v.seconds && v.seconds > 0 && v.seconds < 60) return false;
-        if (channelId) {
-          const aUrl = (v.author?.url || "").toLowerCase();
-          return aUrl.includes(channelId.toLowerCase());
-        }
-        return true;
-      })
-      .slice(0, 30)
-      .map((v) => ({
-        type: "video",
-        id: v.videoId,
-        title: v.title,
-        author: v.author?.name || channelName || "Unknown",
-        thumbnail:
-          v.thumbnail ||
-          `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
-        timestamp: v.timestamp || "",
-        mood: "Channel",
-      }));
+    const all = (result.videos || []).filter((v) => {
+      // no Shorts
+      if (v.seconds && v.seconds > 0 && v.seconds < 60) return false;
+      return true;
+    });
 
-    if (videos.length < 5) {
-      videos = (result.videos || [])
-        .filter((v) => !(v.seconds && v.seconds > 0 && v.seconds < 60))
-        .slice(0, 30)
-        .map((v) => ({
-          type: "video",
-          id: v.videoId,
-          title: v.title,
-          author: v.author?.name || channelName || "Unknown",
-          thumbnail:
-            v.thumbnail ||
-            `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
-          timestamp: v.timestamp || "",
-          mood: "Channel",
-        }));
-    }
+    // page slice: page1 = 0-24, page2 = 24-48, etc
+    const start = (page - 1) * 24;
+    const slice = all.slice(start, start + 24);
 
-    res.json({ title: channelName || "Channel", videos });
+    const videos = slice.map((v) => ({
+      type: "video",
+      id: v.videoId,
+      title: v.title,
+      author: v.author?.name || channelName || "Unknown",
+      thumbnail:
+        v.thumbnail ||
+        `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
+      timestamp: v.timestamp || "",
+      mood: "Channel",
+    }));
+
+    const hasMore = all.length > start + 24 || (result.videos || []).length >= pages * 20;
+
+    res.json({
+      title: channelName || "Channel",
+      videos,
+      page,
+      hasMore,
+      total: all.length,
+    });
   } catch (e) {
     console.error("Channel fail:", e.message);
     res.status(500).json({ error: "Channel failed", detail: e.message });
