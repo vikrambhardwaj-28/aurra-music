@@ -84,15 +84,24 @@ if (lyricsHandler) {
 // --------------------------------------------------
 // SEARCH — videos + channels + playlists
 // --------------------------------------------------
-async function doSearch(query) {
+const SEARCH_PAGE_SIZE = 24;
+
+async function doSearch(query, page = 1) {
+  page = Math.max(1, page | 0);
+  // fetch enough pages for this slice (yt-search ~20 videos per page)
+  const needPages = Math.min(page + 1, 5);
   const result = await Promise.race([
-    ytSearch({ query, pages: 2 }),
+    ytSearch({ query, pages: needPages }),
     new Promise((_, rej) =>
-      setTimeout(() => rej(new Error("timeout")), 16000)
+      setTimeout(() => rej(new Error("timeout")), 18000)
     ),
   ]);
 
-  const videos = (result.videos || []).slice(0, 24).map((v) => ({
+  const allVideos = result.videos || [];
+  const start = (page - 1) * SEARCH_PAGE_SIZE;
+  const slice = allVideos.slice(start, start + SEARCH_PAGE_SIZE);
+
+  const videos = slice.map((v) => ({
     type: "video",
     id: v.videoId,
     title: v.title,
@@ -103,42 +112,55 @@ async function doSearch(query) {
     seconds: v.seconds || 0,
   }));
 
-  const channels = (result.channels || []).slice(0, 4).map((c) => ({
-    type: "channel",
-    id: c.channelId || c.authorId || (c.url || "").split("/").pop() || "",
-    title: c.name || c.title || "Channel",
-    author: c.name || c.title || "Channel",
-    thumbnail: c.image || c.thumbnail || "",
-    videoCount: c.videoCount || c.videos || "",
-    subscribers: c.subCountLabel || c.subscriberCount || c.subscribers || c.subCount || "",
-    url: c.url || "",
-  }));
+  // channels + playlists only on first page
+  let channels = [];
+  let playlists = [];
+  if (page === 1) {
+    channels = (result.channels || []).slice(0, 4).map((c) => ({
+      type: "channel",
+      id: c.channelId || c.authorId || (c.url || "").split("/").pop() || "",
+      title: c.name || c.title || "Channel",
+      author: c.name || c.title || "Channel",
+      thumbnail: c.image || c.thumbnail || "",
+      videoCount: c.videoCount || c.videos || "",
+      subscribers: c.subCountLabel || c.subscriberCount || c.subscribers || c.subCount || "",
+      url: c.url || "",
+    }));
 
-  const playlists = (result.playlists || []).slice(0, 6).map((p) => {
-    let pid = p.listId || p.playlistId || p.id || "";
-    if (!pid && p.url) {
-      const m = String(p.url).match(/[?&]list=([a-zA-Z0-9_-]+)/);
-      if (m) pid = m[1];
-    }
-    return {
-      type: "playlist",
-      id: pid,
-      title: p.title || "Playlist",
-      author: p.owner?.name || p.author?.name || "Unknown",
-      thumbnail: p.image || p.thumbnail || "",
-      videoCount: p.videoCount || p.videoCountLabel || "",
-    };
-  }).filter((p) => p.id && p.id.length >= 10);
+    playlists = (result.playlists || [])
+      .slice(0, 6)
+      .map((p) => {
+        let pid = p.listId || p.playlistId || p.id || "";
+        if (!pid && p.url) {
+          const m = String(p.url).match(/[?&]list=([a-zA-Z0-9_-]+)/);
+          if (m) pid = m[1];
+        }
+        return {
+          type: "playlist",
+          id: pid,
+          title: p.title || "Playlist",
+          author: p.owner?.name || p.author?.name || "Unknown",
+          thumbnail: p.image || p.thumbnail || "",
+          videoCount: p.videoCount || p.videoCountLabel || "",
+        };
+      })
+      .filter((p) => p.id && p.id.length >= 10);
+  }
 
-  // Channels + Playlists pehle, phir videos
-  return [...channels, ...playlists, ...videos];
+  const hasMore =
+    allVideos.length > start + SEARCH_PAGE_SIZE ||
+    (slice.length >= SEARCH_PAGE_SIZE && needPages < 5);
+
+  const items = page === 1 ? [...channels, ...playlists, ...videos] : videos;
+  return { items, page, hasMore, total: allVideos.length };
 }
 
 app.get("/search", async (req, res) => {
   const query = String(req.query.q || "").trim();
   if (!query) return res.status(400).json({ error: "query required" });
+  const page = Math.max(1, parseInt(req.query.page || "1", 10) || 1);
 
-  const key = query.toLowerCase();
+  const key = query.toLowerCase() + "::p" + page;
   const hit = getCache(key);
   if (hit) {
     res.setHeader("X-Cache", "HIT");
@@ -148,11 +170,11 @@ app.get("/search", async (req, res) => {
   let lastErr;
   for (let i = 0; i < 3; i++) {
     try {
-      console.log(`Search try ${i + 1}:`, query);
-      const songs = await doSearch(query);
-      setCache(key, songs);
+      console.log(`Search try ${i + 1}:`, query, "page", page);
+      const data = await doSearch(query, page);
+      setCache(key, data);
       res.setHeader("X-Cache", "MISS");
-      return res.json(songs);
+      return res.json(data);
     } catch (e) {
       lastErr = e;
       console.error("Search fail:", e.message);
@@ -165,17 +187,24 @@ app.get("/search", async (req, res) => {
 // --------------------------------------------------
 // PLAYLIST videos — yt-dlp primary (reliable), yt-search fallback
 // --------------------------------------------------
-function fetchPlaylistViaYtDlp(listId) {
+const PLAYLIST_PAGE_SIZE = 40;
+
+function fetchPlaylistViaYtDlp(listId, page = 1) {
   return new Promise((resolve, reject) => {
     const bin = process.env.YTDLP_PATH || "yt-dlp";
     const url = `https://www.youtube.com/playlist?list=${listId}`;
+    page = Math.max(1, page | 0);
+    const start = (page - 1) * PLAYLIST_PAGE_SIZE + 1;
+    const end = page * PLAYLIST_PAGE_SIZE;
     const args = [
       "--flat-playlist",
       "--dump-json",
       "--no-warnings",
       "--no-download",
+      "--playlist-start",
+      String(start),
       "--playlist-end",
-      "80",
+      String(end),
       "--geo-bypass",
       "--retries",
       "2",
@@ -266,7 +295,9 @@ function fetchPlaylistViaYtDlp(listId) {
         seen.add(v.id);
         return true;
       });
-      resolve({ title, videos: unique });
+      // hasMore only if we got a full page (real more items likely exist)
+      const hasMore = unique.length >= PLAYLIST_PAGE_SIZE;
+      resolve({ title, videos: unique, hasMore, page });
     });
   });
 }
@@ -300,6 +331,7 @@ async function fetchPlaylistViaYtSearch(listId) {
 
 async function handlePlaylist(req, res) {
   let listId = String(req.query.list || req.query.id || "").trim();
+  const page = Math.max(1, parseInt(req.query.page || "1", 10) || 1);
   // strip full URL if pasted
   if (listId.includes("list=")) {
     try {
@@ -315,20 +347,26 @@ async function handlePlaylist(req, res) {
     return res.status(400).json({ error: "list id required", got: listId });
   }
 
-  console.log("Playlist load:", listId);
+  console.log("Playlist load:", listId, "page", page);
   let lastErr = "";
 
   // 1) yt-dlp first (more reliable on Render)
   try {
-    const data = await fetchPlaylistViaYtDlp(listId);
+    const data = await fetchPlaylistViaYtDlp(listId, page);
     if (data.videos && data.videos.length) {
-      console.log("Playlist yt-dlp OK:", data.videos.length, data.title);
+      console.log("Playlist yt-dlp OK:", data.videos.length, data.title, "hasMore", data.hasMore);
       return res.json({
         title: data.title,
         videos: data.videos,
         listId,
+        page,
+        hasMore: !!data.hasMore,
         source: "yt-dlp",
       });
+    }
+    // empty page = no more results (not an error on page > 1)
+    if (page > 1) {
+      return res.json({ title: "Playlist", videos: [], listId, page, hasMore: false, source: "yt-dlp" });
     }
     lastErr = "yt-dlp returned 0 videos";
   } catch (e) {
@@ -336,22 +374,26 @@ async function handlePlaylist(req, res) {
     console.warn("Playlist yt-dlp fail:", e.message);
   }
 
-  // 2) yt-search fallback
-  try {
-    const data = await fetchPlaylistViaYtSearch(listId);
-    if (data.videos && data.videos.length) {
-      console.log("Playlist yt-search OK:", data.videos.length, data.title);
-      return res.json({
-        title: data.title,
-        videos: data.videos,
-        listId,
-        source: "yt-search",
-      });
+  // 2) yt-search fallback (only page 1 — no real pagination)
+  if (page === 1) {
+    try {
+      const data = await fetchPlaylistViaYtSearch(listId);
+      if (data.videos && data.videos.length) {
+        console.log("Playlist yt-search OK:", data.videos.length, data.title);
+        return res.json({
+          title: data.title,
+          videos: data.videos,
+          listId,
+          page: 1,
+          hasMore: false,
+          source: "yt-search",
+        });
+      }
+      lastErr = (lastErr ? lastErr + " | " : "") + "yt-search returned 0 videos";
+    } catch (e) {
+      lastErr = (lastErr ? lastErr + " | " : "") + "yt-search: " + e.message;
+      console.warn("Playlist yt-search fail:", e.message);
     }
-    lastErr = (lastErr ? lastErr + " | " : "") + "yt-search returned 0 videos";
-  } catch (e) {
-    lastErr = (lastErr ? lastErr + " | " : "") + "yt-search: " + e.message;
-    console.warn("Playlist yt-search fail:", e.message);
   }
 
   console.error("Playlist fail:", listId, lastErr);
@@ -410,7 +452,7 @@ async function handleChannel(req, res) {
       mood: "Channel",
     }));
 
-    const hasMore = all.length > start + 24 || (result.videos || []).length >= pages * 20;
+    const hasMore = videos.length >= 24 && all.length > start + 24; // only if full page
 
     res.json({
       title: channelName || "Channel",
