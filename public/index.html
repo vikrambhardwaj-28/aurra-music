@@ -2309,15 +2309,25 @@ function setView(which){
 
 async function loadPlaylist(listId){
  if(!listId){toast("Playlist id missing");return}
+ // clean id
+ listId=String(listId).trim();
+ if(listId.includes("list=")){
+  try{listId=new URL(listId).searchParams.get("list")||listId}catch(_){
+   const m=listId.match(/[?&]list=([^&]+)/);if(m)listId=m[1];
+  }
+ }
+ listId=listId.replace(/[^a-zA-Z0-9_-]/g,"");
+ if(listId.length<10){toast("Invalid playlist id");return}
+
  state._channelMore=null;
  $("#trackHeading").textContent="Loading playlist…";
  toast("Playlist load ho rahi hai…");
  try{
-  const res=await fetch("/playlist?list="+encodeURIComponent(listId),{signal:AbortSignal.timeout(25000)});
+  const res=await fetch("/playlist?list="+encodeURIComponent(listId),{signal:AbortSignal.timeout(35000)});
   const data=await res.json().catch(()=>({}));
   if(!res.ok){
    console.warn("playlist HTTP",res.status,data);
-   toast(data.error||("Playlist fail "+res.status));
+   toast(data.detail?("Fail: "+String(data.detail).slice(0,60)): (data.error||("Playlist fail "+res.status)));
    $("#trackHeading").textContent="Playlist failed";
    return;
   }
@@ -2331,7 +2341,7 @@ async function loadPlaylist(listId){
   playSong(0);renderCards(list);
   $("#trackHeading").textContent="♫ "+(data.title||"Playlist");
   toast("Playlist · "+list.length+" songs");
- }catch(e){console.warn("loadPlaylist",e);toast("Playlist load fail");$("#trackHeading").textContent="Playlist failed"}
+ }catch(e){console.warn("loadPlaylist",e);toast(e.name==="TimeoutError"?"Playlist timeout — dubara try":"Playlist load fail");$("#trackHeading").textContent="Playlist failed"}
 }
 async function loadChannel(channelId,channelName,page){
  if(!channelId&&!channelName)return;
