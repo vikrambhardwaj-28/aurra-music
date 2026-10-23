@@ -7,24 +7,21 @@ const ytSearch = require("yt-search");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Groq key ONLY on server (never sent to browser)
+// Groq key ONLY on server
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-// Optional: YouTube captions fallback (npm i youtube-transcript)
+// Optional: YouTube captions
 let lyricsHandler = null;
 try {
   lyricsHandler = require("./lyricsHandler");
   console.log("Lyrics handler loaded (YouTube captions OK)");
 } catch (e) {
-  console.warn(
-    "lyricsHandler missing or broken — /lyrics disabled.",
-    e.message
-  );
+  console.warn("lyricsHandler missing or broken — /lyrics disabled.", e.message);
 }
 
 // --------------------------------------------------
-// CACHE (search 15 min)
+// CACHE
 // --------------------------------------------------
 const searchCache = new Map();
 const CACHE_TTL = 15 * 60 * 1000;
@@ -47,39 +44,12 @@ function setCache(key, data) {
   searchCache.set(key, { data, exp: Date.now() + CACHE_TTL });
 }
 
-// Prefer high quality audio; fallback chain for yt-dlp
-const HIGH_AUDIO_FORMAT =
-  "bestaudio[abr>=160]/bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best";
-
-// Limit concurrent yt-dlp jobs so free Render doesn't OOM / crash
 const MAX_CONCURRENT_DOWNLOADS = Math.max(
   1,
   parseInt(process.env.MAX_DOWNLOADS || "2", 10) || 2
 );
 let activeDownloads = 0;
 const downloadQueue = [];
-
-function runQueued(fn) {
-  return new Promise((resolve, reject) => {
-    const job = () => {
-      activeDownloads++;
-      Promise.resolve()
-        .then(fn)
-        .then((v) => {
-          activeDownloads--;
-          pumpQueue();
-          resolve(v);
-        })
-        .catch((e) => {
-          activeDownloads--;
-          pumpQueue();
-          reject(e);
-        });
-    };
-    downloadQueue.push(job);
-    pumpQueue();
-  });
-}
 
 function pumpQueue() {
   while (activeDownloads < MAX_CONCURRENT_DOWNLOADS && downloadQueue.length) {
@@ -95,7 +65,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public"), { maxAge: "1h" }));
 
-// Keep-alive (Render sleep kam kare)
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
@@ -111,32 +80,54 @@ app.get("/health", (req, res) => {
   });
 });
 
-// --------------------------------------------------
-// LYRICS (YouTube captions fallback)
-// --------------------------------------------------
 if (lyricsHandler) {
   app.get("/lyrics", lyricsHandler);
   app.get("/api/lyrics", lyricsHandler);
 }
 
 // --------------------------------------------------
-// FAST SEARCH (retry + cache)
+// SEARCH — videos + channels + playlists
 // --------------------------------------------------
 async function doSearch(query) {
   const result = await Promise.race([
-    ytSearch({ query, pages: 1 }),
+    ytSearch({ query, pages: 2 }),
     new Promise((_, rej) =>
-      setTimeout(() => rej(new Error("timeout")), 14000)
+      setTimeout(() => rej(new Error("timeout")), 16000)
     ),
   ]);
-  return (result.videos || []).slice(0, 12).map((v) => ({
+
+  const videos = (result.videos || []).slice(0, 24).map((v) => ({
+    type: "video",
     id: v.videoId,
     title: v.title,
     author: v.author?.name || "Unknown",
     thumbnail:
       v.thumbnail || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
     timestamp: v.timestamp || "",
+    seconds: v.seconds || 0,
   }));
+
+  const channels = (result.channels || []).slice(0, 4).map((c) => ({
+    type: "channel",
+    id: c.channelId || c.authorId || (c.url || "").split("/").pop() || "",
+    title: c.name || c.title || "Channel",
+    author: c.name || c.title || "Channel",
+    thumbnail: c.image || c.thumbnail || "",
+    videoCount: c.videoCount || c.videos || "",
+    url: c.url || "",
+  }));
+
+  const playlists = (result.playlists || []).slice(0, 6).map((p) => ({
+    type: "playlist",
+    id: p.listId || p.playlistId || "",
+    title: p.title || "Playlist",
+    author: p.owner?.name || p.author?.name || "Unknown",
+    thumbnail: p.image || p.thumbnail || "",
+    videoCount: p.videoCount || "",
+  }));
+
+  // Channels + Playlists pehle, phir videos
+  return [...channels, ...playlists, ...videos];
 }
 
 app.get("/search", async (req, res) => {
@@ -168,19 +159,123 @@ app.get("/search", async (req, res) => {
 });
 
 // --------------------------------------------------
-// AI SIMILAR SONGS (Groq key stays on server only)
+// PLAYLIST videos
+// --------------------------------------------------
+async function handlePlaylist(req, res) {
+  const listId = String(req.query.list || req.query.id || "").trim();
+  if (!listId) return res.status(400).json({ error: "list id required" });
+
+  try {
+    const result = await Promise.race([
+      ytSearch({ listId }),
+      new Promise((_, rej) =>
+        setTimeout(() => rej(new Error("timeout")), 18000)
+      ),
+    ]);
+
+    const videos = (result.videos || [])
+      .filter((v) => v.videoId)
+      .map((v) => ({
+        type: "video",
+        id: v.videoId,
+        title: v.title,
+        author: v.author?.name || result.title || "Unknown",
+        thumbnail:
+          v.thumbnail ||
+          `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
+        timestamp: v.timestamp || "",
+        mood: "Playlist",
+      }));
+
+    res.json({ title: result.title || "Playlist", videos });
+  } catch (e) {
+    console.error("Playlist fail:", e.message);
+    res.status(500).json({ error: "Playlist failed", detail: e.message });
+  }
+}
+
+app.get("/playlist", handlePlaylist);
+app.get("/api/playlist", handlePlaylist);
+
+// --------------------------------------------------
+// CHANNEL videos (Shorts filter: duration < 60s skip)
+// --------------------------------------------------
+async function handleChannel(req, res) {
+  const channelId = String(req.query.id || "").trim();
+  const channelName = String(req.query.q || req.query.name || "").trim();
+
+  if (!channelId && !channelName) {
+    return res.status(400).json({ error: "channel id or name required" });
+  }
+
+  try {
+    const query = channelName || channelId;
+    const result = await Promise.race([
+      ytSearch({ query: query + " songs", pages: 2 }),
+      new Promise((_, rej) =>
+        setTimeout(() => rej(new Error("timeout")), 18000)
+      ),
+    ]);
+
+    let videos = (result.videos || [])
+      .filter((v) => {
+        if (v.seconds && v.seconds > 0 && v.seconds < 60) return false;
+        if (channelId) {
+          const aUrl = (v.author?.url || "").toLowerCase();
+          return aUrl.includes(channelId.toLowerCase());
+        }
+        return true;
+      })
+      .slice(0, 30)
+      .map((v) => ({
+        type: "video",
+        id: v.videoId,
+        title: v.title,
+        author: v.author?.name || channelName || "Unknown",
+        thumbnail:
+          v.thumbnail ||
+          `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
+        timestamp: v.timestamp || "",
+        mood: "Channel",
+      }));
+
+    if (videos.length < 5) {
+      videos = (result.videos || [])
+        .filter((v) => !(v.seconds && v.seconds > 0 && v.seconds < 60))
+        .slice(0, 30)
+        .map((v) => ({
+          type: "video",
+          id: v.videoId,
+          title: v.title,
+          author: v.author?.name || channelName || "Unknown",
+          thumbnail:
+            v.thumbnail ||
+            `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
+          timestamp: v.timestamp || "",
+          mood: "Channel",
+        }));
+    }
+
+    res.json({ title: channelName || "Channel", videos });
+  } catch (e) {
+    console.error("Channel fail:", e.message);
+    res.status(500).json({ error: "Channel failed", detail: e.message });
+  }
+}
+
+app.get("/channel", handleChannel);
+app.get("/api/channel", handleChannel);
+
+// --------------------------------------------------
+// AI SIMILAR (simple prompt)
 // --------------------------------------------------
 app.post("/api/similar", async (req, res) => {
   if (!GROQ_API_KEY) {
     return res.status(503).json({ error: "AI not configured" });
   }
 
-  const title = String(req.body?.title || "")
-    .trim()
-    .slice(0, 120);
-  const artist = String(req.body?.artist || "")
-    .trim()
-    .slice(0, 80);
+  const title = String(req.body?.title || "").trim().slice(0, 120);
+  const artist = String(req.body?.artist || "").trim().slice(0, 80);
   if (!title) return res.status(400).json({ error: "title required" });
 
   const cleanArtist = artist
@@ -235,9 +330,7 @@ JSON only:
     const data = await response.json();
     const msg = data.choices && data.choices[0] && data.choices[0].message;
     let text = (msg && msg.content) || "";
-    if (!text.trim() && msg && msg.reasoning) {
-      text = msg.reasoning;
-    }
+    if (!text.trim() && msg && msg.reasoning) text = msg.reasoning;
     text = text.replace(/```json|```/g, "").trim();
 
     let list = [];
@@ -271,7 +364,7 @@ JSON only:
 });
 
 // --------------------------------------------------
-// DOWNLOAD / STREAM helpers (yt-dlp)
+// DOWNLOAD / STREAM
 // --------------------------------------------------
 function safeTitle(raw) {
   return (
@@ -295,23 +388,13 @@ function getCookiesPath() {
   return cookies && fs.existsSync(cookies) ? cookies : "";
 }
 
-/** Stream route: pipe bestaudio to client (no convert). */
 function buildStreamArgs(url, client) {
   const args = [
-    "-f",
-    "bestaudio/best",
-    "-o",
-    "-",
-    "--no-playlist",
-    "--no-warnings",
-    "--geo-bypass",
-    "--no-check-certificates",
-    "--retries",
-    "3",
-    "--fragment-retries",
-    "3",
-    "--extractor-args",
-    `youtube:player_client=${client}`,
+    "-f", "bestaudio/best", "-o", "-",
+    "--no-playlist", "--no-warnings", "--geo-bypass",
+    "--no-check-certificates", "--retries", "3",
+    "--fragment-retries", "3",
+    "--extractor-args", `youtube:player_client=${client}`,
   ];
   const cookies = getCookiesPath();
   if (cookies) args.push("--cookies", cookies);
@@ -319,32 +402,14 @@ function buildStreamArgs(url, client) {
   return args;
 }
 
-/**
- * Download route: write REAL mp3 to temp file then stream.
- * Note: yt-dlp cannot convert to mp3 when using -o - (stdout).
- * Must use a real file path + -x --audio-format mp3 (needs ffmpeg).
- */
 function buildMp3FileArgs(url, client, outTemplate) {
   const args = [
-    "-f",
-    "bestaudio/best",
-    "-x",
-    "--audio-format",
-    "mp3",
-    "--audio-quality",
-    "0",
-    "-o",
-    outTemplate,
-    "--no-playlist",
-    "--no-warnings",
-    "--geo-bypass",
-    "--no-check-certificates",
-    "--retries",
-    "3",
-    "--fragment-retries",
-    "3",
-    "--extractor-args",
-    `youtube:player_client=${client}`,
+    "-f", "bestaudio/best", "-x", "--audio-format", "mp3",
+    "--audio-quality", "0", "-o", outTemplate,
+    "--no-playlist", "--no-warnings", "--geo-bypass",
+    "--no-check-certificates", "--retries", "3",
+    "--fragment-retries", "3",
+    "--extractor-args", `youtube:player_client=${client}`,
   ];
   const cookies = getCookiesPath();
   if (cookies) args.push("--cookies", cookies);
@@ -352,24 +417,15 @@ function buildMp3FileArgs(url, client, outTemplate) {
   return args;
 }
 
-function runYtDlpAudio(
-  videoId,
-  res,
-  { inline = false, title = "aura-song" } = {}
-) {
+function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {}) {
   const fs = require("fs");
   const os = require("os");
   const pathMod = require("path");
-
   const id = String(videoId || "").trim();
   if (!id || !/^[a-zA-Z0-9_-]{6,20}$/.test(id)) {
     return res.status(400).json({ error: "Invalid id" });
   }
-
-  if (
-    activeDownloads >= MAX_CONCURRENT_DOWNLOADS &&
-    downloadQueue.length >= 8
-  ) {
+  if (activeDownloads >= MAX_CONCURRENT_DOWNLOADS && downloadQueue.length >= 8) {
     return res.status(429).json({
       error: "Too many downloads — try again in a few seconds",
       active: activeDownloads,
@@ -381,44 +437,18 @@ function runYtDlpAudio(
   const bin = process.env.YTDLP_PATH || "yt-dlp";
   const safe = safeTitle(title);
   const asMp3 = !inline;
-  const clients = String(
-    process.env.YT_CLIENTS || "android,ios,tv_embedded,web"
-  )
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const clients = String(process.env.YT_CLIENTS || "android,ios,tv_embedded,web")
+    .split(",").map((s) => s.trim()).filter(Boolean);
 
-  console.log(
-    inline ? "Stream:" : "Download(MP3-file):",
-    id,
-    safe,
-    "clients=",
-    clients.join("|")
-  );
+  console.log(inline ? "Stream:" : "Download(MP3-file):", id, safe, "clients=", clients.join("|"));
 
-  let attempt = 0;
-  let started = false;
-  let lastErr = "";
-  let child = null;
-  let finished = false;
-  let tempMp3 = null;
+  let attempt = 0, started = false, lastErr = "", child = null, finished = false, tempMp3 = null;
 
   const cleanupChild = () => {
-    if (child) {
-      try {
-        child.kill("SIGTERM");
-      } catch (_) {}
-      child = null;
-    }
+    if (child) { try { child.kill("SIGTERM"); } catch (_) {} child = null; }
   };
-
   const cleanupTemp = () => {
-    if (tempMp3) {
-      try {
-        fs.unlinkSync(tempMp3);
-      } catch (_) {}
-      tempMp3 = null;
-    }
+    if (tempMp3) { try { fs.unlinkSync(tempMp3); } catch (_) {} tempMp3 = null; }
   };
 
   const fail = (code) => {
@@ -426,12 +456,8 @@ function runYtDlpAudio(
     if (res.headersSent || finished) return;
     finished = true;
     const bot = /Sign in to confirm|not a bot|cookies/i.test(lastErr);
-    const noFfmpeg =
-      /ffmpeg is not installed|ffprobe|Postprocessing|ERROR:.*ffmpeg/i.test(
-        lastErr
-      );
-    const blocked =
-      bot || /403|429|Forbidden|not available/i.test(lastErr);
+    const noFfmpeg = /ffmpeg is not installed|ffprobe|Postprocessing|ERROR:.*ffmpeg/i.test(lastErr);
+    const blocked = bot || /403|429|Forbidden|not available/i.test(lastErr);
     res.status(502).json({
       error: noFfmpeg
         ? "ffmpeg missing — MP3 convert needs ffmpeg on server"
@@ -450,30 +476,21 @@ function runYtDlpAudio(
     });
   };
 
-  // ---- STREAM (inline): pipe raw audio ----
   const tryStreamNext = () => {
     if (started || res.headersSent || finished) return;
-    if (attempt >= clients.length) {
-      fail(1);
-      return;
-    }
+    if (attempt >= clients.length) { fail(1); return; }
     const client = clients[attempt++];
     cleanupChild();
     lastErr = "";
     const args = buildStreamArgs(url, client);
     console.log("yt-dlp stream try", client);
     child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
-    child.stderr.on("data", (c) => {
-      lastErr += c.toString();
-    });
+    child.stderr.on("data", (c) => { lastErr += c.toString(); });
     child.stdout.on("data", (chunk) => {
       if (!started) {
         started = true;
         res.setHeader("Content-Type", "application/octet-stream");
-        res.setHeader(
-          "Content-Disposition",
-          `inline; filename="${safe}.m4a"`
-        );
+        res.setHeader("Content-Disposition", `inline; filename="${safe}.m4a"`);
         res.setHeader("Cache-Control", "no-store");
       }
       res.write(chunk);
@@ -482,18 +499,12 @@ function runYtDlpAudio(
       lastErr += e.message;
       if (!started && !res.headersSent) {
         finished = true;
-        res.status(503).json({
-          error: "yt-dlp missing on server",
-          detail: e.message,
-        });
+        res.status(503).json({ error: "yt-dlp missing on server", detail: e.message });
       }
     });
     child.on("close", (code) => {
       if (started) {
-        if (!finished) {
-          finished = true;
-          res.end();
-        }
+        if (!finished) { finished = true; res.end(); }
         return;
       }
       console.error("stream fail", client, code, lastErr.slice(0, 200));
@@ -501,31 +512,20 @@ function runYtDlpAudio(
     });
   };
 
-  // ---- DOWNLOAD: real MP3 via temp file ----
   const tryMp3Next = () => {
     if (started || res.headersSent || finished) return;
-    if (attempt >= clients.length) {
-      fail(1);
-      return;
-    }
+    if (attempt >= clients.length) { fail(1); return; }
     const client = clients[attempt++];
     cleanupChild();
     cleanupTemp();
     lastErr = "";
-    // Unique temp path without extension; yt-dlp adds .mp3 after convert
-    const base = pathMod.join(
-      os.tmpdir(),
-      `aura_${id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    );
+    const base = pathMod.join(os.tmpdir(), `aura_${id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const outTemplate = base + ".%(ext)s";
-    // After -x --audio-format mp3, file will be base.mp3
     const expectedMp3 = base + ".mp3";
     const args = buildMp3FileArgs(url, client, outTemplate);
     console.log("yt-dlp mp3 try", client, "->", expectedMp3);
     child = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"] });
-    child.stderr.on("data", (c) => {
-      lastErr += c.toString();
-    });
+    child.stderr.on("data", (c) => { lastErr += c.toString(); });
     child.on("error", (e) => {
       lastErr += e.message;
       if (!started && !res.headersSent) {
@@ -538,21 +538,14 @@ function runYtDlpAudio(
       }
     });
     child.on("close", (code) => {
-      if (finished || res.headersSent) {
-        cleanupTemp();
-        return;
-      }
-      // Find the mp3 file (sometimes extension varies)
+      if (finished || res.headersSent) { cleanupTemp(); return; }
       let filePath = null;
-      if (fs.existsSync(expectedMp3)) {
-        filePath = expectedMp3;
-      } else {
+      if (fs.existsSync(expectedMp3)) filePath = expectedMp3;
+      else {
         try {
           const dir = pathMod.dirname(base);
           const prefix = pathMod.basename(base);
-          const found = fs
-            .readdirSync(dir)
-            .find((f) => f.startsWith(prefix));
+          const found = fs.readdirSync(dir).find((f) => f.startsWith(prefix));
           if (found) filePath = pathMod.join(dir, found);
         } catch (_) {}
       }
@@ -561,47 +554,27 @@ function runYtDlpAudio(
         started = true;
         const stat = fs.statSync(filePath);
         res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="${safe}.mp3"`
-        );
+        res.setHeader("Content-Disposition", `attachment; filename="${safe}.mp3"`);
         res.setHeader("Content-Length", stat.size);
         res.setHeader("Cache-Control", "no-store");
-        res.setHeader(
-          "Access-Control-Expose-Headers",
-          "Content-Disposition"
-        );
+        res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
         const stream = fs.createReadStream(filePath);
         stream.on("error", (e) => {
           console.error("read mp3 error", e.message);
           cleanupTemp();
           if (!res.headersSent) fail(1);
-          else if (!finished) {
-            finished = true;
-            res.end();
-          }
+          else if (!finished) { finished = true; res.end(); }
         });
-        stream.on("end", () => {
-          finished = true;
-          cleanupTemp();
-          res.end();
-        });
+        stream.on("end", () => { finished = true; cleanupTemp(); res.end(); });
         stream.pipe(res, { end: false });
         return;
       }
-      console.error(
-        "mp3 fail client=",
-        client,
-        "code=",
-        code,
-        lastErr.slice(0, 300)
-      );
+      console.error("mp3 fail client=", client, "code=", code, lastErr.slice(0, 300));
       cleanupTemp();
       tryMp3Next();
     });
   };
 
-  // Concurrency slot
   activeDownloads++;
   let released = false;
   const release = () => {
@@ -612,18 +585,9 @@ function runYtDlpAudio(
   };
 
   const origEnd = res.end.bind(res);
-  res.end = function (...a) {
-    release();
-    cleanupTemp();
-    return origEnd(...a);
-  };
-
+  res.end = function (...a) { release(); cleanupTemp(); return origEnd(...a); };
   const origJson = res.json.bind(res);
-  res.json = function (...a) {
-    release();
-    cleanupTemp();
-    return origJson(...a);
-  };
+  res.json = function (...a) { release(); cleanupTemp(); return origJson(...a); };
 
   const req = res.req;
   if (req) {
@@ -639,51 +603,25 @@ function runYtDlpAudio(
   else tryStreamNext();
 }
 
-// --------------------------------------------------
-// DOWNLOAD — always MP3
-// --------------------------------------------------
 app.get("/download", (req, res) => {
-  runYtDlpAudio(req.query.id, res, {
-    inline: false,
-    title: req.query.title,
-  });
+  runYtDlpAudio(req.query.id, res, { inline: false, title: req.query.title });
 });
-
 app.get("/api/download", (req, res) => {
-  runYtDlpAudio(req.query.id, res, {
-    inline: false,
-    title: req.query.title,
-  });
+  runYtDlpAudio(req.query.id, res, { inline: false, title: req.query.title });
 });
-
-// --------------------------------------------------
-// STREAM (background play on phone) — raw audio, no MP3 convert
-// --------------------------------------------------
 app.get("/stream", (req, res) => {
-  runYtDlpAudio(req.query.id, res, {
-    inline: true,
-    title: req.query.title,
-  });
+  runYtDlpAudio(req.query.id, res, { inline: true, title: req.query.title });
 });
-
 app.get("/api/stream", (req, res) => {
-  runYtDlpAudio(req.query.id, res, {
-    inline: true,
-    title: req.query.title,
-  });
+  runYtDlpAudio(req.query.id, res, { inline: true, title: req.query.title });
 });
 
-// --------------------------------------------------
-// Static index
-// --------------------------------------------------
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Aura Music on", PORT);
-  console.log(
-    "Routes: /search /stream /download /lyrics /api/similar /health"
-  );
+  console.log("Routes: /search /playlist /channel /stream /download /lyrics /api/similar /health");
   console.log("yt-dlp bin:", process.env.YTDLP_PATH || "yt-dlp");
 });
