@@ -118,14 +118,21 @@ async function doSearch(query) {
     url: c.url || "",
   }));
 
-  const playlists = (result.playlists || []).slice(0, 6).map((p) => ({
-    type: "playlist",
-    id: p.listId || p.playlistId || "",
-    title: p.title || "Playlist",
-    author: p.owner?.name || p.author?.name || "Unknown",
-    thumbnail: p.image || p.thumbnail || "",
-    videoCount: p.videoCount || "",
-  }));
+  const playlists = (result.playlists || []).slice(0, 6).map((p) => {
+    let pid = p.listId || p.playlistId || p.id || "";
+    if (!pid && p.url) {
+      const m = String(p.url).match(/[?&]list=([a-zA-Z0-9_-]+)/);
+      if (m) pid = m[1];
+    }
+    return {
+      type: "playlist",
+      id: pid,
+      title: p.title || "Playlist",
+      author: p.owner?.name || p.author?.name || "Unknown",
+      thumbnail: p.image || p.thumbnail || "",
+      videoCount: p.videoCount || p.videoCountLabel || "",
+    };
+  }).filter((p) => p.id && p.id.length >= 10);
 
   // Channels + Playlists pehle, phir videos
   return [...channels, ...playlists, ...videos];
@@ -160,53 +167,207 @@ app.get("/search", async (req, res) => {
 });
 
 // --------------------------------------------------
-// PLAYLIST videos
+// PLAYLIST videos — yt-dlp primary (reliable), yt-search fallback
 // --------------------------------------------------
+function fetchPlaylistViaYtDlp(listId) {
+  return new Promise((resolve, reject) => {
+    const bin = process.env.YTDLP_PATH || "yt-dlp";
+    const url = `https://www.youtube.com/playlist?list=${listId}`;
+    const args = [
+      "--flat-playlist",
+      "--dump-json",
+      "--no-warnings",
+      "--no-download",
+      "--playlist-end",
+      "80",
+      "--geo-bypass",
+      "--retries",
+      "2",
+    ];
+    const cookies = (() => {
+      try {
+        const fs = require("fs");
+        const pathMod = require("path");
+        const p =
+          process.env.COOKIES_FILE ||
+          process.env.YTDLP_COOKIES ||
+          (fs.existsSync(pathMod.join(__dirname, "cookies.txt"))
+            ? pathMod.join(__dirname, "cookies.txt")
+            : "");
+        return p && fs.existsSync(p) ? p : "";
+      } catch (_) {
+        return "";
+      }
+    })();
+    if (cookies) args.push("--cookies", cookies);
+    args.push(url);
+
+    const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "";
+    let err = "";
+    const timer = setTimeout(() => {
+      try {
+        child.kill("SIGTERM");
+      } catch (_) {}
+      reject(new Error("yt-dlp playlist timeout"));
+    }, 28000);
+
+    child.stdout.on("data", (c) => {
+      out += c.toString();
+    });
+    child.stderr.on("data", (c) => {
+      err += c.toString();
+    });
+    child.on("error", (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (!out.trim()) {
+        reject(new Error(err.slice(0, 200) || "yt-dlp empty output code=" + code));
+        return;
+      }
+      // --dump-json with flat-playlist: one JSON object per line (each video)
+      // sometimes also a playlist header object
+      const lines = out.split("\n").filter((l) => l.trim().startsWith("{"));
+      const videos = [];
+      let title = "Playlist";
+      for (const line of lines) {
+        try {
+          const j = JSON.parse(line);
+          if (j._type === "playlist" || (j.entries && !j.id)) {
+            title = j.title || j.playlist_title || title;
+            continue;
+          }
+          const vid = j.id || j.url;
+          if (!vid || String(vid).length < 6) continue;
+          // skip deleted/private
+          if (j.title && /\[Deleted|\[Private/i.test(j.title)) continue;
+          videos.push({
+            type: "video",
+            id: String(vid).replace(/^.*v=/, "").slice(0, 20),
+            title: j.title || j.fulltitle || "Unknown",
+            author:
+              j.uploader ||
+              j.channel ||
+              j.playlist_uploader ||
+              title ||
+              "Unknown",
+            thumbnail:
+              (j.thumbnails && j.thumbnails[0] && j.thumbnails[0].url) ||
+              j.thumbnail ||
+              `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,
+            timestamp: j.duration_string || "",
+            mood: "Playlist",
+          });
+          if (j.playlist_title) title = j.playlist_title;
+          if (j.playlist && typeof j.playlist === "string") title = j.playlist;
+        } catch (_) {}
+      }
+      // unique by id
+      const seen = new Set();
+      const unique = videos.filter((v) => {
+        if (seen.has(v.id)) return false;
+        seen.add(v.id);
+        return true;
+      });
+      resolve({ title, videos: unique });
+    });
+  });
+}
+
+async function fetchPlaylistViaYtSearch(listId) {
+  const result = await Promise.race([
+    ytSearch({ listId }),
+    new Promise((_, rej) =>
+      setTimeout(() => rej(new Error("yt-search timeout")), 18000)
+    ),
+  ]);
+  const videos = (result.videos || [])
+    .filter(
+      (v) =>
+        v &&
+        v.videoId &&
+        !String(v.title || "").includes("[Deleted") &&
+        !String(v.title || "").includes("[Private")
+    )
+    .map((v) => ({
+      type: "video",
+      id: v.videoId,
+      title: v.title,
+      author: (v.author && v.author.name) || result.title || "Unknown",
+      thumbnail:
+        v.thumbnail ||
+        `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
+      timestamp: v.timestamp || "",
+      mood: "Playlist",
+    }));
+  return { title: result.title || "Playlist", videos };
+}
+
 async function handlePlaylist(req, res) {
   let listId = String(req.query.list || req.query.id || "").trim();
-  // strip full URL if user pasted one
+  // strip full URL if pasted
   if (listId.includes("list=")) {
-    try { listId = new URL(listId).searchParams.get("list") || listId; } catch (_) {
+    try {
+      listId = new URL(listId).searchParams.get("list") || listId;
+    } catch (_) {
       const m = listId.match(/[?&]list=([^&]+)/);
       if (m) listId = m[1];
     }
   }
-  if (!listId || listId.length < 6) {
-    return res.status(400).json({ error: "list id required" });
+  // only keep valid playlist id chars
+  listId = listId.replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!listId || listId.length < 10) {
+    return res.status(400).json({ error: "list id required", got: listId });
   }
 
+  console.log("Playlist load:", listId);
+  let lastErr = "";
+
+  // 1) yt-dlp first (more reliable on Render)
   try {
-    console.log("Playlist load:", listId);
-    const result = await Promise.race([
-      ytSearch({ listId }),
-      new Promise((_, rej) =>
-        setTimeout(() => rej(new Error("timeout")), 22000)
-      ),
-    ]);
-
-    const videos = (result.videos || [])
-      .filter((v) => v && v.videoId && !String(v.title || "").includes("[Deleted") && !String(v.title || "").includes("[Private"))
-      .map((v) => ({
-        type: "video",
-        id: v.videoId,
-        title: v.title,
-        author: (v.author && v.author.name) || result.title || "Unknown",
-        thumbnail:
-          v.thumbnail ||
-          `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`,
-        timestamp: v.timestamp || "",
-        mood: "Playlist",
-      }));
-
-    if (!videos.length) {
-      return res.status(404).json({ error: "Playlist empty or not found", listId });
+    const data = await fetchPlaylistViaYtDlp(listId);
+    if (data.videos && data.videos.length) {
+      console.log("Playlist yt-dlp OK:", data.videos.length, data.title);
+      return res.json({
+        title: data.title,
+        videos: data.videos,
+        listId,
+        source: "yt-dlp",
+      });
     }
-
-    res.json({ title: result.title || "Playlist", videos, listId });
+    lastErr = "yt-dlp returned 0 videos";
   } catch (e) {
-    console.error("Playlist fail:", listId, e.message);
-    res.status(500).json({ error: "Playlist failed", detail: e.message, listId });
+    lastErr = "yt-dlp: " + e.message;
+    console.warn("Playlist yt-dlp fail:", e.message);
   }
+
+  // 2) yt-search fallback
+  try {
+    const data = await fetchPlaylistViaYtSearch(listId);
+    if (data.videos && data.videos.length) {
+      console.log("Playlist yt-search OK:", data.videos.length, data.title);
+      return res.json({
+        title: data.title,
+        videos: data.videos,
+        listId,
+        source: "yt-search",
+      });
+    }
+    lastErr = (lastErr ? lastErr + " | " : "") + "yt-search returned 0 videos";
+  } catch (e) {
+    lastErr = (lastErr ? lastErr + " | " : "") + "yt-search: " + e.message;
+    console.warn("Playlist yt-search fail:", e.message);
+  }
+
+  console.error("Playlist fail:", listId, lastErr);
+  res.status(502).json({
+    error: "Playlist failed",
+    detail: lastErr.slice(0, 300),
+    listId,
+  });
 }
 
 app.get("/playlist", handlePlaylist);
