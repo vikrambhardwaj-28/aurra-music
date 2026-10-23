@@ -451,15 +451,53 @@ body:has(.immersive-player.open) .player{display:none!important}
   .section-head{margin-bottom:12px;padding:0}
   .section-head h2{font-size:20px;font-weight:800;letter-spacing:-.4px;color:#fff}
   .section-head a{font-size:12px;color:#b3b3b3;font-weight:600}
-  .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px}
-  .music-card{padding:0;border-radius:0;background:transparent;border:none;box-shadow:none}
-  .music-card:hover,.music-card:active{transform:none;background:transparent;border:none}
-  .music-card .art{border-radius:6px;aspect-ratio:1;box-shadow:0 8px 24px rgba(0,0,0,.5)}
-  .music-card b{font-size:13px;margin:10px 0 2px;font-weight:600;color:#fff}
-  .music-card small{font-size:12px;color:#b3b3b3}
-  .art .play-dot{width:40px;height:40px;font-size:14px;right:8px;bottom:8px;opacity:0;background:#1db954;color:#000;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  /* Compact premium song grid — more cards, clean look */
+  .cards{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px 8px}
+  .music-card{
+    padding:6px;
+    border-radius:12px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 2px 10px rgba(0,0,0,.22);
+  }
+  .music-card:hover,.music-card:active{
+    transform:none;
+    background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.14);
+  }
+  .music-card .art{
+    border-radius:8px;
+    aspect-ratio:1;
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  .music-card b{
+    font-size:11px;
+    margin:6px 1px 1px;
+    font-weight:650;
+    color:#fff;
+    letter-spacing:-.1px;
+  }
+  .music-card small{
+    font-size:9px;
+    color:#a8a8b8;
+    margin:0 1px 2px;
+  }
+  .art .play-dot{
+    width:26px;height:26px;font-size:10px;
+    right:5px;bottom:5px;opacity:0;
+    background:#1db954;color:#000;
+    box-shadow:0 2px 8px rgba(0,0,0,.35);
+  }
   .music-card:active .art .play-dot{opacity:1}
-  .song-menu-btn{opacity:1;width:28px;height:28px;font-size:16px;top:6px;right:6px;background:rgba(0,0,0,.6);border:none}
+  .song-menu-btn{
+    opacity:.9;width:22px;height:22px;font-size:13px;
+    top:4px;right:4px;background:rgba(0,0,0,.55);border:none;
+  }
+  /* Channel / playlist cards stay readable */
+  .music-card.channel-card .art,
+  .music-card.playlist-card .art{border-radius:50%}
+  .music-card.channel-card .art{border-radius:50%}
+  .music-card.playlist-card .art{border-radius:8px}
   /* Mini player — Spotify exact feel (sits above bottom nav) */
   .player,.player.glass,#playerBar{
     left:8px;right:8px;
@@ -918,7 +956,7 @@ body.screen-locked .toast{
  <div class="player-tools">
   <span title="Volume">◖))</span>
   <div class="volume" id="volBar"><i id="volFill"></i></div>
-  <button id="forceAI" title="Similar songs" style="border:1px solid var(--line);background:linear-gradient(135deg,var(--a),var(--b));border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;color:#fff;box-shadow:0 0 16px var(--glow)">✦ AI</button>
+
   <span id="fsBtn" title="Fullscreen player" style="cursor:pointer">⛶</span>
  </div>
  <div class="seek">
@@ -979,17 +1017,7 @@ body.screen-locked .toast{
    <div class="minimal-bottom"><span>◖))</span><input type="range" id="minimalVol" min="0" max="100" value="70"><span>▢</span></div>
   </div>
  </section>
- <section class="ai-layout" id="aiView" style="display:none;min-height:100dvh;padding:70px 24px 40px;max-width:520px;margin:0 auto">
-  <div style="text-align:center;margin-bottom:22px">
-   <div style="font-size:13px;letter-spacing:2px;color:#ffffffaa;margin-bottom:6px">✦ AI MIX</div>
-   <h2 style="font-size:22px;margin:0 0 6px;font-weight:750">Similar Songs</h2>
-   <p style="font-size:12px;color:#ffffff88;margin:0">Based on current track • Separate from search queue</p>
-  </div>
-  <div id="aiQueueList" style="display:flex;flex-direction:column;gap:4px"></div>
-  <div style="margin-top:28px;text-align:center">
-   <button id="playAllAi" style="border:1px solid rgba(255,255,255,.25);background:linear-gradient(110deg,var(--a),var(--b));border-radius:30px;padding:12px 28px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">▶ Play AI Mix</button>
-  </div>
- </section>
+ <section class="ai-layout" id="aiView" style="display:none"></section>
 </div>
 
 
@@ -1012,7 +1040,7 @@ body.screen-locked .toast{
 <div class="pl-modal" id="plModal" aria-hidden="true">
  <div class="pl-box glass">
   <h3 id="plModalTitle">New Playlist</h3>
-  <p id="plModalDesc">Apni playlist ka naam likho</p>
+  <p id="plModalDesc">Enter a name for your playlist</p>
   <input id="plNameInput" placeholder="e.g. Night Drive" maxlength="40" autocomplete="off">
   <div class="pl-actions">
    <button type="button" id="plCancel">Cancel</button>
@@ -1358,7 +1386,7 @@ function renderPlaylistNav(){
 }
 function openCreatePlaylist(){
   $("#plModalTitle").textContent="New Playlist";
-  $("#plModalDesc").textContent="Apni playlist ka naam likho";
+  $("#plModalDesc").textContent="Enter a name for your playlist";
   $("#plNameInput").value="";
   $("#plSave").textContent="Create";
   $("#plSave").dataset.mode="create";
@@ -1368,14 +1396,14 @@ function openCreatePlaylist(){
 function closePlModal(){$("#plModal").classList.remove("open")}
 function createPlaylistByName(name){
   name=(name||"").trim().slice(0,40);
-  if(!name){toast("Naam likho");return false}
-  if(name.toLowerCase()==="liked songs"){toast("Ye naam reserved hai");return false}
+  if(!name){toast("Enter a name");return false}
+  if(name.toLowerCase()==="liked songs"){toast("This name is reserved");return false}
   if(!state.customPlaylists)state.customPlaylists={};
-  if(state.customPlaylists[name]){toast("Pehle se hai");return false}
+  if(state.customPlaylists[name]){toast("Already exists");return false}
   state.customPlaylists[name]=[];
   savePlaylists();
   renderPlaylistNav();
-  toast("Playlist bani: "+name);
+  toast("Playlist created: "+name);
   return true;
 }
 function addSongToPlaylist(plName, song){
@@ -1396,7 +1424,7 @@ function addSongToPlaylist(plName, song){
   }
   if(!state.customPlaylists[plName])state.customPlaylists[plName]=[];
   const list=state.customPlaylists[plName];
-  if(list.some(x=>x.id===song.id)){toast("Pehle se is playlist mein hai");return}
+  if(list.some(x=>x.id===song.id)){toast("Already in this playlist");return}
   list.unshift(payload);
   savePlaylists();
   toast("Added to "+plName);
@@ -1414,7 +1442,7 @@ function openSongCtx(song, x, y){
     html+=`<div class="ctx-sep"></div>`;
     names.forEach(n=>{html+=`<button data-add-pl="${n.replace(/"/g,"&quot;")}">♫ ${n}</button>`});
   }else{
-    html+=`<div class="ctx-label" style="padding-top:8px">Pehle + se playlist banao</div>`;
+    html+=`<div class="ctx-label" style="padding-top:8px">Create a playlist with + first</div>`;
   }
   menu.innerHTML=html;
   menu.classList.add("open");
@@ -1450,105 +1478,9 @@ function cleanArtistName(artist=""){
   return a || artist;
 }
 
-async function getSimilarSongs(title, artist){
-  const fullTitle = String(title || "").trim();
-  const cleanArtist = (artist||"").replace(/\s*-\s*Topic$/i,"").replace(/\s*VEVO$/i,"").trim();
-  try{
-    const res=await fetch("/api/similar",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({title:fullTitle,artist:cleanArtist||""}),
-      signal:AbortSignal.timeout(20000)
-    });
-    if(!res.ok) return [];
-    const list=await res.json();
-    return Array.isArray(list) ? list.filter(x => x && x.title).slice(0, 5) : [];
-  }catch(e){
-    return[];
-  }
-}
-
-async function addSimilarToQueue(song){
-  if(!song)return;
-  // Never interrupt playback — AI is best-effort only
-  if(song.id===state.lastSuggestedFor && (Date.now()-(state.lastSuggestedAt||0))<20000){
-    return;
-  }
-  state.lastSuggestedFor=song.id;
-  state.lastSuggestedAt=Date.now();
-  state.aiLoading=true;
-  state.aiQueue=[];
-  try{
-    let similar=await getSimilarSongs(song.title, song.artist);
-    if(!similar.length){
-      await new Promise(r=>setTimeout(r,600));
-      similar=await getSimilarSongs(song.title, song.artist);
-    }
-    if(!similar.length){
-      state.aiLoading=false;
-      renderAiQueue();
-      return;
-    }
-    similar=similar.slice(0,5);
-    state.aiQueue=similar.map((sim,i)=>({
-      id:"ai-"+Date.now()+"-"+i,
-      title:sim.title||"Unknown",
-      artist:sim.artist||"Unknown",
-      mood:"Related",
-      thumb:"",
-      resolved:false
-    }));
-    state.aiLoading=false;
-    renderAiQueue();
-    const resolved=[];
-    const existingIds=new Set((state.queue||[]).map(s=>s&&s.id).filter(Boolean));
-    existingIds.add(song.id);
-    for(let i=0;i<state.aiQueue.length;i++){
-      const sim=state.aiQueue[i];
-      let track=null;
-      try{
-        const q=(sim.title+" "+(sim.artist||"")).trim();
-        const res=await fetch("/search?q="+encodeURIComponent(q),{signal:AbortSignal.timeout(8000)});
-        if(res.ok){
-          const data=await res.json();
-          const list=(Array.isArray(data)?data:[]).map(v=>({
-            id:v.id||v.videoId,
-            title:v.title||sim.title,
-            artist:v.author||v.artist||sim.artist,
-            mood:"Related",
-            thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
-          })).filter(s=>s.id);
-          if(list[0]&&!existingIds.has(list[0].id)) track=list[0];
-        }
-      }catch(e){}
-      if(!track){
-        const ql=sim.title.toLowerCase();
-        const match=CATALOG.find(s=>s.title.toLowerCase().includes(ql)||ql.includes(s.title.toLowerCase()));
-        if(match&&!existingIds.has(match.id)) track={...match,mood:"Related"};
-      }
-      if(track){
-        const finalTrack={...track,resolved:true};
-        state.aiQueue[i]=finalTrack;
-        resolved.push(finalTrack);
-        existingIds.add(finalTrack.id);
-      }
-    }
-    renderAiQueue();
-    if(resolved.length>0){
-      // APPEND after current track — never wipe search/mood queue
-      const idx=Math.max(0,state.currentIndex);
-      const before=state.queue.slice(0,idx+1);
-      const after=state.queue.slice(idx+1).filter(s=>s&&!resolved.some(r=>r.id===s.id));
-      state.queue=[...before,...resolved,...after];
-      // keep currentIndex on the same song
-      state.currentIndex=idx;
-      renderQueue();
-    }
-  }catch(e){
-    /* silent */
-    state.aiLoading=false;
-  }
-}
+async function getSimilarSongs(){ return []; }
+async function addSimilarToQueue(){ /* AI removed */ }
+function renderAiQueue(){ /* AI removed */ }
 
 function renderCards(list){
  const box=$("#cards");if(!box)return;
@@ -1599,28 +1531,7 @@ function renderQueue(){
  box.innerHTML=upcoming.map((s,i)=>`<div class="queue-item ${i===0?"active":""}" data-id="${s.id}"><div class="q-art" style="background-image:url('${s.thumb||""}');background-size:cover;background-position:center"></div><div class="q-info"><b>${cleanSongTitle(s.title)}</b><small>${cleanArtistName(s.artist)}</small></div></div>`).join("")||`<div style="font-size:11px;color:var(--muted);padding:8px">Queue empty</div>`;
  if($("#queueCount")) $("#queueCount").textContent=state.queue.length;
 }
-function renderAiQueue(){
-  const box=$("#aiQueueList");
-  if(!box)return;
-  if(state.aiLoading){
-    box.innerHTML=`<div style="font-size:13px;color:#ffffffaa;padding:20px;text-align:center">AI is thinking…</div>`;
-    return;
-  }
-  if(!state.aiQueue.length){
-    box.innerHTML=`<div style="font-size:13px;color:#ffffffaa;padding:20px;text-align:center">Play a song from Search or Mood<br>to get AI recommendations</div>`;
-    return;
-  }
-  box.innerHTML=state.aiQueue.map((s,i)=>`
-    <div class="ai-item" data-idx="${i}" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:12px;cursor:pointer;transition:.15s">
-      <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--a),var(--b));display:grid;place-items:center;font-size:16px;flex-shrink:0;background-size:cover;background-position:center;${s.thumb?`background-image:url('${s.thumb}')`:''}">${s.thumb?"":"✦"}</div>
-      <div style="flex:1;min-width:0">
-        <b style="display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cleanSongTitle(s.title)}</b>
-        <small style="font-size:11px;color:#ffffff99">${cleanArtistName(s.artist)}${s.resolved?"":" · pending"}</small>
-      </div>
-      <button style="border:0;background:rgba(255,255,255,.12);border-radius:50%;width:32px;height:32px;color:#fff;font-size:12px">▶</button>
-    </div>
-  `).join("");
-}
+
 function renderMix(){
  const box=$("#mixList");if(!box)return;
  const mixes=[
@@ -1936,9 +1847,7 @@ function playSong(index){state._skip=false;state._skipping=false;
   setTimeout(()=>clearInterval(wait),8000);
  }
  toast("▶ "+s.title);
- // AI best-effort only — never blocks or replaces search queue
- if(state.fromDiscovery){
-  setTimeout(()=>{try{addSimilarToQueue(s)}catch(e){}},1500);
+
  }
 }
 function togglePlay(){
@@ -2237,7 +2146,7 @@ function applyCustomSleep(){
  if($("#sleepM")) $("#sleepM").value=String(m);
  if($("#sleepS")) $("#sleepS").value=String(sec);
  const total=h*3600+m*60+sec;
- if(!total){toast("Time set karo (H / M / S)");return}
+ if(!total){toast("Set time (H / M / S)");return}
  setSleepTimerSeconds(total,{custom:true});
  try{closeFloat("#sleepModal")}catch(e){}
 }
@@ -2321,7 +2230,7 @@ async function loadPlaylist(listId){
 
  state._channelMore=null;
  $("#trackHeading").textContent="Loading playlist…";
- toast("Playlist load ho rahi hai…");
+ toast("Loading playlist…");
  try{
   const res=await fetch("/playlist?list="+encodeURIComponent(listId),{signal:AbortSignal.timeout(35000)});
   const data=await res.json().catch(()=>({}));
@@ -2332,22 +2241,25 @@ async function loadPlaylist(listId){
    return;
   }
   const list=(data.videos||[]).map(v=>({
-   id:v.id,title:v.title,artist:v.author,mood:"Playlist",thumb:v.thumbnail
+   id:v.id,
+   title:v.title,
+   artist:v.author,
+   mood:"Playlist",
+   thumb:v.id?("https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg"):(v.thumbnail||"")
   })).filter(s=>s.id);
   if(!list.length){toast("Playlist empty");$("#trackHeading").textContent="Playlist empty";return}
-  // ★ AI OFF for playlist
   state.fromDiscovery=false;
   state.queue=list;state.songs=list;state.currentIndex=0;
   playSong(0);renderCards(list);
   $("#trackHeading").textContent="♫ "+(data.title||"Playlist");
   toast("Playlist · "+list.length+" songs");
- }catch(e){console.warn("loadPlaylist",e);toast(e.name==="TimeoutError"?"Playlist timeout — dubara try":"Playlist load fail");$("#trackHeading").textContent="Playlist failed"}
+ }catch(e){console.warn("loadPlaylist",e);toast(e.name==="TimeoutError"?"Playlist timeout — try again":"Playlist load failed");$("#trackHeading").textContent="Playlist failed"}
 }
 async function loadChannel(channelId,channelName,page){
  if(!channelId&&!channelName)return;
  page=page||1;
  $("#trackHeading").textContent=page>1?"Loading more…":"Loading channel…";
- if(page===1) toast("Channel videos load ho rahe hain…");
+ if(page===1) toast("Loading channel videos…");
  try{
   const q=new URLSearchParams();
   if(channelId)q.set("id",channelId);
@@ -2357,9 +2269,9 @@ async function loadChannel(channelId,channelName,page){
   const data=await res.json().catch(()=>({}));
   if(!res.ok){toast(data.error||"Channel fail");return}
   const list=(data.videos||[]).map(v=>({
-   id:v.id,title:v.title,artist:v.author,mood:"Channel",thumb:v.thumbnail
+   id:v.id,title:v.title,artist:v.author,mood:"Channel",thumb:v.id?("https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg"):(v.thumbnail||"")
   })).filter(s=>s.id);
-  if(!list.length&&page===1){toast("Channel videos nahi mile");$("#trackHeading").textContent="No videos";return}
+  if(!list.length&&page===1){toast("No channel videos found");$("#trackHeading").textContent="No videos";return}
   // ★ AI OFF for channel
   state.fromDiscovery=false;
   state._channelMore={id:channelId,name:channelName,page:page,hasMore:!!data.hasMore};
@@ -2376,7 +2288,7 @@ async function loadChannel(channelId,channelName,page){
   renderCards(state.songs);
   $("#trackHeading").textContent="📢 "+(data.title||channelName||"Channel");
   toast(page>1?("+"+list.length+" more"):("Channel · "+list.length+" videos"));
- }catch(e){console.warn("loadChannel",e);toast("Channel load fail");if(page===1)$("#trackHeading").textContent="Channel failed"}
+ }catch(e){console.warn("loadChannel",e);toast("Channel load failed");if(page===1)$("#trackHeading").textContent="Channel failed"}
 }
 
 function bind(){
@@ -2428,7 +2340,7 @@ function bind(){
   if(btn.dataset.customPl){
    const name=btn.dataset.customPl;
    const list=state.customPlaylists[name]||[];
-   if(!list.length){toast("Playlist empty — ⋯ se gane add karo");renderCards([]);$("#trackHeading").textContent="♫ "+name;return}
+   if(!list.length){toast("Playlist empty — add songs from ⋯ menu");renderCards([]);$("#trackHeading").textContent="♫ "+name;return}
    state.fromDiscovery=false;
    state.queue=[...list];state.songs=[...list];playSong(0);renderCards(list);$("#trackHeading").textContent="♫ "+name;
    return;
@@ -2702,7 +2614,7 @@ function bind(){
  $("#immersiveMore")?.addEventListener("click",e=>{
   e.stopPropagation();
   const s=currentSong();
-  if(!s){toast("Pehle koi song chalao");return}
+  if(!s){toast("Play a song first");return}
   const r=e.currentTarget.getBoundingClientRect();
   openSongCtx(s, r.left, r.bottom+6);
  });
@@ -2720,13 +2632,6 @@ function bind(){
  $("#lyricsVol")?.addEventListener("input",e=>setVolume(+e.target.value));
  $("#minimalVol")?.addEventListener("input",e=>setVolume(+e.target.value));
  ["#dockArt","#dockTitle","#dockArtist","#currentArt","#fsBtn"].forEach(sel=>$(sel)?.addEventListener("click",()=>openPlayer(sel==="#fsBtn"?"minimal":"lyrics")));
- $("#forceAI")?.addEventListener("click",()=>{
-   const s=currentSong();
-   if(!s){toast("Pehle koi song chalao");return}
-   state.lastSuggestedFor=""; // force allow
-   state.lastSuggestedAt=0;
-   addSimilarToQueue(s);
- });
  $("#immersiveClose").onclick=closePlayer;
  $("#immersivePlayer").addEventListener("click",e=>{if(e.target===$("#immersivePlayer"))closePlayer()});
  document.addEventListener("keydown",e=>{
@@ -2860,50 +2765,6 @@ function bind(){
   if(!e.target.closest("#songCtx")&&!e.target.closest(".song-menu-btn")&&!e.target.closest("#immersiveMore")) closeSongCtx();
  });
 
- // AI Similar queue interactions
- $("#aiQueueList")?.addEventListener("click",async e=>{
-  const item=e.target.closest(".ai-item");if(!item)return;
-  const idx=+item.dataset.idx;
-  const s=state.aiQueue[idx];if(!s)return;
-  if(s.resolved&&s.id&&!String(s.id).startsWith("ai-")){
-   // already resolved → play it in main queue temporarily
-   state.fromDiscovery=false;
-   state.queue=[s,...state.queue.filter(x=>x.id!==s.id)];
-   playSong(0);
-   toast("▶ "+s.title);
-   return;
-  }
-  // try resolve then play
-  toast("Searching for "+s.title+"…");
-  try{
-   const q=(s.title+" "+(s.artist||"")).trim();
-   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:AbortSignal.timeout(9000)});
-   if(res.ok){
-    const data=await res.json();
-    const list=(Array.isArray(data)?data:[]).map(v=>({
-     id:v.id||v.videoId,title:v.title||s.title,artist:v.author||v.artist||s.artist,mood:"AI Similar",
-     thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
-    })).filter(x=>x.id);
-    if(list[0]){
-     state.aiQueue[idx]={...list[0],resolved:true};
-     state.fromDiscovery=false;
-     state.queue=[list[0],...state.queue.filter(x=>x.id!==list[0].id)];
-     playSong(0);
-     renderAiQueue();
-     return;
-    }
-   }
-  }catch(err){}
-  toast("Could not play this track");
- });
- $("#playAllAi")?.addEventListener("click",()=>{
-  const playable=state.aiQueue.filter(s=>s.resolved&&s.id&&!String(s.id).startsWith("ai-"));
-  if(!playable.length){toast("No playable AI tracks yet");return}
-  state.fromDiscovery=false;
-  state.queue=playable;
-  playSong(0);
-  toast("AI Mix started ✦");
- });
  function applyBgImage(url,dim){
   if(dim!=null)state.bgImageDim=Math.max(20,Math.min(90,+dim||55));
   const d=state.bgImageDim;
@@ -3021,7 +2882,7 @@ function bind(){
  $("#glossRange")?.addEventListener("input",e=>applyThemeColors(null,null,null,+e.target.value));
  $("#bgImageApply")?.addEventListener("click",()=>{
   const url=($("#bgImageUrl")?.value||"").trim();
-  if(!url){toast("URL likho ya image upload karo");return}
+  if(!url){toast("Enter a URL or upload an image");return}
   applyBgImage(url,state.bgImageDim);
   toast("Background image set ✦");
  });
@@ -3036,7 +2897,7 @@ function bind(){
  $("#bgImageFile")?.addEventListener("change",e=>{
   const file=e.target.files&&e.target.files[0];
   if(!file)return;
-  if(!file.type.startsWith("image/")){toast("Sirf image file");return}
+  if(!file.type.startsWith("image/")){toast("Image file only");return}
   if(file.size>4.5*1024*1024){toast("Image max 4.5 MB");return}
   const reader=new FileReader();
   reader.onload=()=>{
