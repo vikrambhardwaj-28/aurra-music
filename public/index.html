@@ -1558,10 +1558,11 @@ function renderCards(list){
    <small>${cleanArtistName(s.artist||s.author||"")}</small>
   </div>`;
  }).join("");
- // Show More button for channel browse
- if(state._channelMore&&state._channelMore.hasMore){
+ // Show More — search / playlist / channel (only if real more results)
+ const canMore=(state._searchMore&&state._searchMore.hasMore)||(state._playlistMore&&state._playlistMore.hasMore)||(state._channelMore&&state._channelMore.hasMore);
+ if(canMore){
   html+=`<div class="music-card show-more-card" data-type="show-more" role="button" tabindex="0" style="display:flex;align-items:center;justify-content:center;min-height:140px;border:1px dashed var(--line);border-radius:14px">
-   <div style="text-align:center"><b style="font-size:13px">Show More</b><small style="display:block;margin-top:6px;color:var(--muted)">Load more videos</small></div>
+   <div style="text-align:center"><b style="font-size:13px">Show More</b><small style="display:block;margin-top:6px;color:var(--muted)">Load more results</small></div>
   </div>`;
  }
  box.innerHTML=html;
@@ -1906,11 +1907,31 @@ function togglePlay(){
  if(state.playing){state.ytPlayer.pauseVideo();state.playing=false}else{state.ytPlayer.playVideo();state.playing=true}
  updateNowUI();
 }
-function nextSong(){
+async function nextSong(){
  if(!state.queue.length)return;
  let idx;
- if(state.shuffle)idx=Math.floor(Math.random()*state.queue.length);
- else{idx=state.currentIndex+1;if(idx>=state.queue.length){if(state.repeat===1)idx=0;else{state.playing=false;updateNowUI();return}}}
+ if(state.shuffle){
+  idx=Math.floor(Math.random()*state.queue.length);
+  playSong(idx);
+  return;
+ }
+ idx=state.currentIndex+1;
+ if(idx>=state.queue.length){
+  if(state.repeat===1){playSong(0);return}
+  // Auto load more if search/playlist/channel has more real results
+  const canMore=(state._searchMore&&state._searchMore.hasMore)||(state._playlistMore&&state._playlistMore.hasMore)||(state._channelMore&&state._channelMore.hasMore);
+  if(canMore){
+   const before=state.queue.length;
+   toast("Loading more…");
+   await loadMoreResults();
+   if(state.queue.length>before){
+    playSong(before);
+    return;
+   }
+  }
+  state.playing=false;updateNowUI();
+  return;
+ }
  playSong(idx);
 }
 function prevSong(){
@@ -1994,7 +2015,8 @@ async function playMood(mood){
   const res=await fetch("/search?q="+encodeURIComponent(mood+" songs"),{signal:AbortSignal.timeout(10000)});
   if(res.ok){
    const data=await res.json();
-   const list=(Array.isArray(data)?data:[]).map(v=>({
+   const raw=Array.isArray(data)?data:(data.items||[]);
+   const list=raw.filter(v=>!v.type||v.type==="video").map(v=>({
     id:v.id||v.videoId,title:v.title||"Unknown",artist:v.author||"Unknown",mood:mood,
     thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
    })).filter(s=>s.id);
@@ -2030,65 +2052,92 @@ function clearSearchHistory(){
 }
 let _searchReq=0;
 let _searchAbort=null;
-async function searchLocal(q){
+function mapSearchItem(v){
+ if(v.type==="channel"){
+  return{type:"channel",id:v.id,title:v.title||v.author,author:v.author||v.title,thumb:v.thumbnail||"",videoCount:v.videoCount,subscribers:v.subscribers||""};
+ }
+ if(v.type==="playlist"){
+  return{type:"playlist",id:v.id,title:v.title,author:v.author,thumb:v.thumbnail||"",videoCount:v.videoCount};
+ }
+ return{
+  type:"video",
+  id:v.id||v.videoId,
+  title:v.title||"Unknown",
+  artist:v.author||v.artist||"Unknown",
+  mood:"Search",
+  thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
+ };
+}
+async function searchLocal(q, page){
  q=(q||"").trim();
- // Only explicit searches (Enter) should update the results panel
+ page=page||1;
  if(!q){
   if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
   _searchReq++;
+  state._searchMore=null;state._channelMore=null;state._playlistMore=null;
   state.songs=[...CATALOG];renderCards(CATALOG);$("#trackHeading").textContent="🔥 Trending Now";
   return;
  }
  const req=++_searchReq;
- if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
- _searchAbort=typeof AbortController!=="undefined"?new AbortController():null;
- const signal=_searchAbort?_searchAbort.signal:AbortSignal.timeout(10000);
- $("#trackHeading").textContent="Searching…";
- toast("Searching…");
+ if(page===1){
+  if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
+  _searchAbort=typeof AbortController!=="undefined"?new AbortController():null;
+  state._channelMore=null;state._playlistMore=null;
+  $("#trackHeading").textContent="Searching…";
+  toast("Searching…");
+ }
+ const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(14000);
  try{
-  const res=await fetch("/search?q="+encodeURIComponent(q),{signal});
-  if(req!==_searchReq)return; // stale — ignore
+  const res=await fetch("/search?q="+encodeURIComponent(q)+"&page="+page,{signal});
+  if(req!==_searchReq)return;
   if(!res.ok) throw new Error("HTTP "+res.status);
   const data=await res.json();
   if(req!==_searchReq)return;
-  const list=(Array.isArray(data)?data:[]).map(v=>{
-   if(v.type==="channel"){
-    return{type:"channel",id:v.id,title:v.title||v.author,author:v.author||v.title,thumb:v.thumbnail||"",videoCount:v.videoCount,subscribers:v.subscribers||""};
-   }
-   if(v.type==="playlist"){
-    return{type:"playlist",id:v.id,title:v.title,author:v.author,thumb:v.thumbnail||"",videoCount:v.videoCount};
-   }
-   return{
-    type:"video",
-    id:v.id||v.videoId,
-    title:v.title||"Unknown",
-    artist:v.author||v.artist||"Unknown",
-    mood:"Search",
-    thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
-   };
-  }).filter(s=>s.id);
-  if(!list.length){
+  const raw=Array.isArray(data)?data:(data.items||[]);
+  const list=raw.map(mapSearchItem).filter(s=>s.id);
+  const hasMore=Array.isArray(data)?(list.filter(s=>s.type==="video").length>=20):!!data.hasMore;
+  if(!list.length&&page===1){
+   state._searchMore=null;
    $("#trackHeading").textContent="No results";
    toast("No results for "+q);
    return;
   }
+  if(!list.length&&page>1){
+   if(state._searchMore) state._searchMore.hasMore=false;
+   renderCards(state.songs||[]);
+   toast("No more results");
+   return;
+  }
   state.fromDiscovery=true;
-  // Only videos go into play queue initially
   const videos=list.filter(s=>s.type==="video"||!s.type);
-  state.queue=videos.length?videos:list.filter(s=>s.id&&s.type!=="channel"&&s.type!=="playlist");
-  state.songs=list;
-  renderCards(list);
-  $("#trackHeading").textContent="Search · "+list.length+" results";
-  saveSearchHistory(q);
-  toast(list.length+" results found");
+  if(page===1){
+   state.queue=videos.length?videos:[];
+   state.songs=list;
+   state._searchMore={q,page:1,hasMore};
+   renderCards(list);
+   $("#trackHeading").textContent="Search · "+list.length+" results";
+   saveSearchHistory(q);
+   toast(list.length+" results found");
+  }else{
+   const seen=new Set((state.songs||[]).map(s=>s.id));
+   const fresh=list.filter(s=>s.id&&!seen.has(s.id));
+   state.songs=[...(state.songs||[]),...fresh];
+   const vSeen=new Set((state.queue||[]).map(s=>s.id));
+   const freshV=fresh.filter(s=>(s.type==="video"||!s.type)&&!vSeen.has(s.id));
+   state.queue=[...(state.queue||[]),...freshV];
+   state._searchMore={q,page,hasMore:!!hasMore&&fresh.length>0};
+   renderCards(state.songs);
+   $("#trackHeading").textContent="Search · "+state.songs.length+" results";
+   toast(fresh.length?("+"+fresh.length+" more"):"No more results");
+  }
  }catch(e){
-  if(req!==_searchReq)return; // aborted or superseded
+  if(req!==_searchReq)return;
   if(e&&(e.name==="AbortError"||e.message==="The operation was aborted."))return;
   console.warn("Search error",e);
-  // fallback local filter if API down
+  if(page>1){toast("Could not load more");return}
   const ql=q.toLowerCase();
   const list=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql));
-  state.fromDiscovery=true;
+  state.fromDiscovery=true;state._searchMore=null;
   if(list.length){state.queue=list;state.songs=list}
   renderCards(list.length?list:CATALOG);
   $("#trackHeading").textContent=list.length?("Offline · "+list.length):"Search failed — offline catalog";
@@ -2266,9 +2315,8 @@ function setView(which){
  if(which==="ai") renderAiQueue();
 }
 
-async function loadPlaylist(listId){
+async function loadPlaylist(listId, page){
  if(!listId){toast("Playlist id missing");return}
- // clean id
  listId=String(listId).trim();
  if(listId.includes("list=")){
   try{listId=new URL(listId).searchParams.get("list")||listId}catch(_){
@@ -2277,17 +2325,22 @@ async function loadPlaylist(listId){
  }
  listId=listId.replace(/[^a-zA-Z0-9_-]/g,"");
  if(listId.length<10){toast("Invalid playlist id");return}
+ page=page||1;
 
- state._channelMore=null;
- $("#trackHeading").textContent="Loading playlist…";
- toast("Loading playlist…");
+ if(page===1){
+  state._channelMore=null;state._searchMore=null;
+  $("#trackHeading").textContent="Loading playlist…";
+  toast("Loading playlist…");
+ }
  try{
-  const res=await fetch("/playlist?list="+encodeURIComponent(listId),{signal:AbortSignal.timeout(35000)});
+  const res=await fetch("/playlist?list="+encodeURIComponent(listId)+"&page="+page,{signal:AbortSignal.timeout(35000)});
   const data=await res.json().catch(()=>({}));
   if(!res.ok){
    console.warn("playlist HTTP",res.status,data);
-   toast(data.detail?("Fail: "+String(data.detail).slice(0,60)): (data.error||("Playlist fail "+res.status)));
-   $("#trackHeading").textContent="Playlist failed";
+   if(page===1){
+    toast(data.detail?("Fail: "+String(data.detail).slice(0,60)): (data.error||("Playlist fail "+res.status)));
+    $("#trackHeading").textContent="Playlist failed";
+   }else toast("Could not load more");
    return;
   }
   const list=(data.videos||[]).map(v=>({
@@ -2297,19 +2350,41 @@ async function loadPlaylist(listId){
    mood:"Playlist",
    thumb:v.id?("https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg"):(v.thumbnail||"")
   })).filter(s=>s.id);
-  if(!list.length){toast("Playlist empty");$("#trackHeading").textContent="Playlist empty";return}
+  if(!list.length&&page===1){toast("Playlist empty");state._playlistMore=null;$("#trackHeading").textContent="Playlist empty";return}
+  if(!list.length&&page>1){
+   if(state._playlistMore) state._playlistMore.hasMore=false;
+   renderCards(state.songs||[]);
+   toast("No more results");
+   return;
+  }
   state.fromDiscovery=false;
-  state.queue=list;state.songs=list;state.currentIndex=0;
-  playSong(0);renderCards(list);
-  $("#trackHeading").textContent="♫ "+(data.title||"Playlist");
-  toast("Playlist · "+list.length+" songs");
- }catch(e){console.warn("loadPlaylist",e);toast(e.name==="TimeoutError"?"Playlist timeout — try again":"Playlist load failed");$("#trackHeading").textContent="Playlist failed"}
+  const hasMore=!!data.hasMore;
+  if(page===1){
+   state.queue=list;state.songs=list;state.currentIndex=0;
+   state._playlistMore={listId,page:1,hasMore,title:data.title||"Playlist"};
+   playSong(0);renderCards(list);
+   $("#trackHeading").textContent="♫ "+(data.title||"Playlist");
+   toast("Playlist · "+list.length+" songs");
+  }else{
+   const existing=new Set((state.songs||[]).map(s=>s.id));
+   const extra=list.filter(s=>!existing.has(s.id));
+   state.songs=[...(state.songs||[]),...extra];
+   state.queue=[...(state.queue||[]),...extra];
+   state._playlistMore={listId,page,hasMore:hasMore&&extra.length>0,title:(state._playlistMore&&state._playlistMore.title)||data.title||"Playlist"};
+   renderCards(state.songs);
+   $("#trackHeading").textContent="♫ "+(state._playlistMore.title||"Playlist");
+   toast(extra.length?("+"+extra.length+" more"):"No more results");
+  }
+ }catch(e){console.warn("loadPlaylist",e);toast(e.name==="TimeoutError"?"Playlist timeout — try again":"Playlist load failed");if(page===1)$("#trackHeading").textContent="Playlist failed"}
 }
 async function loadChannel(channelId,channelName,page){
  if(!channelId&&!channelName)return;
  page=page||1;
  $("#trackHeading").textContent=page>1?"Loading more…":"Loading channel…";
- if(page===1) toast("Loading channel videos…");
+ if(page===1){
+  toast("Loading channel videos…");
+  state._searchMore=null;state._playlistMore=null;
+ }
  try{
   const q=new URLSearchParams();
   if(channelId)q.set("id",channelId);
@@ -2321,24 +2396,48 @@ async function loadChannel(channelId,channelName,page){
   const list=(data.videos||[]).map(v=>({
    id:v.id,title:v.title,artist:v.author,mood:"Channel",thumb:v.id?("https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg"):(v.thumbnail||"")
   })).filter(s=>s.id);
-  if(!list.length&&page===1){toast("No channel videos found");$("#trackHeading").textContent="No videos";return}
-  // ★ AI OFF for channel
+  if(!list.length&&page===1){toast("No channel videos found");state._channelMore=null;$("#trackHeading").textContent="No videos";return}
+  if(!list.length&&page>1){
+   if(state._channelMore) state._channelMore.hasMore=false;
+   renderCards(state.songs||[]);
+   toast("No more results");
+   return;
+  }
   state.fromDiscovery=false;
-  state._channelMore={id:channelId,name:channelName,page:page,hasMore:!!data.hasMore};
   if(page===1){
    state.queue=list;state.songs=list;state.currentIndex=0;
+   state._channelMore={id:channelId,name:channelName,page:1,hasMore:!!data.hasMore};
    if(list.length) playSong(0);
   }else{
-   // append
    const existing=new Set((state.songs||[]).map(s=>s.id));
    const extra=list.filter(s=>!existing.has(s.id));
    state.songs=[...(state.songs||[]),...extra];
    state.queue=[...(state.queue||[]),...extra];
+   state._channelMore={id:channelId,name:channelName,page,hasMore:!!data.hasMore&&extra.length>0};
   }
   renderCards(state.songs);
   $("#trackHeading").textContent="📢 "+(data.title||channelName||"Channel");
-  toast(page>1?("+"+list.length+" more"):("Channel · "+list.length+" videos"));
+  toast(page>1?(list.length?("+"+list.length+" more"):"No more results"):("Channel · "+list.length+" videos"));
  }catch(e){console.warn("loadChannel",e);toast("Channel load failed");if(page===1)$("#trackHeading").textContent="Channel failed"}
+}
+async function loadMoreResults(){
+ if(state._loadingMore) return false;
+ if(state._searchMore&&state._searchMore.hasMore){
+  state._loadingMore=true;
+  try{await searchLocal(state._searchMore.q,(state._searchMore.page||1)+1)}finally{state._loadingMore=false}
+  return !!(state._searchMore&&state._searchMore.hasMore===false?false:true);
+ }
+ if(state._playlistMore&&state._playlistMore.hasMore){
+  state._loadingMore=true;
+  try{await loadPlaylist(state._playlistMore.listId,(state._playlistMore.page||1)+1)}finally{state._loadingMore=false}
+  return true;
+ }
+ if(state._channelMore&&state._channelMore.hasMore){
+  state._loadingMore=true;
+  try{await loadChannel(state._channelMore.id,state._channelMore.name,(state._channelMore.page||1)+1)}finally{state._loadingMore=false}
+  return true;
+ }
+ return false;
 }
 
 function bind(){
@@ -2348,8 +2447,7 @@ function bind(){
   const type=card.dataset.type||"video";
   const id=card.dataset.id;
   if(type==="show-more"){
-   const m=state._channelMore;
-   if(m) loadChannel(m.id,m.name,(m.page||1)+1);
+   loadMoreResults();
    return;
   }
   if(type==="channel"){
@@ -2517,7 +2615,8 @@ function bind(){
    if(gen!==_suggGen)return;
    if(!res.ok)return;
    const data=await res.json();
-   const list=(Array.isArray(data)?data:[]).map(v=>({
+   const raw=Array.isArray(data)?data:(data.items||[]);
+   const list=raw.filter(v=>!v.type||v.type==="video").map(v=>({
     id:v.id||v.videoId,
     title:v.title||"Unknown",
     artist:v.author||v.artist||"Unknown",
@@ -3203,12 +3302,14 @@ function init(){
   .then(r=>r.ok?r.json():null)
   .then(data=>{
    if(_searchReq>0)return; // user already did an Enter search
-   if(!Array.isArray(data)||!data.length)return;
-   const list=data.map(v=>({
+   if(!data)return;
+   const raw=Array.isArray(data)?data:(data.items||[]);
+   if(!raw.length)return;
+   const list=raw.filter(v=>!v.type||v.type==="video").map(v=>({
     id:v.id||v.videoId,title:v.title||"Unknown",artist:v.author||"Unknown",mood:"Trending",
     thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
    })).filter(s=>s.id);
-   if(list.length&&_searchReq===0){state.fromDiscovery=true;state.queue=list;state.songs=list;renderCards(list);$("#trackHeading").textContent="🔥 Trending Now"}
+   if(list.length&&_searchReq===0){state.fromDiscovery=true;state.queue=list;state.songs=list;state._searchMore={q:"trending bollywood hits",page:1,hasMore:!!data.hasMore};renderCards(list);$("#trackHeading").textContent="🔥 Trending Now"}
   }).catch(()=>{});
 }
 init();
