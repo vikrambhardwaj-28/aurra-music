@@ -534,6 +534,61 @@ button{color:inherit;cursor:pointer;border:none;background:none}
   .lang-chip{padding:12px 6px 10px;border-radius:14px}
 }
 
+
+/* ---- Discover tables & browse grid ---- */
+.muted-empty{font-size:12px;color:var(--muted);padding:12px 4px}
+.song-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.song-table{width:100%;border-collapse:collapse;font-size:13px}
+.song-table th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.4px;border-bottom:1px solid var(--line)}
+.song-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.song-table tr:last-child td{border-bottom:none}
+.song-table tbody tr{cursor:pointer;transition:background .12s}
+.song-table tbody tr:hover{background:rgba(255,255,255,.05)}
+.song-table .st-num{width:36px;color:var(--muted);font-variant-numeric:tabular-nums}
+.song-table .st-play{width:40px;text-align:right}
+.song-table .st-play button{width:28px;height:28px;border-radius:50%;background:var(--a);color:#fff;font-size:11px;display:inline-grid;place-items:center}
+.song-table .st-title{font-weight:600}
+.song-table .st-artist{color:var(--muted);font-size:12px}
+
+.browse-grid{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;
+}
+.browse-card{
+  position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;
+  border:none;cursor:pointer;padding:0;text-align:left;color:#fff;
+  background:#1c1c1e center/cover no-repeat;
+  box-shadow:0 4px 16px rgba(0,0,0,.35);
+  transition:transform .15s,box-shadow .15s;
+}
+.browse-card:hover{transform:scale(1.02);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.browse-card::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 50%);
+}
+.browse-card span{
+  position:absolute;left:12px;bottom:12px;z-index:1;
+  font-size:15px;font-weight:700;letter-spacing:-.2px;
+  text-shadow:0 1px 4px rgba(0,0,0,.5);
+}
+
+.right-lyrics{
+  max-height:220px;overflow-y:auto;font-size:13px;line-height:1.55;
+  color:var(--muted);padding-right:4px;scrollbar-width:thin;
+}
+.right-lyrics .lyric{margin:0 0 8px;color:rgba(255,255,255,.35);font-weight:500}
+.right-lyrics .lyric.active{color:#fff;font-weight:600}
+.right-lyrics-card{flex:1;min-height:0;display:flex;flex-direction:column}
+.right-lyrics-card .right-lyrics{flex:1}
+
+@media(max-width:1320px){
+  .browse-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .browse-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .browse-card span{font-size:13px;left:10px;bottom:10px}
+  .song-table th,.song-table td{padding:8px 10px;font-size:12px}
+}
+
 /* Artist panels (shown after language pick) */
 .artist-grid{
   display:grid!important;
@@ -1381,8 +1436,6 @@ body.app-fs .immersive-player{padding-top:var(--fs-top)}
  <div class="nav">
   <button class="active" data-page="Home"><span>⌂</span>Home</button>
   <button data-page="Search"><span>⌕</span>Search</button>
-  <button data-page="Library"><span>♫</span>Library</button>
-  <button data-page="Languages" id="navLanguages"><span>🌐</span>Languages</button>
  </div>
  <div class="playlist">
   <div class="side-label">YOUR PLAYLISTS <button id="newPlaylist" title="New playlist">+</button></div>
@@ -1411,54 +1464,81 @@ body.app-fs .immersive-player{padding-top:var(--fs-top)}
   <button type="button" id="mActLock" title="Lock screen"><span>🔒</span>Lock</button>
   <button type="button" id="mActFs" title="Fullscreen"><span>⛶</span>Full</button>
  </div>
- <section class="hero glass" id="heroPanel">
-  <div class="hero-thumb-wrap" id="heroThumbWrap" aria-hidden="true">
-   <div class="hero-thumb" id="heroThumb"><span class="hero-thumb-ico">♫</span><i class="beat-ring"></i><i class="beat-ring r2"></i><i class="beat-ring r3"></i></div>
-  </div>
-  <div class="eyebrow">FEEL THE RHYTHM</div>
-  <div id="heroGreeting"></div>
-  <h1>Music for<br><span>every mood.</span></h1>
-  <p>Discover new songs, artists and playlists made just for you.</p>
-  <div class="hero-actions">
-   <button class="btn primary" id="playHero">▶ &nbsp; Play Now</button>
-   <button class="btn" id="shuffleHero">⤨ &nbsp; Surprise Me</button>
-  </div>
-  <div class="hero-stamp">GOOD VIBES ONLY ♡</div>
- </section>
- <section class="mood-row">
-  <button class="mood" data-mood="Chill"><span class="mood-art">☾</span><span><b>Chill</b><small>Relax & Unwind</small></span></button>
-  <button class="mood" data-mood="Workout"><span class="mood-art" style="background:linear-gradient(135deg,#1ec9a2,#206e9a)">ϟ</span><span><b>Workout</b><small>Beats for Energy</small></span></button>
-  <button class="mood" data-mood="Romantic"><span class="mood-art" style="background:linear-gradient(135deg,#ff70b8,#8b54ff)">♡</span><span><b>Romantic</b><small>Love & Feelings</small></span></button>
-  <button class="mood" data-mood="Focus"><span class="mood-art" style="background:linear-gradient(135deg,#20d8ff,#3454b9)">⌘</span><span><b>Focus</b><small>Stay Productive</small></span></button>
-  <button class="mood" data-mood="Party"><span class="mood-art" style="background:linear-gradient(135deg,#f74fc8,#6157ff)">✦</span><span><b>Party</b><small>Dance All Night</small></span></button>
-  <button class="mood" data-mood="More"><span class="mood-art">▦</span><span><b>More</b><small>Explore</small></span></button>
- </section>
- <!-- Languages — India -->
- <section class="lang-section">
-  <div class="lang-head"><h2>Languages</h2><span class="lang-sub">Pick a language · explore artists</span></div>
-  <div class="lang-row" id="langRow">
-   <button type="button" class="lang-chip" data-lang="Hindi"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Hindi</b></button>
-   <button type="button" class="lang-chip" data-lang="English"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>English</b></button>
-   <button type="button" class="lang-chip" data-lang="Punjabi"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Punjabi</b></button>
-   <button type="button" class="lang-chip" data-lang="Haryanvi"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Haryanvi</b></button>
-   <button type="button" class="lang-chip" data-lang="Bhojpuri"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Bhojpuri</b></button>
-   <button type="button" class="lang-chip" data-lang="Rajasthani"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Rajasthani</b></button>
-   <button type="button" class="lang-chip" data-lang="Marathi"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1459749411175-04bf529e0011?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Marathi</b></button>
-   <button type="button" class="lang-chip" data-lang="Gujarati"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Gujarati</b></button>
-   <button type="button" class="lang-chip" data-lang="Bengali"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Bengali</b></button>
-   <button type="button" class="lang-chip" data-lang="Tamil"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Tamil</b></button>
-   <button type="button" class="lang-chip" data-lang="Telugu"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Telugu</b></button>
-   <button type="button" class="lang-chip" data-lang="Kannada"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1498038432885-c6f3f1b5f0a0?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Kannada</b></button>
-   <button type="button" class="lang-chip" data-lang="Malayalam"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Malayalam</b></button>
-   <button type="button" class="lang-chip" data-lang="Odia"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1415201364774-f6f0bb35b5a6?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Odia</b></button>
-   <button type="button" class="lang-chip" data-lang="Assamese"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1454923633724-dd9eaf5a6e5e?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Assamese</b></button>
-   <button type="button" class="lang-chip" data-lang="Urdu"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Urdu</b></button>
-  </div>
- </section>
- <section class="section glass">
-  <div class="section-head"><h2 id="trackHeading">🔥 Trending Now</h2><a id="seeAll">See All →</a></div>
-  <div class="cards" id="cards"></div>
- </section>
+
+ <!-- DISCOVER (default on open) -->
+ <div id="viewDiscover">
+  <section class="section">
+   <div class="section-head"><h2>Latest Uploads</h2><a id="refreshLatest" href="javascript:void(0)">Refresh</a></div>
+   <div class="cards" id="latestCards"><div class="muted-empty">Loading latest…</div></div>
+  </section>
+
+  <section class="lang-section" id="discoverLangs">
+   <div class="lang-head"><h2>Languages</h2><span class="lang-sub">Tap a language · latest songs</span></div>
+   <div class="lang-row" id="langRow">
+    <button type="button" class="lang-chip" data-lang="Hindi" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Hindi</b></button>
+    <button type="button" class="lang-chip" data-lang="English" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>English</b></button>
+    <button type="button" class="lang-chip" data-lang="Punjabi" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Punjabi</b></button>
+    <button type="button" class="lang-chip" data-lang="Haryanvi" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Haryanvi</b></button>
+    <button type="button" class="lang-chip" data-lang="Bhojpuri" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Bhojpuri</b></button>
+    <button type="button" class="lang-chip" data-lang="Rajasthani" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Rajasthani</b></button>
+    <button type="button" class="lang-chip" data-lang="Marathi" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1459749411175-04bf529e0011?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Marathi</b></button>
+    <button type="button" class="lang-chip" data-lang="Gujarati" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Gujarati</b></button>
+    <button type="button" class="lang-chip" data-lang="Bengali" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Bengali</b></button>
+    <button type="button" class="lang-chip" data-lang="Tamil" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Tamil</b></button>
+    <button type="button" class="lang-chip" data-lang="Telugu" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Telugu</b></button>
+    <button type="button" class="lang-chip" data-lang="Kannada" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1498038432885-c6f3f1b5f0a0?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Kannada</b></button>
+    <button type="button" class="lang-chip" data-lang="Malayalam" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Malayalam</b></button>
+    <button type="button" class="lang-chip" data-lang="Odia" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1415201364774-f6f0bb35b5a6?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Odia</b></button>
+    <button type="button" class="lang-chip" data-lang="Assamese" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1454923633724-dd9eaf5a6e5e?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Assamese</b></button>
+    <button type="button" class="lang-chip" data-lang="Urdu" data-latest="1"><span class="lang-ico"><img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=96&amp;h=96&amp;fit=crop&amp;q=80" alt="" loading="lazy"></span><b>Urdu</b></button>
+   </div>
+  </section>
+
+  <section class="section">
+   <div class="section-head"><h2>Best Songs This Year</h2></div>
+   <div class="song-table-wrap">
+    <table class="song-table" id="bestYearTable">
+     <thead><tr><th>#</th><th>Title</th><th>Artist</th><th></th></tr></thead>
+     <tbody id="bestYearBody"><tr><td colspan="4" class="muted-empty">Loading…</td></tr></tbody>
+    </table>
+   </div>
+  </section>
+
+  <section class="section">
+   <div class="section-head"><h2>Trending Songs</h2></div>
+   <div class="song-table-wrap">
+    <table class="song-table" id="trendTable">
+     <thead><tr><th>#</th><th>Title</th><th>Artist</th><th></th></tr></thead>
+     <tbody id="trendBody"><tr><td colspan="4" class="muted-empty">Loading…</td></tr></tbody>
+    </table>
+   </div>
+  </section>
+ </div>
+
+ <!-- HOME (library-style) -->
+ <div id="viewHome" style="display:none">
+  <section class="section">
+   <div class="section-head"><h2>Your Library</h2></div>
+   <div id="homeLibrary" class="lib-view"></div>
+  </section>
+ </div>
+
+ <!-- SEARCH BROWSE (Apple Music categories) -->
+ <div id="viewBrowse" style="display:none">
+  <section class="section">
+   <div class="section-head"><h2>Browse Categories</h2></div>
+   <div class="browse-grid" id="browseGrid"></div>
+  </section>
+ </div>
+
+ <!-- RESULTS (search / language / cards) -->
+ <div id="viewResults" style="display:none">
+  <section class="section">
+   <div class="section-head"><h2 id="trackHeading">Results</h2><a id="seeAll" href="javascript:void(0)">← Back</a></div>
+   <div class="cards" id="cards"></div>
+  </section>
+ </div>
+
 </main>
 <aside class="rightcol">
  <div class="right-card glass">
@@ -1476,24 +1556,24 @@ body.app-fs .immersive-player{padding-top:var(--fs-top)}
    <button id="rNext" title="Next">▶▶</button>
    <button id="rRepeat" title="Repeat">↻</button>
   </div>
+ </div>
+ <div class="right-card glass right-lyrics-card">
+  <div class="right-title">📜 Lyrics</div>
+  <div class="right-lyrics" id="rightLyrics"><p class="lyric muted-empty">Play a song to see lyrics</p></div>
+ </div>
+ <div class="right-card glass">
   <div class="queue">
    <div class="queue-head"><span>Up Next</span><span id="queueCount">0</span></div>
    <div id="queueList"></div>
   </div>
  </div>
- <div class="right-card glass">
-  <div class="right-title">✦ Quick Mix</div>
-  <div id="mixList"></div>
- </div>
- <div class="right-card glass">
-  <div class="right-title">🕐 Recently Played</div>
-  <div class="recent-list" id="recentList">
-   <div style="font-size:11px;color:var(--muted);padding:8px 2px">Play songs to see them here</div>
-  </div>
- </div>
 </aside>
 </div>
 
+
+<div id="recentList" style="display:none"></div>
+<div id="mixList" style="display:none"></div>
+<div id="heroPanel" style="display:none" class="hero"><div id="heroThumb"></div><div id="heroGreeting"></div></div>
 <div class="player glass" id="playerBar">
  <div class="now">
   <div class="now-art" id="dockArt">♫</div>
@@ -1525,8 +1605,6 @@ body.app-fs .immersive-player{padding-top:var(--fs-top)}
 <nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation">
  <button type="button" class="active" data-mnav="home"><span>⌂</span>Home</button>
  <button type="button" data-mnav="search"><span>⌕</span>Search</button>
- <button type="button" data-mnav="library"><span>♫</span>Your Library</button>
- <button type="button" data-mnav="languages"><span>🌐</span>Languages</button>
 </nav>
 
 <div class="immersive-player" id="immersivePlayer" aria-hidden="true">
@@ -1919,11 +1997,191 @@ function artistInitials(name){
   if(p.length===1)return p[0].slice(0,2).toUpperCase();
   return (p[0][0]+p[p.length-1][0]).toUpperCase();
 }
+
+/* ---- Views: discover / home / browse / results ---- */
+function setView(name){
+  const map={discover:"viewDiscover",home:"viewHome",browse:"viewBrowse",results:"viewResults"};
+  Object.keys(map).forEach(k=>{
+    const el=$(("#"+map[k]));
+    if(el) el.style.display=(k===name)?"":"none";
+  });
+  state._uiView=name;
+  $$(".sidebar > .nav button").forEach(b=>{
+    const p=b.dataset.page;
+    b.classList.toggle("active",(name==="home"&&p==="Home")||(name==="browse"&&p==="Search")||(name==="discover"&&p==="Home"&&false)||(name==="results"&&p==="Search"));
+  });
+  if(name==="home") $$(".sidebar > .nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="Home"));
+  if(name==="discover") $$(".sidebar > .nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="Home"));
+  if(name==="browse"||name==="results") $$(".sidebar > .nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="Search"));
+  $$("#mobileNav button").forEach(b=>{
+    const a=b.dataset.mnav;
+    b.classList.toggle("active",(name==="home"||name==="discover")&&a==="home"||(name==="browse"||name==="results")&&a==="search");
+  });
+}
+function showDiscover(){ setView("discover"); window.scrollTo({top:0,behavior:"smooth"}); }
+function showHomeLibrary(){
+  setView("home");
+  renderHomeLibrary();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function showBrowse(){
+  setView("browse");
+  renderBrowseGrid();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function showResults(){ setView("results"); }
+
+const BROWSE_CATS=[
+  {name:"Pop",q:"pop hits",color:"#e85d8e",img:"https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop"},
+  {name:"Hip-Hop",q:"hip hop hits",color:"#5b6cff",img:"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop"},
+  {name:"Rock",q:"rock hits",color:"#e06a3c",img:"https://images.unsplash.com/photo-1498038432885-c6f3f1b5f0a0?w=400&h=400&fit=crop"},
+  {name:"Dance",q:"dance hits",color:"#2db88a",img:"https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop"},
+  {name:"R&B",q:"rnb hits",color:"#7b4dff",img:"https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=400&h=400&fit=crop"},
+  {name:"Country",q:"country hits",color:"#d4a017",img:"https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=400&fit=crop"},
+  {name:"K-Pop",q:"kpop hits",color:"#ff4d6d",img:"https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&h=400&fit=crop"},
+  {name:"Latin",q:"latin hits",color:"#e0439a",img:"https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&h=400&fit=crop"},
+  {name:"Bollywood",q:"bollywood hits",color:"#fa243c",img:"https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=400&fit=crop"},
+  {name:"Punjabi",q:"punjabi hits",color:"#ff7a00",img:"https://images.unsplash.com/photo-1459749411175-04bf529e0011?w=400&h=400&fit=crop"},
+  {name:"Indie",q:"indie hits",color:"#3d8bfd",img:"https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=400&h=400&fit=crop"},
+  {name:"Jazz",q:"jazz classics",color:"#c9a227",img:"https://images.unsplash.com/photo-1415201364774-f6f0bb35b5a6?w=400&h=400&fit=crop"},
+  {name:"Metal",q:"metal hits",color:"#333",img:"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop"},
+  {name:"Lo-fi",q:"lofi hip hop",color:"#6b8cae",img:"https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400&h=400&fit=crop"},
+  {name:"Classical",q:"classical music",color:"#8b6914",img:"https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&h=400&fit=crop"}
+];
+function renderBrowseGrid(){
+  const box=$("#browseGrid");if(!box)return;
+  box.innerHTML=BROWSE_CATS.map(c=>`
+    <button type="button" class="browse-card" data-q="${escHtml(c.q)}" style="background-image:url('${c.img}');background-color:${c.color}">
+      <span>${escHtml(c.name)}</span>
+    </button>`).join("");
+}
+function fillSongTable(tbodyId, list){
+  const tb=$(tbodyId);if(!tb)return;
+  if(!list||!list.length){tb.innerHTML=`<tr><td colspan="4" class="muted-empty">No songs yet</td></tr>`;return}
+  tb.innerHTML=list.slice(0,15).map((s,i)=>`
+    <tr data-vid="${s.id}" data-play-row="1">
+      <td class="st-num">${i+1}</td>
+      <td class="st-title">${escHtml(cleanSongTitle(s.title||""))}</td>
+      <td class="st-artist">${escHtml(cleanArtistName(s.artist||""))}</td>
+      <td class="st-play"><button type="button" data-play-id="${s.id}" title="Play">▶</button></td>
+    </tr>`).join("");
+}
+async function fetchSongList(q){
+  try{
+    const res=await fetch("/search?q="+encodeURIComponent(q),{signal:AbortSignal.timeout(12000)});
+    if(!res.ok)throw new Error("http");
+    const data=await res.json();
+    const raw=Array.isArray(data)?data:(data.items||[]);
+    return raw.filter(v=>!v.type||v.type==="video").map(v=>({
+      id:v.id||v.videoId,title:v.title||"Unknown",artist:v.author||v.artist||"Unknown",
+      thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
+    })).filter(s=>s.id);
+  }catch(e){
+    const ql=q.toLowerCase();
+    return (typeof CATALOG!=="undefined"?CATALOG:[]).filter(s=>
+      (s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql)||(s.mood||"").toLowerCase().includes(ql)
+    ).slice(0,12);
+  }
+}
+function renderMiniCards(boxId, list){
+  const box=$(boxId);if(!box)return;
+  if(!list||!list.length){box.innerHTML=`<div class="muted-empty">No results</div>`;return}
+  const arts=["","pink","gold","blue","green","violet"];
+  box.innerHTML=list.slice(0,12).map((s,i)=>`
+    <div class="music-card" data-type="video" data-id="${s.id}" role="button" tabindex="0">
+      <div class="art ${arts[i%arts.length]}" style="background-image:url('${s.thumb||""}');background-size:cover;background-position:center"><i class="play-dot">▶</i></div>
+      <b>${escHtml(cleanSongTitle(s.title||""))}</b>
+      <small>${escHtml(cleanArtistName(s.artist||""))}</small>
+    </div>`).join("");
+}
+async function loadDiscoverData(){
+  const latest=await fetchSongList("latest bollywood punjabi hindi songs 2026");
+  renderMiniCards("#latestCards", latest);
+  state._latestList=latest;
+  const best=await fetchSongList("best songs of 2026");
+  fillSongTable("#bestYearBody", best);
+  state._bestList=best;
+  const trend=await fetchSongList("trending bollywood hits");
+  fillSongTable("#trendBody", trend);
+  state._trendList=trend;
+}
+function playFromList(list, id){
+  if(!list||!list.length)return;
+  const idx=list.findIndex(s=>s.id===id);
+  const song=idx>=0?list[idx]:list[0];
+  if(!song)return;
+  const rest=list.filter(s=>s.id!==song.id);
+  state.queue=[song,...rest];
+  state.songs=list;
+  playSong(0);
+}
+function renderHomeLibrary(){
+  const box=$("#homeLibrary");if(!box)return;
+  const recent=(state.recentPlayed||[]).slice(0,12);
+  const liked=typeof getLikedList==="function"?getLikedList():(state.likedSongs||[]);
+  const plNames=Object.keys(state.customPlaylists||{});
+  const artists=[];
+  try{
+    const hist=JSON.parse(localStorage.getItem("auraSearchHistory")||"[]");
+    if(Array.isArray(hist)) hist.forEach(q=>{ if(q&&!artists.includes(q)) artists.push(q); });
+  }catch(e){}
+  (state.recentPlayed||[]).forEach(s=>{
+    const a=(s.artist||"").trim();
+    if(a&&!artists.includes(a)) artists.push(a);
+  });
+  let html="";
+  html+='<div><div class="lib-sec-title">Recently Played</div>';
+  if(recent.length){
+    html+=recent.map(s=>`<button type="button" class="lib-row" data-lib-play="${s.id}">
+      <div class="lib-art" style="${s.thumb?`background-image:url('${s.thumb}')`:''}">${s.thumb?"":"♫"}</div>
+      <div class="lib-meta"><b>${escHtml(cleanSongTitle(s.title||""))}</b><small>${escHtml(cleanArtistName(s.artist||""))}</small></div>
+    </button>`).join("");
+  }else html+='<div class="lib-empty">No recent songs yet</div>';
+  html+='</div>';
+  html+='<div><div class="lib-sec-title">Liked Songs'+(liked.length?' · '+liked.length:'')+'</div>';
+  if(liked.length){
+    html+=liked.slice(0,10).map(s=>`<button type="button" class="lib-row" data-lib-play="${s.id}">
+      <div class="lib-art" style="${s.thumb?`background-image:url('${s.thumb}')`:''}">${s.thumb?"":"♡"}</div>
+      <div class="lib-meta"><b>${escHtml(cleanSongTitle(s.title||""))}</b><small>${escHtml(cleanArtistName(s.artist||""))}</small></div>
+    </button>`).join("");
+  }else html+='<div class="lib-empty">No liked songs yet</div>';
+  html+='</div>';
+  html+='<div><div class="lib-sec-title">Playlists</div>';
+  html+=`<button type="button" class="lib-row" data-lib-open="newpl"><div class="lib-art" style="background:rgba(255,255,255,.1)">＋</div><div class="lib-meta"><b>Create playlist</b><small>New collection</small></div></button>`;
+  if(plNames.length){
+    html+=plNames.map(n=>{
+      const count=(state.customPlaylists[n]||[]).length;
+      return `<button type="button" class="lib-row" data-lib-open="pl" data-pl-name="${escHtml(n)}">
+        <div class="lib-art" style="background:linear-gradient(135deg,var(--a),var(--b))">♫</div>
+        <div class="lib-meta"><b>${escHtml(n)}</b><small>${count} tracks</small></div>
+      </button>`;
+    }).join("");
+  }else html+='<div class="lib-empty">No playlists yet</div>';
+  html+='</div>';
+  html+='<div><div class="lib-sec-title">Last Searched / Artists</div>';
+  if(artists.length){
+    html+=artists.slice(0,12).map(a=>`<button type="button" class="lib-row" data-lib-search="${escHtml(a)}">
+      <div class="lib-art round" style="background:linear-gradient(135deg,var(--a),var(--b))">${escHtml((a||"?").slice(0,1).toUpperCase())}</div>
+      <div class="lib-meta"><b>${escHtml(a)}</b><small>Search again</small></div>
+    </button>`).join("");
+  }else html+='<div class="lib-empty">Search artists to see them here</div>';
+  html+='</div>';
+  box.innerHTML=html;
+}
+function syncRightLyrics(){
+  const src=$("#lyricsLines");
+  const dest=$("#rightLyrics");
+  if(!dest)return;
+  if(!src){dest.innerHTML=`<p class="lyric muted-empty">Play a song to see lyrics</p>`;return}
+  dest.innerHTML=src.innerHTML;
+}
+
 function showLanguageArtists(lang){
   const list=LANG_ARTISTS[lang];
   if(!list||!list.length){toast("No artists listed");return}
   state._libraryView=false;
   state._langView=lang;
+  showResults();
   state._searchMore=null;state._playlistMore=null;state._channelMore=null;
   $$(".lang-chip").forEach(c=>c.classList.toggle("active",c.dataset.lang===lang));
   const box=$("#cards");if(!box)return;
@@ -2395,6 +2653,7 @@ function plainToTimed(text,dur){
 function renderLyricLines(lines){
   const box=$("#lyricsLines");
   if(!box)return;
+  setTimeout(syncRightLyrics,0);
   if(!lines||!lines.length){
     box.innerHTML=`<p class="lyric active">Lyrics not found for this track</p>`;
     return;
@@ -2628,6 +2887,14 @@ function startProgress(){
          const top=rows[idx].offsetTop-box.clientHeight/2+rows[idx].offsetHeight/2;
          box.scrollTo({top:Math.max(0,top),behavior:"smooth"});
        }
+       const rbox=$("#rightLyrics");
+       const rrows=$$("#rightLyrics .lyric");
+       if(rrows[idx]&&rbox){
+         rrows.forEach(r=>r.classList.remove("active"));
+         rrows[idx].classList.add("active");
+         const top=rrows[idx].offsetTop-rbox.clientHeight/2+rrows[idx].offsetHeight/2;
+         rbox.scrollTo({top:Math.max(0,top),behavior:"smooth"});
+       }
      }
    }
   }catch(e){}
@@ -2775,8 +3042,9 @@ async function searchLocal(q, page){
    state.queue=videos.length?videos:[];
    state.songs=list;
    state._searchMore={q,page:1,hasMore};
+   showResults();
    renderCards(list);
-   $("#trackHeading").textContent="Search · "+list.length+" results";
+   if($("#trackHeading")) $("#trackHeading").textContent="Search · "+list.length+" results";
    saveSearchHistory(q);
    toast(list.length+" results found");
   }else{
@@ -3162,26 +3430,48 @@ function bind(){
  $("#langRow")?.addEventListener("click",e=>{
   const chip=e.target.closest(".lang-chip");if(!chip)return;
   const lang=chip.dataset.lang;if(!lang)return;
+  // Discover: search latest songs of language
+  if(chip.dataset.latest==="1" || state._uiView==="discover"){
+    const q="latest "+lang+" songs 2026";
+    if($("#search")) $("#search").value=lang+" latest";
+    searchLocal(q);
+    toast(lang+" · latest songs");
+    return;
+  }
   showLanguageArtists(lang);
  });
- $("#navLanguages")?.addEventListener("click",e=>{
-  e.preventDefault();
-  scrollToLanguages();
- });
+ 
  // Sidebar main nav (Home / Search / Library / Languages)
  document.querySelector(".sidebar > .nav")?.addEventListener("click",e=>{
   const btn=e.target.closest("button[data-page]");if(!btn)return;
   const page=btn.dataset.page;
   $$(".sidebar > .nav button").forEach(b=>b.classList.toggle("active",b===btn));
-  if(page==="Languages"){scrollToLanguages();return}
-  if(page==="Search"){$("#search")?.focus();window.scrollTo({top:0,behavior:"smooth"});return}
-  if(page==="Library"){try{showLibraryView(false)}catch(err){}return}
-  if(page==="Home"){
-   clearLangView();
-   state.songs=[...CATALOG];renderCards(CATALOG);
-   if($("#trackHeading")) $("#trackHeading").textContent="🔥 Trending Now";
-   window.scrollTo({top:0,behavior:"smooth"});
+  if(page==="Search"){ showBrowse(); $("#search")?.focus(); return; }
+  if(page==="Home"){ showHomeLibrary(); return; }
+ });
+ // Browse category cards
+ document.addEventListener("click",e=>{
+  const bc=e.target.closest(".browse-card");
+  if(bc&&bc.dataset.q){ searchLocal(bc.dataset.q); return; }
+  const row=e.target.closest("[data-play-row]");
+  if(row&&row.dataset.vid){
+    const id=row.dataset.vid;
+    const list=state._bestList||state._trendList||state._latestList||state.songs||[];
+    // prefer matching list by tbody
+    const tb=row.closest("tbody");
+    let pool=list;
+    if(tb&&tb.id==="bestYearBody") pool=state._bestList||list;
+    if(tb&&tb.id==="trendBody") pool=state._trendList||list;
+    playFromList(pool, id);
+    return;
   }
+  if(e.target.closest("#refreshLatest")){ loadDiscoverData(); toast("Refreshing…"); return; }
+  if(e.target.closest("#seeAll")){ showDiscover(); return; }
+  const ls=e.target.closest("[data-lib-search]");
+  if(ls&&ls.dataset.libSearch){ searchLocal(ls.dataset.libSearch); return; }
+  // latest cards play
+  const lc=e.target.closest("#latestCards .music-card");
+  if(lc&&lc.dataset.id){ playFromList(state._latestList||[], lc.dataset.id); return; }
  });
  document.addEventListener("click",e=>{
   const back=e.target.closest("#langBackBtn");
@@ -3835,26 +4125,13 @@ function bind(){
    pushNav();
    state.navType="home";
    state._libraryView=false;
-   state._searchMore=null;state._playlistMore=null;state._channelMore=null;
-   // Keep current playback — only refresh browse grid
-   state.songs=[...CATALOG];
-   renderCards(CATALOG);
-   $("#trackHeading").textContent="🔥 Trending Now";
-   window.scrollTo({top:0,behavior:"smooth"});
+   showHomeLibrary();
   }else if(act==="search"){
    pushNav();
    state.navType="search";
    state._libraryView=false;
+   showBrowse();
    $("#search")?.focus();
-   window.scrollTo({top:0,behavior:"smooth"});
-  }else if(act==="library"){
-   pushNav();
-   showLibraryView(false);
-  }else if(act==="languages"){
-   pushNav();
-   state.navType="languages";
-   state._libraryView=false;
-   try{scrollToLanguages()}catch(err){}
   }
  });
  // Library row clicks
@@ -4210,7 +4487,7 @@ function init(){
  state.recentPlayed=loadJSON("auraRecent",state.recentPlayed||[]);
  // write backup so next open is safe
  savePlaylists();saveFavs();saveLikedSongs();
- renderPlaylistNav();renderCards(CATALOG);renderMix();renderRecent();updateProfileUI();updateNowUI();setVolume(70);syncEqUI();bind();
+ renderPlaylistNav();renderMix();renderRecent();updateProfileUI();updateNowUI();setVolume(70);syncEqUI();bind();showDiscover();loadDiscoverData();renderBrowseGrid();
  let _rhT;
  window.addEventListener("resize",()=>{clearTimeout(_rhT);_rhT=setTimeout(syncRecentToCardsHeight,120)});
  // images in cards may load late — resync height
