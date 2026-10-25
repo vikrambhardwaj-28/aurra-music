@@ -129,14 +129,14 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{
-  margin:0;min-height:100%;min-height:100dvh;
+  margin:0;min-height:100%;min-height:100dvh;height:auto;
   background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Inter,"Helvetica Neue",system-ui,sans-serif;
-  overflow-x:hidden;overscroll-behavior:none;
+  overflow-x:hidden;overflow-y:auto;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 }
-html{-webkit-text-size-adjust:100%}
-body{position:relative}
+html{-webkit-text-size-adjust:100%;overflow-y:auto}
+body{position:relative;overflow-x:hidden;overflow-y:auto;height:auto;min-height:100dvh;-webkit-overflow-scrolling:touch}
 body:before{content:"";position:fixed;inset:0;z-index:-2;background:var(--bg)}
 button,input{font:inherit}
 button{color:inherit;cursor:pointer;border:0;background:none;padding:0}
@@ -648,8 +648,8 @@ body.app-fs .immersive-player{padding-top:var(--fs-top)}
 .tool-ico.on{background:rgba(250,35,59,.18);color:var(--a)}
 
 /* ---------- Main ---------- */
-.layout{margin-left:var(--side-w);padding:var(--head-h) 0 56px;min-height:100vh}
-.center{padding:8px 32px 56px;min-width:0}
+.layout{margin-left:var(--side-w);padding:var(--head-h) 0 140px;min-height:100vh;overflow:visible;height:auto}
+.center{padding:8px 32px 80px;min-width:0;overflow:visible;height:auto}
 .topbar{display:flex;align-items:center;gap:10px;min-height:48px;padding-top:12px;margin-bottom:6px}
 .page-title{font-size:30px;font-weight:700;letter-spacing:-.7px;margin:0;flex:1;line-height:1.1}
 .search{position:fixed;left:16px;top:62px;width:calc(var(--side-w) - 32px);z-index:70;display:block}
@@ -849,8 +849,8 @@ body.show-queue .rightcol{transform:none;box-shadow:-12px 0 40px rgba(0,0,0,.45)
 @media(max-width:1000px){
   .sidebar,.rightcol{display:none!important}
   #queueToggle{display:none}
-  .layout{margin-left:0;padding:0 0 calc(126px + env(safe-area-inset-bottom,0px))}
-  .center{padding:0 16px}
+  .layout{margin-left:0;padding:0 0 calc(180px + env(safe-area-inset-bottom,0px));overflow:visible;height:auto}
+  .center{padding:0 16px 40px;overflow:visible;height:auto}
   .topbar{
     position:sticky;top:0;z-index:40;margin:0;
     padding:calc(10px + env(safe-area-inset-top,0px)) 0 10px;
@@ -1113,7 +1113,7 @@ body.view-new .section .section-head{margin-top:14px}
 
 /* ---------- Desktop: floating glass player bar ---------- */
 @media(min-width:1001px){
-  .layout{padding:0 0 132px}
+  .layout{padding:0 0 148px;overflow:visible;height:auto}
   .topbar{padding-top:26px}
   .player{
     top:auto;bottom:16px;left:calc(var(--side-w) + 20px);right:20px;height:78px;
@@ -1138,7 +1138,7 @@ body.view-new .section .section-head{margin-top:14px}
 
 /* ---------- Compact / mobile: floating glass mini player ---------- */
 @media(max-width:1000px){
-  .layout{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+  .layout{padding-bottom:calc(180px + env(safe-area-inset-bottom,0px));overflow:visible;height:auto}
   .topbar{background:rgba(0,0,0,.55)}
   .player{
     left:10px;right:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));height:62px;
@@ -1815,7 +1815,8 @@ function renderAiQueue(){ /* AI removed */ }
 function renderCards(list){
  const box=$("#cards");if(!box)return;
  const arts=["","pink","gold","blue","green","violet"];
- const items=(list||[]).slice(0,120);
+ // show all results (no hard 120 cap) so Show More pages stack fully
+ const items=(list||[]);
  let html=items.map((s,i)=>{
   if(s.type==="channel"){
    const subs=s.subscribers?String(s.subscribers):"";
@@ -1846,20 +1847,24 @@ function renderCards(list){
    <small>${cleanArtistName(s.artist||s.author||"")}</small>
   </div>`;
  }).join("");
- // Show More — search / playlist / channel
- const canMore=!!((state._searchMore&&state._searchMore.hasMore)||(state._playlistMore&&state._playlistMore.hasMore)||(state._channelMore&&state._channelMore.hasMore));
+ // Show More: search always (until empty page); playlist/channel until all loaded
+ const canSearch=!!(state._searchMore&&state._searchMore.hasMore!==false&&state._searchMore.q);
+ const canPl=!!(state._playlistMore&&state._playlistMore.hasMore);
+ const canCh=!!(state._channelMore&&state._channelMore.hasMore);
+ const canMore=!!(canSearch||canPl||canCh);
  box.innerHTML=html;
- // full-width button under grid so it is always visible
+ // full-width button under grid so it is always visible when more exists
  let moreBar=$("#showMoreBar");
  if(!moreBar){
   moreBar=document.createElement("div");
   moreBar.id="showMoreBar";
-  moreBar.style.cssText="grid-column:1/-1;width:100%;margin:12px 0 8px";
+  moreBar.style.cssText="display:none;width:100%;margin:16px 0 28px;padding:0;position:relative;z-index:2";
   box.parentNode&&box.parentNode.insertBefore(moreBar, box.nextSibling);
  }
  if(canMore){
   moreBar.style.display="block";
-  moreBar.innerHTML=`<button type="button" id="showMoreBtn" data-type="show-more" style="width:100%;padding:14px 16px;border-radius:14px;border:1px dashed color-mix(in srgb,var(--b) 50%,#fff);background:color-mix(in srgb,var(--a) 12%,rgba(255,255,255,.04));color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 0 16px color-mix(in srgb,var(--glow) 30%,transparent)">Show More · Load more results</button>`;
+  const label=canPl?"Show More · Load more playlist songs":(canCh?"Show More · Load more channel videos":"Show More · Load more results");
+  moreBar.innerHTML=`<button type="button" id="showMoreBtn" data-type="show-more" style="width:100%;padding:14px 16px;border-radius:14px;border:1px dashed color-mix(in srgb,var(--b) 50%,#fff);background:color-mix(in srgb,var(--a) 12%,rgba(255,255,255,.04));color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 0 16px color-mix(in srgb,var(--glow) 30%,transparent)">${label}</button>`;
  }else{
   moreBar.style.display="none";
   moreBar.innerHTML="";
@@ -2401,11 +2406,13 @@ async function searchLocal(q, page){
   const raw=Array.isArray(data)?data:(data.items||[]);
   const list=raw.map(mapSearchItem).filter(s=>s.id);
   const vidCount=list.filter(s=>s.type==="video"||!s.type).length;
-  const hasMore=Array.isArray(data)?(vidCount>=10):!!(data.hasMore||vidCount>=10);
+  // Normal search: always keep Show More until an empty page comes back
+  const hasMore=true;
   if(!list.length&&page===1){
    state._searchMore=null;
    $("#trackHeading").textContent="No results";
    toast("No results for "+q);
+   renderCards([]);
    return;
   }
   if(!list.length&&page>1){
@@ -2419,7 +2426,7 @@ async function searchLocal(q, page){
   if(page===1){
    state.queue=videos.length?videos:[];
    state.songs=list;
-   state._searchMore={q,page:1,hasMore};
+   state._searchMore={q,page:1,hasMore:true};
    renderCards(list);
    $("#trackHeading").textContent="Search · "+list.length+" results";
    saveSearchHistory(q);
@@ -2427,14 +2434,20 @@ async function searchLocal(q, page){
   }else{
    const seen=new Set((state.songs||[]).map(s=>s.id));
    const fresh=list.filter(s=>s.id&&!seen.has(s.id));
+   if(!fresh.length){
+    if(state._searchMore) state._searchMore.hasMore=false;
+    renderCards(state.songs||[]);
+    toast("No more results");
+    return;
+   }
    state.songs=[...(state.songs||[]),...fresh];
    const vSeen=new Set((state.queue||[]).map(s=>s.id));
    const freshV=fresh.filter(s=>(s.type==="video"||!s.type)&&!vSeen.has(s.id));
    state.queue=[...(state.queue||[]),...freshV];
-   state._searchMore={q,page,hasMore:!!hasMore&&fresh.length>0};
+   state._searchMore={q,page,hasMore:true};
    renderCards(state.songs);
    $("#trackHeading").textContent="Search · "+state.songs.length+" results";
-   toast(fresh.length?("+"+fresh.length+" more"):"No more results");
+   toast("+"+fresh.length+" more");
   }
  }catch(e){
   if(req!==_searchReq)return;
@@ -2656,7 +2669,7 @@ async function loadPlaylist(listId, page){
    mood:"Playlist",
    thumb:v.id?("https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg"):(v.thumbnail||"")
   })).filter(s=>s.id);
-  if(!list.length&&page===1){toast("Playlist empty");state._playlistMore=null;$("#trackHeading").textContent="Playlist empty";return}
+  if(!list.length&&page===1){toast("Playlist empty");state._playlistMore=null;$("#trackHeading").textContent="Playlist empty";renderCards([]);return}
   if(!list.length&&page>1){
    if(state._playlistMore) state._playlistMore.hasMore=false;
    renderCards(state.songs||[]);
@@ -2664,22 +2677,29 @@ async function loadPlaylist(listId, page){
    return;
   }
   state.fromDiscovery=false;
-  const hasMore=!!data.hasMore;
+  // Keep Show More until a page returns no new songs (all playlist tracks loaded)
+  const apiMore=data.hasMore!==false; // default true unless API explicitly says false
   if(page===1){
    state.queue=list;state.songs=list;state.currentIndex=0;
-   state._playlistMore={listId,page:1,hasMore,title:data.title||"Playlist"};
+   state._playlistMore={listId,page:1,hasMore:!!(apiMore||list.length>=8),title:data.title||"Playlist"};
    playSong(0);renderCards(list);
    $("#trackHeading").textContent="♫ "+(data.title||"Playlist");
    toast("Playlist · "+list.length+" songs");
   }else{
    const existing=new Set((state.songs||[]).map(s=>s.id));
    const extra=list.filter(s=>!existing.has(s.id));
+   if(!extra.length){
+    if(state._playlistMore) state._playlistMore.hasMore=false;
+    renderCards(state.songs||[]);
+    toast("No more results");
+    return;
+   }
    state.songs=[...(state.songs||[]),...extra];
    state.queue=[...(state.queue||[]),...extra];
-   state._playlistMore={listId,page,hasMore:hasMore&&extra.length>0,title:(state._playlistMore&&state._playlistMore.title)||data.title||"Playlist"};
+   state._playlistMore={listId,page,hasMore:!!(apiMore||extra.length>=5),title:(state._playlistMore&&state._playlistMore.title)||data.title||"Playlist"};
    renderCards(state.songs);
    $("#trackHeading").textContent="♫ "+(state._playlistMore.title||"Playlist");
-   toast(extra.length?("+"+extra.length+" more"):"No more results");
+   toast("+"+extra.length+" more");
   }
  }catch(e){console.warn("loadPlaylist",e);toast(e.name==="TimeoutError"?"Playlist timeout — try again":"Playlist load failed");if(page===1)$("#trackHeading").textContent="Playlist failed"}
 }
@@ -2702,7 +2722,7 @@ async function loadChannel(channelId,channelName,page){
   const list=(data.videos||[]).map(v=>({
    id:v.id,title:v.title,artist:v.author,mood:"Channel",thumb:v.id?("https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg"):(v.thumbnail||"")
   })).filter(s=>s.id);
-  if(!list.length&&page===1){toast("No channel videos found");state._channelMore=null;$("#trackHeading").textContent="No videos";return}
+  if(!list.length&&page===1){toast("No channel videos found");state._channelMore=null;$("#trackHeading").textContent="No videos";renderCards([]);return}
   if(!list.length&&page>1){
    if(state._channelMore) state._channelMore.hasMore=false;
    renderCards(state.songs||[]);
@@ -2710,38 +2730,71 @@ async function loadChannel(channelId,channelName,page){
    return;
   }
   state.fromDiscovery=false;
+  // Keep Show More until empty/duplicate page (all channel videos loaded)
+  const apiMore=data.hasMore!==false;
   if(page===1){
    state.queue=list;state.songs=list;state.currentIndex=0;
-   state._channelMore={id:channelId,name:channelName,page:1,hasMore:!!data.hasMore};
+   state._channelMore={id:channelId,name:channelName,page:1,hasMore:!!(apiMore||list.length>=8)};
    if(list.length) playSong(0);
   }else{
    const existing=new Set((state.songs||[]).map(s=>s.id));
    const extra=list.filter(s=>!existing.has(s.id));
+   if(!extra.length){
+    if(state._channelMore) state._channelMore.hasMore=false;
+    renderCards(state.songs||[]);
+    toast("No more results");
+    return;
+   }
    state.songs=[...(state.songs||[]),...extra];
    state.queue=[...(state.queue||[]),...extra];
-   state._channelMore={id:channelId,name:channelName,page,hasMore:!!data.hasMore&&extra.length>0};
+   state._channelMore={id:channelId,name:channelName,page,hasMore:!!(apiMore||extra.length>=5)};
   }
   renderCards(state.songs);
   $("#trackHeading").textContent="📢 "+(data.title||channelName||"Channel");
-  toast(page>1?(list.length?("+"+list.length+" more"):"No more results"):("Channel · "+list.length+" videos"));
+  toast(page>1?("+"+list.length+" more"):("Channel · "+list.length+" videos"));
  }catch(e){console.warn("loadChannel",e);toast("Channel load failed");if(page===1)$("#trackHeading").textContent="Channel failed"}
 }
 async function loadMoreResults(){
  if(state._loadingMore) return false;
- if(state._searchMore&&state._searchMore.hasMore){
+ // Prefer active source: search / playlist / channel
+ if(state._searchMore&&state._searchMore.hasMore!==false&&state._searchMore.q){
   state._loadingMore=true;
-  try{await searchLocal(state._searchMore.q,(state._searchMore.page||1)+1)}finally{state._loadingMore=false}
-  return !!(state._searchMore&&state._searchMore.hasMore===false?false:true);
+  try{
+   const btn=$("#showMoreBtn");
+   if(btn){btn.textContent="Loading…";btn.disabled=true}
+   await searchLocal(state._searchMore.q,(state._searchMore.page||1)+1);
+  }finally{
+   state._loadingMore=false;
+   const btn=$("#showMoreBtn");
+   if(btn){btn.disabled=false}
+  }
+  return !!(state._searchMore&&state._searchMore.hasMore!==false);
  }
  if(state._playlistMore&&state._playlistMore.hasMore){
   state._loadingMore=true;
-  try{await loadPlaylist(state._playlistMore.listId,(state._playlistMore.page||1)+1)}finally{state._loadingMore=false}
-  return true;
+  try{
+   const btn=$("#showMoreBtn");
+   if(btn){btn.textContent="Loading…";btn.disabled=true}
+   await loadPlaylist(state._playlistMore.listId,(state._playlistMore.page||1)+1);
+  }finally{
+   state._loadingMore=false;
+   const btn=$("#showMoreBtn");
+   if(btn){btn.disabled=false}
+  }
+  return !!(state._playlistMore&&state._playlistMore.hasMore);
  }
  if(state._channelMore&&state._channelMore.hasMore){
   state._loadingMore=true;
-  try{await loadChannel(state._channelMore.id,state._channelMore.name,(state._channelMore.page||1)+1)}finally{state._loadingMore=false}
-  return true;
+  try{
+   const btn=$("#showMoreBtn");
+   if(btn){btn.textContent="Loading…";btn.disabled=true}
+   await loadChannel(state._channelMore.id,state._channelMore.name,(state._channelMore.page||1)+1);
+  }finally{
+   state._loadingMore=false;
+   const btn=$("#showMoreBtn");
+   if(btn){btn.disabled=false}
+  }
+  return !!(state._channelMore&&state._channelMore.hasMore);
  }
  return false;
 }
@@ -3806,7 +3859,7 @@ function init(){
     id:v.id||v.videoId,title:v.title||"Unknown",artist:v.author||"Unknown",mood:"Trending",
     thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
    })).filter(s=>s.id);
-   if(list.length&&_searchReq===0){state.fromDiscovery=true;state.queue=list;state.songs=list;state._searchMore={q:"trending bollywood hits",page:1,hasMore:!!data.hasMore};renderCards(list);$("#trackHeading").textContent="🔥 Trending Now"}
+   if(list.length&&_searchReq===0){state.fromDiscovery=true;state.queue=list;state.songs=list;state._searchMore={q:"trending bollywood hits",page:1,hasMore:true};renderCards(list);$("#trackHeading").textContent="🔥 Trending Now"}
   }).catch(()=>{});
 }
 init();
@@ -3887,8 +3940,11 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong};
   }
   if(!out.length){A.toast("No songs found — try another style");showNew();return}
   const st=A.state;
-  st.fromDiscovery=true;st._searchMore=null;st._playlistMore=null;st._channelMore=null;
+  st.fromDiscovery=true;st._playlistMore=null;st._channelMore=null;
   st.songs=out;
+  st.queue=out.slice();
+  // Enable Show More for genre (search-style pagination)
+  st._searchMore={q:(g.q+" songs").trim(),page:1,hasMore:true};
   A.renderCards(out);
   if(h)h.textContent="✨ "+g.n+" · New & Trending";
   const back=$("#genreBack");if(back)back.style.display="inline-flex";
