@@ -455,81 +455,38 @@ body:has(.immersive-player.open) .rightcol{
   -webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;
 }
 
-/* Lyrics column — glass fade top/bottom + more space from art */
+/* Lyrics — Apple style: blur by distance from active line (not top/bottom bands) */
 .lyrics-column{
-  max-width:580px;max-height:min(70dvh,620px);overflow:auto;align-self:center;
-  padding:10vh 12px 10vh 0;scrollbar-width:none;scroll-behavior:smooth;
-  /* Apple-like soft glass blur fade top & bottom */
-  mask-image:linear-gradient(to bottom,
-    transparent 0%,
-    rgba(0,0,0,.35) 6%,
-    #000 16%,
-    #000 84%,
-    rgba(0,0,0,.35) 94%,
-    transparent 100%);
-  -webkit-mask-image:linear-gradient(to bottom,
-    transparent 0%,
-    rgba(0,0,0,.35) 6%,
-    #000 16%,
-    #000 84%,
-    rgba(0,0,0,.35) 94%,
-    transparent 100%);
+  max-width:580px;max-height:min(72dvh,640px);overflow:auto;align-self:center;
+  padding:12vh 12px 12vh 0;scrollbar-width:none;scroll-behavior:smooth;
+  mask-image:linear-gradient(to bottom,transparent 0%,#000 7%,#000 93%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 7%,#000 93%,transparent 100%);
   overscroll-behavior:contain;
-  margin:0;
-  position:relative;
+  margin:0;position:relative;
 }
-/* soft glass glow strips top & bottom of lyrics */
 .lyrics-column::before,
-.lyrics-column::after{
-  content:"";position:sticky;left:0;right:0;display:block;height:48px;
-  pointer-events:none;z-index:2;margin:0;
-}
-.lyrics-column::before{
-  top:0;margin-bottom:-48px;
-  background:linear-gradient(to bottom,rgba(255,255,255,.06),transparent);
-  filter:blur(1px);
-}
-.lyrics-column::after{
-  bottom:0;margin-top:-48px;
-  background:linear-gradient(to top,rgba(255,255,255,.05),transparent);
-  filter:blur(1px);
-}
+.lyrics-column::after{content:none!important;display:none!important}
 .lyrics-column::-webkit-scrollbar{display:none}
-/* Apple Music depth-of-field lyrics */
 .lyrics-column .lyric{
-  font-size:clamp(22px,2.4vw,32px);line-height:1.4;font-weight:700;
-  color:rgba(255,255,255,.5);margin:0 0 22px;letter-spacing:-.35px;
-  opacity:.35;
-  filter:blur(3.5px);
-  transform:scale(.98);
+  font-size:clamp(22px,2.4vw,32px);line-height:1.45;font-weight:700;
+  color:rgba(255,255,255,.55);margin:0 0 20px;letter-spacing:-.3px;
+  opacity:.4;filter:blur(2.8px);
   transform-origin:left center;
-  transition:
-    color .45s ease,
-    opacity .45s ease,
-    filter .5s ease,
-    text-shadow .45s ease,
-    transform .45s cubic-bezier(.22,.8,.36,1);
-  will-change:filter,opacity,transform;
-  cursor:pointer;
+  transition:color .4s ease,opacity .4s ease,filter .45s ease;
+  will-change:filter,opacity;cursor:pointer;
+  background:transparent!important;box-shadow:none!important;
 }
-/* distance from active line (data-d) */
-.lyrics-column .lyric[data-d="3"]{opacity:.22;filter:blur(4px)}
-.lyrics-column .lyric[data-d="2"]{opacity:.32;filter:blur(2.6px);color:rgba(255,255,255,.42)}
-.lyrics-column .lyric[data-d="1"]{
-  opacity:.55;filter:blur(1.1px);color:rgba(255,255,255,.72);
-  transform:scale(.99);
-}
+/* closer to active = sharper; farther = softer (like Apple) */
+.lyrics-column .lyric[data-d="3"]{opacity:.28;filter:blur(3px);color:rgba(255,255,255,.38)}
+.lyrics-column .lyric[data-d="2"]{opacity:.45;filter:blur(1.6px);color:rgba(255,255,255,.55)}
+.lyrics-column .lyric[data-d="1"]{opacity:.75;filter:blur(0.55px);color:rgba(255,255,255,.88)}
 .lyrics-column .lyric[data-d="0"],
 .lyrics-column .lyric.active{
-  color:#fff;opacity:1;
-  filter:blur(0)!important;
-  transform:scale(1.02);
-  text-shadow:
-    0 0 24px rgba(255,255,255,.22),
-    0 2px 12px rgba(0,0,0,.3);
+  color:#fff;opacity:1;filter:blur(0)!important;
+  text-shadow:0 1px 8px rgba(0,0,0,.25);
 }
 
-/* ---------- Pure Lyrics mode — same Apple depth blur ---------- */
+/* Pure Lyrics mode — same distance blur */
 .lyrics-layout.only-lyrics-mode{
   display:flex!important;align-items:center;justify-content:center;
   min-height:100%;height:100%;
@@ -539,23 +496,18 @@ body:has(.immersive-player.open) .rightcol{
 .only-lyrics-mode .lyrics-album{display:none!important}
 .only-lyrics-mode .lyrics-column{
   width:min(860px,100%);max-width:860px;max-height:84dvh;align-self:center;
-  padding:18vh 16px 18vh;
-  mask-image:linear-gradient(to bottom,transparent 0%,#000 10%,#000 90%,transparent 100%);
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 10%,#000 90%,transparent 100%);
+  padding:16vh 16px 16vh;
+  mask-image:linear-gradient(to bottom,transparent 0%,#000 7%,#000 93%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 7%,#000 93%,transparent 100%);
 }
 .only-lyrics-mode .lyric{
-  font-size:clamp(24px,3.8vw,44px)!important;line-height:1.35!important;
-  margin:0 0 26px!important;text-align:center;
-  font-weight:700;
+  font-size:clamp(24px,3.8vw,42px)!important;line-height:1.4!important;
+  margin:0 0 24px!important;text-align:center;font-weight:700;
   transform-origin:center center!important;
 }
 .only-lyrics-mode .lyric[data-d="0"],
 .only-lyrics-mode .lyric.active{
-  transform:scale(1.04)!important;
-  text-shadow:
-    0 0 32px rgba(255,255,255,.3),
-    0 0 60px rgba(255,255,255,.1),
-    0 2px 12px rgba(0,0,0,.35)!important;
+  text-shadow:0 1px 10px rgba(0,0,0,.3)!important;
 }
 
 /* ---------- Classic / Minimal layout — matched to Apple Music ---------- */
