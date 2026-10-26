@@ -311,9 +311,10 @@ body:has(.immersive-player.open) .player{display:none!important}
 
 /* ---------- Lyrics View (left art + controls) — same sizes as Classic, left-aligned ---------- */
 .lyrics-layout{
-  min-height:100dvh;display:grid;
+  min-height:100dvh;height:100dvh;display:grid;
   grid-template-columns:minmax(360px,460px) minmax(280px,1fr);
-  gap:clamp(40px,7vw,100px);padding:48px clamp(20px,7vw,100px) 40px;align-items:center;
+  gap:clamp(40px,7vw,100px);padding:0 clamp(20px,7vw,100px);
+  align-items:center;align-content:center;box-sizing:border-box;
 }
 .lyrics-album{
   max-width:420px;width:100%;align-self:center;
@@ -437,7 +438,9 @@ body:has(.immersive-player.open) .player{display:none!important}
 /* ---------- Pure Lyrics mode — glossy finish ---------- */
 .lyrics-layout.only-lyrics-mode{
   display:flex!important;align-items:center;justify-content:center;
-  padding:8vh 10vw 100px!important;background:transparent!important;
+  min-height:100dvh;height:100dvh;
+  padding:0 10vw!important;background:transparent!important;
+  box-sizing:border-box;
 }
 .only-lyrics-mode .lyrics-album{display:none!important}
 .only-lyrics-mode .lyrics-column{
@@ -466,8 +469,9 @@ body:has(.immersive-player.open) .player{display:none!important}
 
 /* ---------- Classic / Minimal layout — matched to Apple Music ---------- */
 .minimal-layout{
-  min-height:100dvh;height:100%;padding:64px 24px 40px;
+  min-height:100dvh;height:100dvh;padding:0 24px;
   display:none;align-items:center;justify-content:center;background:transparent;
+  box-sizing:border-box;
 }
 .minimal-content{
   position:relative;width:min(440px,88vw);padding:0;text-align:center;
@@ -1371,31 +1375,29 @@ body.view-new .section .section-head{margin-top:14px}
   --collapse:0;
 }
 .artist-hero.open{display:block}
-/* Premium glass blur — glowing, more transparent, continuous under results */
+/* Artist color wash — fixed full page so results share same colors (no box) */
 .artist-hero-bg{
-  position:absolute;left:50%;top:-60px;z-index:0;
-  width:170%;height:calc(100% + 480px);
-  transform:translateX(-50%) scale(1.25);
+  position:fixed;left:var(--side-w,260px);right:0;top:0;bottom:0;z-index:0;
+  width:auto;height:auto;
+  transform:none;
   background:#121216 center/cover no-repeat;
-  filter:blur(90px) saturate(1.75) brightness(.78);
-  opacity:calc(0.95 - var(--collapse) * .2);
+  filter:blur(100px) saturate(1.8) brightness(.8);
+  opacity:.95;
   pointer-events:none;
   will-change:opacity,filter;
 }
 .artist-hero-bg::after{
   content:"";position:absolute;inset:0;
   background:
-    linear-gradient(180deg,rgba(0,0,0,.02) 0%,rgba(0,0,0,.08) 30%,rgba(0,0,0,.35) 65%,rgba(0,0,0,.72) 100%),
-    linear-gradient(90deg,rgba(0,0,0,.15),transparent 22%,transparent 78%,rgba(0,0,0,.15));
+    linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.12) 25%,rgba(0,0,0,.28) 55%,rgba(0,0,0,.55) 100%),
+    linear-gradient(90deg,rgba(0,0,0,.12),transparent 18%,transparent 82%,rgba(0,0,0,.12));
 }
 .artist-hero-shade{
   position:absolute;inset:0;z-index:1;pointer-events:none;
   background:
-    radial-gradient(ellipse 90% 60% at 50% 28%,rgba(255,255,255,.18),transparent 70%),
-    radial-gradient(ellipse 50% 40% at 50% 50%,rgba(255,255,255,.06),transparent 60%),
-    linear-gradient(180deg,rgba(255,255,255,.08),transparent 55%);
-  opacity:calc(1 - var(--collapse) * .75);
-  mix-blend-mode:soft-light;
+    radial-gradient(ellipse 90% 55% at 50% 30%,rgba(255,255,255,.14),transparent 70%),
+    linear-gradient(180deg,rgba(255,255,255,.05),transparent 55%);
+  opacity:calc(1 - var(--collapse) * .7);
 }
 .artist-back{
   position:absolute;top:14px;left:14px;z-index:6;
@@ -1452,45 +1454,8 @@ body.view-new .section .section-head{margin-top:14px}
 .artist-actions .btn{
   min-width:120px;padding:11px 22px;font-size:14px;font-weight:700;
 }
-/* Sticky glass bar — premium glowing frosted glass */
-.artist-sticky{
-  position:sticky;top:var(--head-h,64px);z-index:8;
-  display:flex;align-items:center;gap:12px;
-  height:0;opacity:0;overflow:hidden;pointer-events:none;
-  margin:0 -4px;padding:0 12px;
-  border-radius:18px;
-  background:rgba(255,255,255,.07);
-  border:1px solid transparent;
-  backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2);
-  box-shadow:none;
-  transition:opacity .28s ease,height .28s ease,padding .28s ease,border-color .28s,box-shadow .28s,background .28s;
-}
-.artist-hero.scrolled .artist-sticky{
-  height:56px;opacity:1;pointer-events:auto;
-  padding:0 14px;
-  border-color:rgba(255,255,255,.18);
-  background:rgba(255,255,255,.12);
-  box-shadow:
-    0 12px 40px rgba(0,0,0,.35),
-    0 0 40px rgba(255,255,255,.06),
-    inset 0 1px 0 rgba(255,255,255,.28),
-    inset 0 -1px 0 rgba(0,0,0,.15);
-}
-.artist-sticky-art{
-  width:36px;height:36px;border-radius:50%;flex-shrink:0;
-  background:#2a2a2e center/cover no-repeat;
-  box-shadow:0 2px 10px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.15);
-}
-.artist-sticky-name{
-  flex:1;min-width:0;font-size:15px;font-weight:700;color:#fff;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.2px;
-}
-.artist-sticky-play{
-  width:34px;height:34px;border-radius:50%;flex-shrink:0;
-  background:#fff;color:#000;font-size:13px;border:0;cursor:pointer;
-  display:grid;place-items:center;box-shadow:0 2px 12px rgba(0,0,0,.25);
-}
-.artist-sticky-play:active{transform:scale(.94)}
+/* Sticky artist bar — disabled (user request: remove panel) */
+.artist-sticky{display:none!important;height:0!important;opacity:0!important;pointer-events:none!important}
 /* Similar artists row */
 .similar-artists{
   grid-column:1/-1;width:100%;margin:8px 0 12px;padding:0;
@@ -1525,30 +1490,36 @@ body.view-new .section .section-head{margin-top:14px}
 .similar-card small{
   display:block;font-size:11px;color:var(--muted);margin-top:2px;
 }
-/* One continuous page — hero + results share same surface (no panel gap) */
+/* One continuous page — no boxed panel, no sticky bar */
 body.view-artist .hero,
 body.view-artist .mood-row,
 body.view-artist .sh-moods{display:none!important}
 body.view-artist .artist-hero{display:block}
+body.view-artist .page-title{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+/* Topbar icons stay sharp (never blurred by artist effects) */
+body.view-artist .topbar{
+  position:relative;z-index:40!important;
+  isolation:isolate;
+}
+body.view-artist .topbar .icon-btn,
+body.view-artist .topbar .avatar{
+  position:relative;z-index:41;
+  filter:none!important;
+  opacity:1!important;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+}
 body.view-artist .section .section-head{margin-top:2px}
 body.view-artist .center{
   position:relative;
   background:transparent;
+  /* no frosted box overlay */
 }
-/* Soft ambient wash under results — glowing glass family */
-body.view-artist .center::before{
-  content:"";position:fixed;left:var(--side-w,260px);right:0;top:var(--head-h,64px);bottom:0;
-  z-index:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 110% 50% at 50% 0%,rgba(255,255,255,.08),transparent 55%),
-    radial-gradient(ellipse 100% 45% at 50% 0%,rgba(60,60,70,.35),transparent 65%),
-    linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.35) 40%,rgba(0,0,0,.82) 100%);
-  opacity:.97;
-}
+body.view-artist .center::before{display:none!important;content:none!important}
 body.view-artist .center > *{position:relative;z-index:1}
+body.view-artist .topbar{z-index:40!important}
 body.view-artist .section{
   background:transparent!important;border:0!important;box-shadow:none!important;
-  margin-top:-12px;padding-top:8px;
+  margin-top:-8px;padding-top:8px;
 }
 body.view-artist .section .section-head,
 body.view-artist .cards{
@@ -1560,12 +1531,9 @@ body.view-artist .cards{
   .artist-avatar{width:min(140px,40vw)}
   .artist-meta h1{font-size:clamp(24px,7vw,34px)}
   .artist-back{top:10px;left:10px}
-  .artist-hero-bg{filter:blur(56px) saturate(1.4) brightness(.75)}
-  .artist-sticky{top:0;margin:0 -4px}
-  .artist-hero.scrolled .artist-sticky{height:52px}
+  .artist-hero-bg{filter:blur(56px) saturate(1.55) brightness(.78)}
   .similar-card{flex-basis:100px;width:100px}
   .similar-card .sim-art{width:84px;height:84px}
-  body.view-artist .center::before{left:0}
 }
 
 </style>
@@ -3277,10 +3245,10 @@ function updateArtistScroll(){
   const el=$("#artistHero");
   if(!el||!document.body.classList.contains("view-artist")) return;
   const y=window.scrollY||document.documentElement.scrollTop||0;
-  /* ~220px scroll fully collapses hero into glass sticky bar */
-  const progress=Math.max(0,Math.min(1,y/220));
+  /* soft fade of hero content while scrolling (no sticky panel) */
+  const progress=Math.max(0,Math.min(1,y/260));
   el.style.setProperty("--collapse",String(progress));
-  if(progress>0.5) el.classList.add("scrolled");
+  if(progress>0.65) el.classList.add("scrolled");
   else el.classList.remove("scrolled");
 }
 /* Bind once — Apple Music style scroll collapse on artist page */
@@ -3627,6 +3595,7 @@ function bind(){
      if(m) thumb=m[1];
    }catch(e){}
    if(!thumb) thumb=card.dataset.thumb||"";
+   try{if(typeof pushNav==="function") pushNav()}catch(e){}
    loadChannel(id,card.dataset.name||"",1,{name:card.dataset.name||"",thumb});
    return;
   }
@@ -4753,14 +4722,38 @@ function bind(){
     finally{state._keepArtistView=false}
   })();
  });
- // Artist page controls
+ // Artist page controls — one clean back step (never re-open same artist)
  $("#artistBack")?.addEventListener("click",()=>{
   try{hideArtistHero()}catch(e){}
-  if(typeof goBackOneStep==="function"&&goBackOneStep()) return;
-  // fallback: restore browse cache or home
-  if(state.restoreBrowseCache&&state.restoreBrowseCache()) return;
-  state.songs=[...CATALOG];renderCards(CATALOG);
-  $("#trackHeading").textContent="🔥 Trending Now";
+  state._channelMore=null;
+  // Prefer nav stack (previous search / home / etc.)
+  if(state.navStack&&state.navStack.length){
+   const snap=state.navStack.pop();
+   try{
+    state.navType=snap.type||"home";
+    state._searchMore=snap.searchMore||null;
+    state._playlistMore=snap.playlistMore||null;
+    state._channelMore=null; // never restore channel on explicit artist back
+    state._libraryView=!!snap.library;
+    if(snap.library){ showLibraryView(true); }
+    else{
+     state._libraryView=false;
+     state.songs=snap.songs&&snap.songs.length?snap.songs:[...CATALOG];
+     renderCards(state.songs);
+     if($("#trackHeading")) $("#trackHeading").textContent=snap.heading||"🔥 Trending Now";
+     if(snap.searchQ&&$("#search")) $("#search").value=snap.searchQ;
+    }
+   }catch(err){}
+   window.scrollTo({top:0,behavior:"smooth"});
+   return;
+  }
+  // Fallback: home trending (do not restoreBrowseCache — it reopens channel)
+  state.songs=[...CATALOG];
+  state.queue=[...CATALOG];
+  renderCards(CATALOG);
+  if($("#trackHeading")) $("#trackHeading").textContent="🔥 Trending Now";
+  state.navType="home";
+  window.scrollTo({top:0,behavior:"smooth"});
  });
  $("#artistPlay")?.addEventListener("click",()=>{
   if(state.queue&&state.queue.length){state.shuffle=false;playSong(state.currentIndex>=0?state.currentIndex:0)}
