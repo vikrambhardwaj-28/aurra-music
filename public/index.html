@@ -2579,7 +2579,7 @@ async function searchLocal(q, page){
   state.fromDiscovery=true;
   const videos=list.filter(s=>s.type==="video"||!s.type);
   if(page===1){
-   try{hideArtistHero()}catch(e){}
+   if(!state._keepArtistView){try{hideArtistHero()}catch(e){}}
    state.queue=videos.length?videos:[];
    state.songs=list;
    state._searchMore={q,page:1,hasMore:true};
@@ -2872,15 +2872,115 @@ function hiResThumb(url){
   if(!url) return "";
   try{
     let u=String(url);
-    // YouTube defaults → higher res
-    u=u.replace(/\/=s\d+([\-\/]|$)/,"/=s800$1")
+    u=u.replace(/\/\=s\d+([\-\/]|$)/,"/=s800$1")
        .replace(/\/s\d+\-/,"/s800-")
        .replace(/=w\d+-h\d+/,"=s800")
        .replace(/hqdefault/g,"maxresdefault")
        .replace(/mqdefault/g,"hqdefault")
        .replace(/sddefault/g,"hqdefault");
+    // Deezer size upgrade
+    u=u.replace(/\/\d+x\d+-/,"/1000x1000-");
     return u;
   }catch(e){return url}
+}
+function cleanArtistQuery(name){
+  return String(name||"")
+    .replace(/\s*-\s*Topic$/i,"")
+    .replace(/\s*VEVO$/i,"")
+    .replace(/\s*Official$/i,"")
+    .replace(/\s*Channel$/i,"")
+    .replace(/\s*Music$/i,"")
+    .replace(/[|•·].*$/,"")
+    .replace(/\s+/g," ")
+    .trim();
+}
+// Clear professional artist photo via Deezer / iTunes (no API key)
+async function fetchClearArtistImage(artistName){
+  const q=cleanArtistQuery(artistName);
+  if(!q||q.length<2) return null;
+  const cacheKey="auraArtImg:"+q.toLowerCase();
+  try{
+    const cached=sessionStorage.getItem(cacheKey);
+    if(cached) return cached;
+  }catch(e){}
+  // 1) Deezer — picture_xl is sharp 1000px artist photo
+  try{
+    const res=await fetch("https://api.deezer.com/search/artist?q="+encodeURIComponent(q)+"&limit=5",{signal:AbortSignal.timeout(8000)});
+    if(res&&res.ok){
+      const data=await res.json();
+      const items=(data&&data.data)||[];
+      const ql=q.toLowerCase();
+      let best=items.find(a=>{
+        const n=(a.name||"").toLowerCase();
+        return n===ql||n.includes(ql)||ql.includes(n);
+      })||items[0];
+      if(best){
+        const img=best.picture_xl||best.picture_big||best.picture_medium||"";
+        if(img){
+          try{sessionStorage.setItem(cacheKey,img)}catch(e){}
+          return img;
+        }
+      }
+    }
+  }catch(e){}
+  // 2) iTunes Search — artworkUrl
+  try{
+    const res=await fetch("https://itunes.apple.com/search?term="+encodeURIComponent(q)+"&entity=musicArtist&limit=5",{signal:AbortSignal.timeout(8000)});
+    if(res&&res.ok){
+      const data=await res.json();
+      const items=(data&&data.results)||[];
+      const artist=items.find(a=>(a.artistName||"").toLowerCase().includes(q.toLowerCase().slice(0,8)))||items[0];
+      if(artist&&artist.artistId){
+        const res2=await fetch("https://itunes.apple.com/lookup?id="+artist.artistId+"&entity=album&limit=1",{signal:AbortSignal.timeout(6000)});
+        if(res2&&res2.ok){
+          const d2=await res2.json();
+          const art=(d2.results||[]).find(x=>x.artworkUrl100||x.artworkUrl60);
+          if(art){
+            const img=(art.artworkUrl100||art.artworkUrl60||"").replace(/100x100bb|60x60bb/,"1000x1000bb");
+            if(img){
+              try{sessionStorage.setItem(cacheKey,img)}catch(e){}
+              return img;
+            }
+          }
+        }
+      }
+    }
+  }catch(e){}
+  return null;
+}
+async function fetchDeezerArtist(artistName){
+  const q=cleanArtistQuery(artistName);
+  if(!q) return null;
+  try{
+    const res=await fetch("https://api.deezer.com/search/artist?q="+encodeURIComponent(q)+"&limit=5",{signal:AbortSignal.timeout(8000)});
+    if(!res||!res.ok) return null;
+    const data=await res.json();
+    const items=(data&&data.data)||[];
+    if(!items.length) return null;
+    const ql=q.toLowerCase();
+    return items.find(a=>{
+      const n=(a.name||"").toLowerCase();
+      return n===ql||n.includes(ql)||ql.includes(n);
+    })||items[0];
+  }catch(e){return null}
+}
+function applyArtistPhoto(thumb){
+  if(!thumb) return;
+  const bg=$("#artistHeroBg");
+  const av=$("#artistAvatar");
+  const t=hiResThumb(thumb)||thumb;
+  if(bg){
+    bg.style.backgroundImage=`url("${t}")`;
+    bg.style.backgroundSize="cover";
+    bg.style.backgroundPosition="center center";
+  }
+  if(av){
+    av.style.backgroundImage=`url("${t}")`;
+    av.style.backgroundSize="cover";
+    av.style.backgroundPosition="center center";
+    av.textContent="";
+  }
+  if(state.artistView) state.artistView.thumb=t;
 }
 function showArtistHero(info){
   info=info||{};
@@ -2907,7 +3007,6 @@ function showArtistHero(info){
   }
   if(av){
     if(thumb){
-      // Clear sharp avatar — separate from blurred bg
       av.style.backgroundImage=`url("${thumb}")`;
       av.style.backgroundSize="cover";
       av.style.backgroundPosition="center center";
@@ -2920,6 +3019,13 @@ function showArtistHero(info){
   el.hidden=false;el.classList.add("open");el.setAttribute("aria-hidden","false");
   document.body.classList.add("view-artist");
   state.artistView={name,thumb,id:info.id||""};
+  // Upgrade to crystal-clear professional photo (Deezer / iTunes)
+  const reqName=name;
+  fetchClearArtistImage(name).then(img=>{
+    if(!img) return;
+    if(!state.artistView||state.artistView.name!==reqName) return;
+    applyArtistPhoto(img);
+  }).catch(()=>{});
 }
 function hideArtistHero(){
   const el=$("#artistHero");
@@ -2933,32 +3039,80 @@ function hideArtistHero(){
 }
 async function loadSimilarArtists(artistName, selfId){
   state.similarArtists=[];
-  if(!artistName) return;
+  const q=cleanArtistQuery(artistName);
+  if(!q) return;
   try{
-    const q=encodeURIComponent((artistName+" similar artists").trim());
-    const res=await fetch("/search?q="+q,{signal:AbortSignal.timeout(12000)});
-    if(!res.ok) return;
-    const data=await res.json();
-    const raw=Array.isArray(data)?data:(data.items||[]);
-    const channels=raw.map(mapSearchItem).filter(s=>s&&s.id&&s.type==="channel"&&s.id!==selfId);
-    // Also accept video authors as pseudo-channels if few channels
-    let list=channels.slice(0,12);
-    if(list.length<4){
-      const seen=new Set(list.map(c=>c.id));
-      const fromVideos=raw.map(mapSearchItem).filter(s=>s&&s.type==="video"&&s.artist);
-      const byArtist={};
-      fromVideos.forEach(s=>{
-        const key=(s.artist||"").toLowerCase().trim();
-        if(!key||key.includes((artistName||"").toLowerCase().slice(0,6))) return;
-        if(!byArtist[key]) byArtist[key]={type:"channel",id:s.artist,title:s.artist,author:s.artist,thumb:s.thumb,name:s.artist};
-      });
-      Object.values(byArtist).forEach(c=>{
-        if(list.length>=10) return;
-        if(!seen.has(c.id)){seen.add(c.id);list.push(c)}
-      });
+    // Primary: Deezer related artists — real artist names + clear photos
+    const dz=await fetchDeezerArtist(q);
+    if(dz&&dz.id){
+      try{
+        const res=await fetch("https://api.deezer.com/artist/"+dz.id+"/related?limit=12",{signal:AbortSignal.timeout(8000)});
+        if(res&&res.ok){
+          const data=await res.json();
+          const items=(data&&data.data)||[];
+          if(items.length){
+            state.similarArtists=items.map(a=>({
+              type:"artist",
+              id:String(a.id),
+              name:a.name,
+              title:a.name,
+              thumb:a.picture_xl||a.picture_big||a.picture_medium||"",
+              fans:a.nb_fan||0
+            })).filter(a=>a.name&&a.name.toLowerCase()!==q.toLowerCase()).slice(0,10);
+            renderSimilarArtists();
+            if(state.similarArtists.length) return;
+          }
+        }
+      }catch(e){}
     }
-    state.similarArtists=list.slice(0,10);
-    renderSimilarArtists();
+    // Fallback: iTunes search related by genre term
+    try{
+      const res=await fetch("https://itunes.apple.com/search?term="+encodeURIComponent(q)+"&entity=musicArtist&limit=15",{signal:AbortSignal.timeout(8000)});
+      if(res&&res.ok){
+        const data=await res.json();
+        const items=((data&&data.results)||[]).filter(a=>{
+          const n=(a.artistName||"").toLowerCase();
+          return n&&n!==q.toLowerCase()&&!n.includes("karaoke");
+        }).slice(0,10);
+        // Fetch artwork per artist (parallel, limited)
+        const withArt=await Promise.all(items.slice(0,8).map(async a=>{
+          let thumb="";
+          try{
+            const r2=await fetch("https://itunes.apple.com/lookup?id="+a.artistId+"&entity=album&limit=1",{signal:AbortSignal.timeout(5000)});
+            if(r2&&r2.ok){
+              const d2=await r2.json();
+              const art=(d2.results||[]).find(x=>x.artworkUrl100);
+              if(art) thumb=(art.artworkUrl100||"").replace("100x100bb","600x600bb");
+            }
+          }catch(e){}
+          if(!thumb) thumb=await fetchClearArtistImage(a.artistName)||"";
+          return {type:"artist",id:String(a.artistId),name:a.artistName,title:a.artistName,thumb};
+        }));
+        state.similarArtists=withArt.filter(a=>a.name);
+        renderSimilarArtists();
+        if(state.similarArtists.length) return;
+      }
+    }catch(e){}
+    // Last fallback: YouTube search but only keep name-like channel results cleaned
+    try{
+      const res=await fetch("/search?q="+encodeURIComponent(q+" similar artists"),{signal:AbortSignal.timeout(10000)});
+      if(!res.ok) return;
+      const data=await res.json();
+      const raw=Array.isArray(data)?data:(data.items||[]);
+      const channels=raw.map(mapSearchItem).filter(s=>s&&s.type==="channel");
+      const cleaned=[];
+      for(const c of channels.slice(0,8)){
+        let name=cleanArtistQuery(c.title||c.author||"");
+        if(!name||name.toLowerCase()===q.toLowerCase()) continue;
+        // skip generic/junk channels
+        if(/\b(vevo|records|label|topic|official video|playlist|songs?)\b/i.test(name)&&name.split(" ").length>4) continue;
+        let thumb=await fetchClearArtistImage(name);
+        if(!thumb) thumb=hiResThumb(c.thumb||"")||c.thumb||"";
+        cleaned.push({type:"artist",id:c.id,name,title:name,thumb});
+      }
+      state.similarArtists=cleaned.slice(0,10);
+      renderSimilarArtists();
+    }catch(e){console.warn("similar artists",e)}
   }catch(e){console.warn("similar artists",e)}
 }
 function renderSimilarArtists(){
@@ -2984,15 +3138,16 @@ function renderSimilarArtists(){
   box.style.display="block";
   box.innerHTML=`<h3>Similar Artists</h3><div class="similar-row">`+
     list.map(a=>{
-      const th=hiResThumb(a.thumb||a.thumbnail||"")||(a.thumb||"");
-      const name=cleanSongTitle(a.title||a.author||a.name||"Artist");
-      return `<button type="button" class="similar-card" data-type="channel" data-id="${escHtml(a.id||"")}" data-name="${escHtml(name)}" data-thumb="${escHtml(th)}">
-        <div class="sim-art" style="background-image:url('${th}')"></div>
+      const th=a.thumb||"";
+      const name=a.name||a.title||"Artist";
+      return `<button type="button" class="similar-card" data-similar-artist="1" data-name="${escHtml(name)}" data-thumb="${escHtml(th)}">
+        <div class="sim-art" style="${th?`background-image:url('${th}')`:""}"></div>
         <b>${escHtml(name)}</b>
         <small>Artist</small>
       </button>`;
     }).join("")+`</div>`;
 }
+
 async function loadChannel(channelId,channelName,page,meta){
  if(!channelId&&!channelName)return;
  page=page||1;
@@ -4238,15 +4393,38 @@ function bind(){
   applyEqPreset(btn.dataset.eq);
  });
  $("#eqReset")?.addEventListener("click",()=>applyEqPreset("flat"));
- // Similar artists click
+ // Similar artists click → YouTube search that artist + artist page
  document.addEventListener("click",e=>{
   const sc=e.target.closest(".similar-card");
   if(!sc) return;
   e.preventDefault();
-  const id=sc.dataset.id||"";
-  const name=sc.dataset.name||"";
+  const name=(sc.dataset.name||"").trim();
   const thumb=sc.dataset.thumb||"";
-  if(id||name) loadChannel(id, name, 1, {name, thumb});
+  if(!name) return;
+  (async()=>{
+    try{
+      state._keepArtistView=true;
+      showArtistHero({name, thumb, sub:"Loading songs…"});
+      fetchClearArtistImage(name).then(img=>{if(img) applyArtistPhoto(img)}).catch(()=>{});
+      state._channelMore=null;state._playlistMore=null;state._searchMore=null;
+      state.navType="search";
+      const inp=$("#search");
+      if(inp){inp.value=name; try{const clr=$("#searchClear");if(clr)clr.classList.add("show")}catch(e){}}
+      toast("Searching "+name+"…");
+      await searchLocal(name+" songs");
+      // Artist page stays open; refresh counts + similar
+      showArtistHero({
+        name,
+        thumb:(state.artistView&&state.artistView.thumb)||thumb,
+        sub:((state.songs||[]).filter(s=>!s.type||s.type==="video").length||(state.songs||[]).length||0)+" songs"
+      });
+      if($("#trackHeading")) $("#trackHeading").textContent="Top Songs";
+      loadSimilarArtists(name, "");
+      try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
+      window.scrollTo({top:0,behavior:"smooth"});
+    }catch(err){console.warn("similar click",err);toast("Could not load artist")}
+    finally{state._keepArtistView=false}
+  })();
  });
  // Artist page controls
  $("#artistBack")?.addEventListener("click",()=>{
