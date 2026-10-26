@@ -1353,67 +1353,80 @@ body.view-new .section .section-head{margin-top:14px}
 
 
 /* ---------- Apple-style Artist / Channel page ---------- */
+/* ============================================================
+   ARTIST PAGE — one continuous surface (no split panels)
+   Scroll down → hero blurs/fades + glass sticky bar
+   Scroll up → full artist header returns
+   ============================================================ */
 .artist-hero{
   position:relative;display:none;isolation:isolate;
-  min-height:clamp(300px,44vw,440px);margin:8px 0 8px;
-  border-radius:20px;overflow:hidden;
-  border:1px solid rgba(255,255,255,.16);
-  box-shadow:0 28px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14);
-  background:rgba(20,20,24,.4);
-  -webkit-backdrop-filter:blur(40px) saturate(1.4);backdrop-filter:blur(40px) saturate(1.4);
+  min-height:clamp(300px,44vw,440px);
+  margin:0;padding:0;
+  border-radius:0;overflow:visible;
+  border:0;box-shadow:none;
+  background:transparent;
+  --collapse:0;
 }
 .artist-hero.open{display:block}
-/* Crystal glassy blurred background image */
+/* Blurred artwork — tall so it continues under results (same surface) */
 .artist-hero-bg{
-  position:absolute;inset:-20px;z-index:0;
+  position:absolute;left:50%;top:-40px;z-index:0;
+  width:160%;height:calc(100% + 420px);
+  transform:translateX(-50%) scale(1.2);
   background:#121216 center/cover no-repeat;
-  transform:scale(1.2);
-  filter:blur(48px) saturate(1.35) brightness(.85);
-  opacity:.95;
+  filter:blur(72px) saturate(1.5) brightness(.72);
+  opacity:calc(1 - var(--collapse) * .25);
+  pointer-events:none;
+  will-change:opacity;
 }
 .artist-hero-bg::after{
   content:"";position:absolute;inset:0;
   background:
-    linear-gradient(180deg,rgba(0,0,0,.08) 0%,rgba(0,0,0,.2) 45%,rgba(0,0,0,.72) 100%),
-    linear-gradient(90deg,rgba(0,0,0,.2),transparent 25%,transparent 75%,rgba(0,0,0,.2));
+    linear-gradient(180deg,rgba(0,0,0,.04) 0%,rgba(0,0,0,.12) 35%,rgba(0,0,0,.45) 70%,rgba(0,0,0,.78) 100%),
+    linear-gradient(90deg,rgba(0,0,0,.2),transparent 18%,transparent 82%,rgba(0,0,0,.2));
 }
 .artist-hero-shade{
   position:absolute;inset:0;z-index:1;pointer-events:none;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 30%,rgba(255,255,255,.12),transparent 60%),
-    linear-gradient(180deg,rgba(255,255,255,.06),transparent 40%);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+    radial-gradient(ellipse 85% 55% at 50% 30%,rgba(255,255,255,.12),transparent 68%),
+    linear-gradient(180deg,rgba(255,255,255,.06),transparent 50%);
+  opacity:calc(1 - var(--collapse) * .85);
 }
 .artist-back{
-  position:absolute;top:14px;left:14px;z-index:5;
+  position:absolute;top:14px;left:14px;z-index:6;
   height:34px;padding:0 14px 0 10px;border-radius:980px;
-  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);
   color:#fff;font-size:13px;font-weight:600;
-  backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
+  backdrop-filter:blur(28px) saturate(1.7);-webkit-backdrop-filter:blur(28px) saturate(1.7);
   display:inline-flex;align-items:center;gap:2px;cursor:pointer;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25);
+  transition:opacity .2s,background .15s;
 }
-.artist-back:hover{background:rgba(255,255,255,.18)}
+.artist-back:hover{background:rgba(255,255,255,.2)}
+/* Hero content collapses with blur as you scroll (Apple Music) */
 .artist-hero-content{
   position:relative;z-index:3;
   min-height:clamp(300px,44vw,440px);
   display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-  text-align:center;padding:48px 24px 28px;gap:14px;
+  text-align:center;padding:52px 24px 36px;gap:14px;
+  transform:translateY(calc(var(--collapse) * -36px)) scale(calc(1 - var(--collapse) * .14));
+  opacity:calc(1 - var(--collapse) * 1.2);
+  filter:blur(calc(var(--collapse) * 10px));
+  transform-origin:center bottom;
+  transition:none;
+  pointer-events:auto;
+  will-change:transform,opacity,filter;
 }
-/* Clear sharp avatar — no blur */
+.artist-hero.scrolled .artist-hero-content{pointer-events:none}
 .artist-avatar{
   width:min(180px,38vw);aspect-ratio:1;border-radius:50%;
   background:#2a2a2e center/cover no-repeat;
   box-shadow:
-    0 16px 48px rgba(0,0,0,.55),
-    0 0 0 4px rgba(255,255,255,.22),
-    0 0 0 6px rgba(0,0,0,.2),
-    0 0 48px color-mix(in srgb,var(--a) 28%,transparent);
+    0 18px 50px rgba(0,0,0,.5),
+    0 0 0 3px rgba(255,255,255,.18),
+    0 0 40px color-mix(in srgb,var(--a) 22%,transparent);
   flex-shrink:0;
   filter:none;
-  image-rendering:auto;
-  -webkit-backface-visibility:hidden;
-  backface-visibility:hidden;
 }
 .artist-meta{max-width:640px;width:100%}
 .artist-badge{
@@ -1434,6 +1447,41 @@ body.view-new .section .section-head{margin-top:14px}
 .artist-actions .btn{
   min-width:120px;padding:11px 22px;font-size:14px;font-weight:700;
 }
+/* Sticky glass bar — frosted transparent glass on scroll */
+.artist-sticky{
+  position:sticky;top:var(--head-h,64px);z-index:8;
+  display:flex;align-items:center;gap:12px;
+  height:0;opacity:0;overflow:hidden;pointer-events:none;
+  margin:0 -4px;padding:0 12px;
+  border-radius:16px;
+  background:rgba(255,255,255,.08);
+  border:1px solid transparent;
+  backdrop-filter:blur(36px) saturate(1.8);-webkit-backdrop-filter:blur(36px) saturate(1.8);
+  box-shadow:none;
+  transition:opacity .25s ease,height .25s ease,padding .25s ease,border-color .25s,box-shadow .25s,background .25s;
+}
+.artist-hero.scrolled .artist-sticky{
+  height:56px;opacity:1;pointer-events:auto;
+  padding:0 14px;
+  border-color:rgba(255,255,255,.14);
+  background:rgba(255,255,255,.1);
+  box-shadow:0 10px 36px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.18);
+}
+.artist-sticky-art{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  background:#2a2a2e center/cover no-repeat;
+  box-shadow:0 2px 10px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.15);
+}
+.artist-sticky-name{
+  flex:1;min-width:0;font-size:15px;font-weight:700;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.2px;
+}
+.artist-sticky-play{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  background:#fff;color:#000;font-size:13px;border:0;cursor:pointer;
+  display:grid;place-items:center;box-shadow:0 2px 12px rgba(0,0,0,.25);
+}
+.artist-sticky-play:active{transform:scale(.94)}
 /* Similar artists row */
 .similar-artists{
   grid-column:1/-1;width:100%;margin:8px 0 12px;padding:0;
@@ -1468,20 +1516,46 @@ body.view-new .section .section-head{margin-top:14px}
 .similar-card small{
   display:block;font-size:11px;color:var(--muted);margin-top:2px;
 }
+/* One continuous page — hero + results share same surface (no panel gap) */
 body.view-artist .hero,
 body.view-artist .mood-row,
 body.view-artist .sh-moods{display:none!important}
 body.view-artist .artist-hero{display:block}
-body.view-artist .section .section-head{margin-top:10px}
+body.view-artist .section .section-head{margin-top:2px}
+body.view-artist .center{
+  position:relative;
+  background:transparent;
+}
+/* Soft ambient wash under results — same glass family as hero */
+body.view-artist .center::before{
+  content:"";position:fixed;left:var(--side-w,260px);right:0;top:var(--head-h,64px);bottom:0;
+  z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 100% 45% at 50% 0%,rgba(50,50,58,.4),transparent 65%),
+    linear-gradient(180deg,rgba(0,0,0,.08) 0%,rgba(0,0,0,.4) 40%,rgba(0,0,0,.85) 100%);
+  opacity:.95;
+}
+body.view-artist .center > *{position:relative;z-index:1}
+body.view-artist .section{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  margin-top:-12px;padding-top:8px;
+}
+body.view-artist .section .section-head,
+body.view-artist .cards{
+  background:transparent;
+}
 @media(max-width:700px){
-  .artist-hero{min-height:320px;border-radius:14px;margin:4px 0}
-  .artist-hero-content{min-height:320px;padding:56px 16px 22px}
+  .artist-hero{min-height:300px;margin:0}
+  .artist-hero-content{min-height:300px;padding:56px 16px 28px}
   .artist-avatar{width:min(140px,40vw)}
   .artist-meta h1{font-size:clamp(24px,7vw,34px)}
   .artist-back{top:10px;left:10px}
-  .artist-hero-bg{filter:blur(40px) saturate(1.3) brightness(.88)}
+  .artist-hero-bg{filter:blur(56px) saturate(1.4) brightness(.75)}
+  .artist-sticky{top:0;margin:0 -4px}
+  .artist-hero.scrolled .artist-sticky{height:52px}
   .similar-card{flex-basis:100px;width:100px}
   .similar-card .sim-art{width:84px;height:84px}
+  body.view-artist .center::before{left:0}
 }
 
 </style>
@@ -1548,7 +1622,7 @@ body.view-artist .section .section-head{margin-top:10px}
   <button class="mood" data-mood="Party"><span class="mood-art" style="background:linear-gradient(145deg,#ff9f0a,#d1306a)">✦</span><span class="mood-txt"><b>Party</b><small>Dance All Night</small></span></button>
   <button class="mood" data-mood="More"><span class="mood-art" style="background:linear-gradient(145deg,#8e8e93,#3a3a3c)">▦</span><span class="mood-txt"><b>More</b><small>Explore</small></span></button>
  </section>
- <!-- Apple-style Artist / Channel page -->
+ <!-- Apple-style Artist / Channel page — continuous glass blur + scroll collapse -->
  <section class="artist-hero" id="artistHero" aria-hidden="true" hidden>
   <div class="artist-hero-bg" id="artistHeroBg"></div>
   <div class="artist-hero-shade"></div>
@@ -1564,6 +1638,11 @@ body.view-artist .section .section-head{margin-top:10px}
      <button type="button" class="btn" id="artistShuffle">⤨ &nbsp;Shuffle</button>
     </div>
    </div>
+  </div>
+  <div class="artist-sticky" id="artistSticky" aria-hidden="true">
+   <div class="artist-sticky-art" id="artistStickyArt"></div>
+   <span class="artist-sticky-name" id="artistStickyName">Artist</span>
+   <button type="button" class="artist-sticky-play" id="artistStickyPlay" title="Play">▶</button>
   </div>
  </section>
  <section class="section">
@@ -3164,6 +3243,7 @@ function applyArtistPhoto(thumb){
   if(!thumb) return;
   const bg=$("#artistHeroBg");
   const av=$("#artistAvatar");
+  const st=$("#artistStickyArt");
   const t=hiResThumb(thumb)||thumb;
   if(bg){
     bg.style.backgroundImage=`url("${t}")`;
@@ -3176,7 +3256,29 @@ function applyArtistPhoto(thumb){
     av.style.backgroundPosition="center center";
     av.textContent="";
   }
+  if(st){
+    st.style.backgroundImage=`url("${t}")`;
+    st.style.backgroundSize="cover";
+    st.style.backgroundPosition="center center";
+  }
   if(state.artistView) state.artistView.thumb=t;
+}
+function updateArtistScroll(){
+  const el=$("#artistHero");
+  if(!el||!document.body.classList.contains("view-artist")) return;
+  const y=window.scrollY||document.documentElement.scrollTop||0;
+  /* ~220px scroll fully collapses hero into glass sticky bar */
+  const progress=Math.max(0,Math.min(1,y/220));
+  el.style.setProperty("--collapse",String(progress));
+  if(progress>0.5) el.classList.add("scrolled");
+  else el.classList.remove("scrolled");
+}
+/* Bind once — Apple Music style scroll collapse on artist page */
+if(!window.__artistScrollBound){
+  window.__artistScrollBound=true;
+  window.addEventListener("scroll",()=>{
+    if(document.body.classList.contains("view-artist")) updateArtistScroll();
+  },{passive:true});
 }
 function showArtistHero(info){
   info=info||{};
@@ -3190,7 +3292,10 @@ function showArtistHero(info){
   const av=$("#artistAvatar");
   const nm=$("#artistName");
   const su=$("#artistSub");
+  const sn=$("#artistStickyName");
+  const st=$("#artistStickyArt");
   if(nm) nm.textContent=name;
+  if(sn) sn.textContent=name;
   if(su) su.textContent=sub||"";
   if(bg){
     if(thumb){
@@ -3212,9 +3317,23 @@ function showArtistHero(info){
       av.textContent="🎤";
     }
   }
+  if(st){
+    if(thumb){
+      st.style.backgroundImage=`url("${thumb}")`;
+      st.style.backgroundSize="cover";
+      st.style.backgroundPosition="center center";
+    }else{
+      st.style.backgroundImage="";
+    }
+  }
+  el.style.setProperty("--collapse","0");
+  el.classList.remove("scrolled");
   el.hidden=false;el.classList.add("open");el.setAttribute("aria-hidden","false");
   document.body.classList.add("view-artist");
   state.artistView={name,thumb,id:info.id||""};
+  window.scrollTo({top:0,behavior:"instant" in window?undefined:"auto"});
+  try{window.scrollTo(0,0)}catch(e){}
+  requestAnimationFrame(()=>updateArtistScroll());
   // Upgrade to crystal-clear professional photo (Deezer / iTunes)
   const reqName=name;
   fetchClearArtistImage(name).then(img=>{
@@ -3226,7 +3345,9 @@ function showArtistHero(info){
 function hideArtistHero(){
   const el=$("#artistHero");
   if(!el)return;
-  el.classList.remove("open");el.hidden=true;el.setAttribute("aria-hidden","true");
+  el.classList.remove("open","scrolled");
+  el.style.setProperty("--collapse","0");
+  el.hidden=true;el.setAttribute("aria-hidden","true");
   document.body.classList.remove("view-artist");
   state.artistView=null;
   state.similarArtists=null;
