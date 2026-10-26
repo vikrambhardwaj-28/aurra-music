@@ -2194,6 +2194,7 @@ function playSong(index){state._skip=false;state._skipping=false;
  const s=state.queue[index];if(!s)return;
  updateNowUI();
  addToRecent(s);
+ try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
  if(state.ytReady&&state.ytPlayer){
   state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;
  }else{
@@ -2427,9 +2428,14 @@ async function searchLocal(q, page){
    state.queue=videos.length?videos:[];
    state.songs=list;
    state._searchMore={q,page:1,hasMore:true};
+   state.navType="search";
    renderCards(list);
    $("#trackHeading").textContent="Search · "+list.length+" results";
    saveSearchHistory(q);
+   try{
+     if(state.saveBrowseCache) state.saveBrowseCache();
+     else state.browseCache={songs:(state.songs||[]).slice(),heading:($("#trackHeading")&&$("#trackHeading").textContent)||"",searchMore:state._searchMore?{...state._searchMore}:null,playlistMore:state._playlistMore?{...state._playlistMore}:null,channelMore:state._channelMore?{...state._channelMore}:null,searchQ:q,fromDiscovery:true,navType:"search"};
+   }catch(e){}
    toast(list.length+" results found");
   }else{
    const seen=new Set((state.songs||[]).map(s=>s.id));
@@ -2447,6 +2453,7 @@ async function searchLocal(q, page){
    state._searchMore={q,page,hasMore:true};
    renderCards(state.songs);
    $("#trackHeading").textContent="Search · "+state.songs.length+" results";
+   try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
    toast("+"+fresh.length+" more");
   }
  }catch(e){
@@ -2684,6 +2691,8 @@ async function loadPlaylist(listId, page){
    state._playlistMore={listId,page:1,hasMore:!!(apiMore||list.length>=8),title:data.title||"Playlist"};
    playSong(0);renderCards(list);
    $("#trackHeading").textContent="♫ "+(data.title||"Playlist");
+   state.navType="search";
+   try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
    toast("Playlist · "+list.length+" songs");
   }else{
    const existing=new Set((state.songs||[]).map(s=>s.id));
@@ -2699,6 +2708,7 @@ async function loadPlaylist(listId, page){
    state._playlistMore={listId,page,hasMore:!!(apiMore||extra.length>=5),title:(state._playlistMore&&state._playlistMore.title)||data.title||"Playlist"};
    renderCards(state.songs);
    $("#trackHeading").textContent="♫ "+(state._playlistMore.title||"Playlist");
+   try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
    toast("+"+extra.length+" more");
   }
  }catch(e){console.warn("loadPlaylist",e);toast(e.name==="TimeoutError"?"Playlist timeout — try again":"Playlist load failed");if(page===1)$("#trackHeading").textContent="Playlist failed"}
@@ -2751,6 +2761,8 @@ async function loadChannel(channelId,channelName,page){
   }
   renderCards(state.songs);
   $("#trackHeading").textContent="📢 "+(data.title||channelName||"Channel");
+  state.navType="search";
+  try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
   toast(page>1?("+"+list.length+" more"):("Channel · "+list.length+" videos"));
  }catch(e){console.warn("loadChannel",e);toast("Channel load failed");if(page===1)$("#trackHeading").textContent="Channel failed"}
 }
@@ -3078,6 +3090,15 @@ function bind(){
  $("#search").addEventListener("focus",e=>{
   const q=(e.target.value||"").trim();
   updateClearBtn();
+  // Desktop: restore previous search/playlist results when focusing search again
+  try{
+   const c=state.browseCache;
+   if(c&&c.songs&&c.songs.length&&(state._libraryView||state.navType==="home"||state.navType==="library")){
+    if(state.restoreBrowseCache&&state.restoreBrowseCache()){
+     // results back on screen
+    }
+   }
+  }catch(err){}
   if(q.length>=1) fetchSuggestions(q);
   else showHistoryPanel();
  });
@@ -3371,11 +3392,55 @@ function bind(){
    searchMore:state._searchMore?{...state._searchMore}:null,
    playlistMore:state._playlistMore?{...state._playlistMore}:null,
    channelMore:state._channelMore?{...state._channelMore}:null,
-   library:!!state._libraryView
+   library:!!state._libraryView,
+   searchQ:($("#search")&&$("#search").value)||""
   };
  }
+ // Remember last search / playlist / channel results so they don't disappear on tab change
+ function saveBrowseCache(){
+  try{
+   // Only cache real browsable lists (search / playlist / channel / discovery), not empty library shell
+   if(state._libraryView) return;
+   const songs=state.songs||[];
+   if(!songs.length) return;
+   const hasSource=!!(state._searchMore||state._playlistMore||state._channelMore||state.fromDiscovery);
+   // allow caching even catalog-derived lists if user was browsing them after search wipe prevention
+   state.browseCache={
+    songs:songs.slice(),
+    heading:($("#trackHeading")&&$("#trackHeading").textContent)||"",
+    searchMore:state._searchMore?{...state._searchMore}:null,
+    playlistMore:state._playlistMore?{...state._playlistMore}:null,
+    channelMore:state._channelMore?{...state._channelMore}:null,
+    searchQ:($("#search")&&$("#search").value)||"",
+    fromDiscovery:!!state.fromDiscovery,
+    navType:state.navType||"search"
+   };
+  }catch(e){}
+ }
+ function restoreBrowseCache(){
+  const c=state.browseCache;
+  if(!c||!c.songs||!c.songs.length) return false;
+  state._libraryView=false;
+  state.songs=c.songs.slice();
+  state._searchMore=c.searchMore||null;
+  state._playlistMore=c.playlistMore||null;
+  state._channelMore=c.channelMore||null;
+  state.fromDiscovery=!!c.fromDiscovery;
+  state.navType=c.navType||"search";
+  renderCards(state.songs);
+  if($("#trackHeading")) $("#trackHeading").textContent=c.heading||"Search results";
+  if(c.searchQ&&$("#search")){
+   $("#search").value=c.searchQ;
+   try{const clr=$("#searchClear");if(clr)clr.classList.toggle("show",!!c.searchQ.trim())}catch(e){}
+  }
+  return true;
+ }
+ // expose for playSong / outer helpers
+ state.saveBrowseCache=saveBrowseCache;
+ state.restoreBrowseCache=restoreBrowseCache;
  function pushNav(){
   try{
+   if(state.saveBrowseCache) state.saveBrowseCache();
    const snap=snapshotNav();
    state.navStack.push(snap);
    if(state.navStack.length>20) state.navStack.shift();
@@ -3396,10 +3461,13 @@ function bind(){
    state.songs=snap.songs&&snap.songs.length?snap.songs:[...CATALOG];
    renderCards(state.songs);
    if($("#trackHeading")) $("#trackHeading").textContent=snap.heading||"🔥 Trending Now";
+   if(snap.searchQ&&$("#search")){
+    $("#search").value=snap.searchQ;
+   }
   }
   $$("#mobileNav button").forEach(b=>{
    const a=b.dataset.mnav;
-   b.classList.toggle("active",(snap.type==="home"&&a==="home")||(snap.type==="search"&&a==="search")||(snap.type==="library"&&a==="library"));
+   b.classList.toggle("active",(snap.type==="home"&&a==="home")||(snap.type==="search"&&a==="search")||(snap.type==="library"&&a==="library")||(snap.type==="new"&&a==="new"));
   });
  }
  function goBackOneStep(){
@@ -3467,24 +3535,40 @@ function bind(){
   const act=btn.dataset.mnav;
   $$("#mobileNav button").forEach(b=>b.classList.toggle("active",b===btn));
   if(act==="home"){
-   pushNav();
+   pushNav(); // also saveBrowseCache
    state.navType="home";
    state._libraryView=false;
+   // Do NOT wipe search/playlist/channel cache — only switch visible grid to home
+   // Prefer last live home/trending list if we have one, else catalog
+   const homeList=(state.homeSongs&&state.homeSongs.length)?state.homeSongs:[...CATALOG];
+   state.songs=homeList.slice();
+   // Temporarily hide pagination from search sources on home view
+   const bakSearch=state._searchMore, bakPl=state._playlistMore, bakCh=state._channelMore;
    state._searchMore=null;state._playlistMore=null;state._channelMore=null;
-   // Keep current playback — only refresh browse grid
-   state.songs=[...CATALOG];
-   renderCards(CATALOG);
+   renderCards(state.songs);
+   // restore source pointers in memory (cache) without showing Show More on home
+   state._searchMore=bakSearch;state._playlistMore=bakPl;state._channelMore=bakCh;
    $("#trackHeading").textContent="🔥 Trending Now";
    window.scrollTo({top:0,behavior:"smooth"});
   }else if(act==="search"){
    pushNav();
    state.navType="search";
    state._libraryView=false;
-   $("#search")?.focus();
+   // Bring back last search / playlist / channel results
+   if(!restoreBrowseCache()){
+    // no cache — just focus search
+    $("#search")?.focus();
+   }else{
+    toast("Previous results restored");
+    $("#search")?.focus();
+   }
    window.scrollTo({top:0,behavior:"smooth"});
   }else if(act==="library"){
    pushNav();
    showLibraryView(false);
+  }else if(act==="new"){
+   pushNav();
+   state.navType="new";
   }
  });
  // Library row clicks
@@ -3859,7 +3943,7 @@ function init(){
     id:v.id||v.videoId,title:v.title||"Unknown",artist:v.author||"Unknown",mood:"Trending",
     thumb:v.thumbnail||("https://i.ytimg.com/vi/"+(v.id||v.videoId)+"/hqdefault.jpg")
    })).filter(s=>s.id);
-   if(list.length&&_searchReq===0){state.fromDiscovery=true;state.queue=list;state.songs=list;state._searchMore={q:"trending bollywood hits",page:1,hasMore:true};renderCards(list);$("#trackHeading").textContent="🔥 Trending Now"}
+   if(list.length&&_searchReq===0){state.fromDiscovery=true;state.queue=list;state.songs=list;state.homeSongs=list.slice();state._searchMore={q:"trending bollywood hits",page:1,hasMore:true};renderCards(list);$("#trackHeading").textContent="🔥 Trending Now";try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}}
   }).catch(()=>{});
 }
 init();
