@@ -271,20 +271,20 @@ body:has(.immersive-player.open) .mobile-nav{display:none!important}
 body:has(.immersive-player.open) .player{display:none!important}
 @keyframes immersiveIn{from{opacity:0}to{opacity:1}}
 
-/* Apple Music style blurred artwork background — soft color, not crushed dark */
+/* Apple Music style blurred artwork background — lighter, more color visible */
 .immersive-player:before{
   content:"";position:absolute;inset:-120px;z-index:-2;
   background-image:var(--player-art,linear-gradient(120deg,#1c1c1e,#2c2c2e));
   background-size:cover;background-position:center;
-  filter:blur(80px) brightness(.55) saturate(1.7);
+  filter:blur(85px) brightness(.64) saturate(1.65);
   transform:scale(1.45);
   transition:background-image .4s ease;
 }
 .immersive-player:after{
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:
-    radial-gradient(ellipse 100% 80% at 50% 40%,rgba(0,0,0,.05),rgba(0,0,0,.38) 70%),
-    linear-gradient(180deg,rgba(0,0,0,.12) 0%,rgba(0,0,0,.22) 45%,rgba(0,0,0,.42) 100%);
+    radial-gradient(ellipse 100% 80% at 50% 40%,rgba(0,0,0,.02),rgba(0,0,0,.26) 72%),
+    linear-gradient(180deg,rgba(0,0,0,.06) 0%,rgba(0,0,0,.16) 45%,rgba(0,0,0,.34) 100%);
 }
 
 .immersive-close{
@@ -304,26 +304,33 @@ body:has(.immersive-player.open) .player{display:none!important}
 }
 .view-switch.active{background:#fff;color:#000;border-color:#fff}
 
-/* ---------- Lyrics View (left art + controls) — Apple style ---------- */
+/* ---------- Lyrics View (left art + controls) — same sizes as Classic, left-aligned ---------- */
 .lyrics-layout{
   min-height:100dvh;display:grid;
-  grid-template-columns:minmax(260px,340px) minmax(280px,1fr);
+  grid-template-columns:minmax(320px,400px) minmax(280px,1fr);
   gap:clamp(40px,7vw,100px);padding:48px clamp(20px,7vw,100px) 40px;align-items:center;
 }
 .lyrics-album{
-  max-width:300px;align-self:center;
+  max-width:360px;width:100%;align-self:center;
   display:flex;flex-direction:column;align-items:center;
 }
 .big-cover{
-  width:100%;max-width:300px;aspect-ratio:1;border-radius:12px;margin:0 auto;
+  position:relative;overflow:hidden;
+  width:100%;max-width:360px;aspect-ratio:1;border-radius:10px;margin:0 auto;
   background:linear-gradient(135deg,var(--a),#1c1c1e) center/cover no-repeat;
   box-shadow:
-    0 24px 60px rgba(0,0,0,.55),
-    0 8px 24px rgba(0,0,0,.35),
-    0 0 0 1px rgba(255,255,255,.08);
+    0 28px 70px rgba(0,0,0,.5),
+    0 10px 28px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.1);
+}
+/* Gloss panel on cover edges */
+.big-cover::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+  background:linear-gradient(145deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.08) 28%,transparent 48%,transparent 62%,rgba(255,255,255,.05) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(0,0,0,.18);
 }
 .lyrics-track{
-  display:flex;align-items:center;gap:10px;margin:18px 0 14px;max-width:300px;width:100%;
+  display:flex;align-items:center;gap:10px;margin:18px 0 14px;max-width:360px;width:100%;
 }
 .lyrics-track div{flex:1;min-width:0}
 .lyrics-track h2{
@@ -342,26 +349,26 @@ body:has(.immersive-player.open) .player{display:none!important}
 #immersiveMore{font-size:16px;letter-spacing:1px;font-weight:700}
 
 .big-timeline{
-  width:100%;max-width:300px;height:3px;accent-color:#fff;cursor:pointer;
-  -webkit-appearance:none;appearance:none;background:rgba(255,255,255,.22);border-radius:3px;
+  width:100%;max-width:360px;height:4px;accent-color:#fff;cursor:pointer;
+  -webkit-appearance:none;appearance:none;background:rgba(255,255,255,.25);border-radius:4px;
 }
 .big-timeline::-webkit-slider-thumb{
-  -webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#fff;
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;
   box-shadow:0 1px 4px rgba(0,0,0,.35);
 }
 .timeline-labels{
   display:flex;justify-content:space-between;font-size:11px;
   color:rgba(255,255,255,.45);margin-top:6px;font-variant-numeric:tabular-nums;
-  max-width:300px;width:100%;
+  max-width:360px;width:100%;
 }
 
 .big-controls{
-  display:flex;justify-content:center;align-items:center;gap:28px;
-  margin:18px 0 14px;max-width:300px;width:100%;
+  display:flex;justify-content:center;align-items:center;gap:42px;
+  margin:22px 0 14px;max-width:360px;width:100%;
 }
 .big-controls button{
-  border:0;background:transparent;color:#fff;font-size:18px;
-  width:40px;height:40px;display:grid;place-items:center;opacity:.92;
+  border:0;background:transparent;color:#fff;font-size:17px;
+  width:36px;height:36px;display:grid;place-items:center;opacity:.92;
   transition:opacity .12s,transform .1s;
 }
 .big-controls button:active{opacity:.5;transform:scale(.92)}
@@ -373,16 +380,17 @@ body:has(.immersive-player.open) .player{display:none!important}
 }
 .big-controls .big-play:hover{transform:scale(1.04)}
 
+/* Volume same length as timeline */
 .big-volume{
-  display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.5);
-  font-size:13px;margin-top:12px;max-width:300px;width:100%;
+  display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.5);
+  font-size:13px;margin-top:14px;max-width:360px;width:100%;
 }
 .big-volume input{
-  width:100%;height:3px;accent-color:#fff;
-  -webkit-appearance:none;appearance:none;background:rgba(255,255,255,.22);border-radius:3px;
+  flex:1;width:100%;height:4px;accent-color:#fff;
+  -webkit-appearance:none;appearance:none;background:rgba(255,255,255,.25);border-radius:4px;
 }
 .big-volume input::-webkit-slider-thumb{
-  -webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:#fff;
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;
 }
 
 /* Lyrics column */
@@ -444,15 +452,21 @@ body:has(.immersive-player.open) .player{display:none!important}
   position:relative;width:min(380px,86vw);padding:0;text-align:center;
   display:flex;flex-direction:column;align-items:center;
 }
-/* Large centered cover — Apple Music classic size */
+/* Large centered cover — Apple Music classic size + gloss */
 .minimal-cover{
-  width:min(360px,78vw);aspect-ratio:1;margin:0 auto 22px;border-radius:8px;
+  position:relative;overflow:hidden;
+  width:min(360px,78vw);aspect-ratio:1;margin:0 auto 22px;border-radius:10px;
   box-shadow:
     0 28px 70px rgba(0,0,0,.5),
     0 10px 28px rgba(0,0,0,.35),
-    0 0 0 1px rgba(255,255,255,.06);
+    0 0 0 1px rgba(255,255,255,.1);
   background-size:cover;background-position:center;
   background:linear-gradient(135deg,var(--a),#1c1c1e);
+}
+.minimal-cover::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+  background:linear-gradient(145deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.08) 28%,transparent 48%,transparent 62%,rgba(255,255,255,.05) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(0,0,0,.18);
 }
 .minimal-content h2{
   font-size:16px;font-weight:600;margin:0 0 3px;color:#fff;
@@ -496,10 +510,10 @@ body:has(.immersive-player.open) .player{display:none!important}
   box-shadow:none;opacity:1;
 }
 .minimal-content .big-controls .big-play:hover{transform:scale(1.06);background:transparent}
-/* Volume row — centered, wider, Apple style */
+/* Volume row — same length as timeline */
 .minimal-bottom{
   display:flex;align-items:center;justify-content:center;gap:12px;
-  max-width:240px;width:100%;margin:26px auto 0;
+  max-width:360px;width:100%;margin:26px auto 0;
   color:rgba(255,255,255,.5);font-size:14px;
   align-self:center;
 }
@@ -508,7 +522,7 @@ body:has(.immersive-player.open) .player{display:none!important}
   -webkit-appearance:none;appearance:none;background:rgba(255,255,255,.25);border-radius:4px;
 }
 .minimal-bottom input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;
 }
 /* show both volume icons cleanly */
 .minimal-bottom > span{opacity:.7}
@@ -1071,10 +1085,11 @@ body.show-queue .rightcol{transform:none;box-shadow:-12px 0 40px rgba(0,0,0,.45)
   .desktop-view-btn{display:none!important}
   .minimal-layout{min-height:100dvh;height:100dvh;padding:48px 16px 32px;overflow:hidden;box-sizing:border-box}
   .minimal-content{width:min(340px,90vw);padding:0}
-  .minimal-cover{width:min(300px,82vw);margin:0 auto 18px;border-radius:8px}
+  .minimal-cover{width:min(300px,82vw);margin:0 auto 18px;border-radius:10px}
   .minimal-content .big-controls{gap:34px}
   .minimal-content .big-controls .big-play{width:30px;height:30px;font-size:30px;background:transparent;color:#fff;box-shadow:none}
-  .minimal-bottom{max-width:200px;margin-top:22px;align-self:center}
+  .minimal-bottom{max-width:300px;margin-top:22px;align-self:center}
+  .minimal-content .big-timeline,.minimal-content .timeline-labels{max-width:300px}
   .lyrics-layout{grid-template-columns:1fr!important;gap:0;padding:0!important;min-height:100dvh;height:100dvh;overflow:hidden;align-items:stretch}
   .lyrics-layout.only-lyrics-mode{display:flex!important;flex-direction:column;align-items:center;justify-content:center;padding:56px 14px 28px!important}
   .only-lyrics-mode .lyrics-column{width:100%;max-width:100%;max-height:none;flex:1;padding:10vh 12px;overflow-y:auto;-webkit-overflow-scrolling:touch}
