@@ -294,8 +294,10 @@ body:has(.immersive-player.open) .player{display:none!important}
   backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);
   border:1px solid rgba(255,255,255,.14);
 }
+/* View switches — bottom right (Classic / Lyrics view / Lyrics) */
 .immersive-top{
-  position:fixed;top:max(16px,env(safe-area-inset-top));right:16px;bottom:auto;display:flex;gap:8px;z-index:10;
+  position:fixed;bottom:max(22px,env(safe-area-inset-bottom));right:16px;top:auto!important;left:auto;
+  display:flex;gap:8px;z-index:30;
 }
 .view-switch{
   border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);
@@ -348,13 +350,29 @@ body:has(.immersive-player.open) .player{display:none!important}
 }
 #immersiveMore{font-size:16px;letter-spacing:1px;font-weight:700}
 
+/* Timeline — white progress fill + moving thumb */
 .big-timeline{
   width:100%;max-width:360px;height:4px;accent-color:#fff;cursor:pointer;
-  -webkit-appearance:none;appearance:none;background:rgba(255,255,255,.25);border-radius:4px;
+  -webkit-appearance:none;appearance:none;border-radius:4px;outline:0;
+  background:linear-gradient(to right,#fff 0%,#fff var(--progress,0%),rgba(255,255,255,.22) var(--progress,0%),rgba(255,255,255,.22) 100%);
+}
+.big-timeline::-webkit-slider-runnable-track{
+  height:4px;border-radius:4px;
+  background:linear-gradient(to right,#fff 0%,#fff var(--progress,0%),rgba(255,255,255,.22) var(--progress,0%),rgba(255,255,255,.22) 100%);
+}
+.big-timeline::-moz-range-track{
+  height:4px;border-radius:4px;background:rgba(255,255,255,.22);border:0;
+}
+.big-timeline::-moz-range-progress{
+  height:4px;border-radius:4px;background:#fff;
 }
 .big-timeline::-webkit-slider-thumb{
   -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;
-  box-shadow:0 1px 4px rgba(0,0,0,.35);
+  box-shadow:0 1px 4px rgba(0,0,0,.4);margin-top:-5px;position:relative;z-index:2;
+}
+.big-timeline::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;background:#fff;border:0;
+  box-shadow:0 1px 4px rgba(0,0,0,.4);
 }
 .timeline-labels{
   display:flex;justify-content:space-between;font-size:11px;
@@ -477,15 +495,20 @@ body:has(.immersive-player.open) .player{display:none!important}
   font-size:13px;color:rgba(255,255,255,.55);margin:0 0 18px;font-weight:400;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
 }
-/* Timeline — thin, Apple style */
+/* Timeline — same white progress fill as Lyrics view */
 .minimal-content .big-timeline{
   width:100%;max-width:360px;height:4px;margin-top:0;
   accent-color:#fff;cursor:pointer;
-  -webkit-appearance:none;appearance:none;background:rgba(255,255,255,.25);border-radius:4px;
+  -webkit-appearance:none;appearance:none;border-radius:4px;outline:0;
+  background:linear-gradient(to right,#fff 0%,#fff var(--progress,0%),rgba(255,255,255,.22) var(--progress,0%),rgba(255,255,255,.22) 100%);
+}
+.minimal-content .big-timeline::-webkit-slider-runnable-track{
+  height:4px;border-radius:4px;
+  background:linear-gradient(to right,#fff 0%,#fff var(--progress,0%),rgba(255,255,255,.22) var(--progress,0%),rgba(255,255,255,.22) 100%);
 }
 .minimal-content .big-timeline::-webkit-slider-thumb{
   -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;
-  box-shadow:0 1px 4px rgba(0,0,0,.35);
+  box-shadow:0 1px 4px rgba(0,0,0,.4);margin-top:-5px;
 }
 .minimal-content .timeline-labels{
   width:100%;max-width:360px;margin:6px auto 0;
@@ -1080,7 +1103,7 @@ body.show-queue .rightcol{transform:none;box-shadow:-12px 0 40px rgba(0,0,0,.45)
   .float-modal,.profile-modal,.pl-modal{z-index:220;padding:12px;background:rgba(0,0,0,.75)}
   .cards:has(.lib-view){display:block!important}
 
-  .immersive-top{top:12px;right:12px;bottom:auto;left:auto;gap:6px;z-index:30}
+  .immersive-top{bottom:max(16px,env(safe-area-inset-bottom));right:12px;top:auto!important;left:auto;gap:6px;z-index:30}
   .view-switch{font-size:12px;padding:7px 12px}
   .desktop-view-btn{display:none!important}
   .minimal-layout{min-height:100dvh;height:100dvh;padding:48px 16px 32px;overflow:hidden;box-sizing:border-box}
@@ -2582,7 +2605,9 @@ function startProgress(){
    $("#rElapsed").textContent=fmt(cur);$("#rDuration").textContent=fmt(dur);
    $("#lyricsElapsed").textContent=fmt(cur);$("#lyricsDuration").textContent="-"+fmt(Math.max(0,dur-cur));
    $("#minimalElapsed").textContent=fmt(cur);$("#minimalDuration").textContent="-"+fmt(Math.max(0,dur-cur));
-   $("#lyricsTimeline").value=pct;$("#minimalTimeline").value=pct;
+   const lt=$("#lyricsTimeline"),mt=$("#minimalTimeline");
+   if(lt){lt.value=pct;lt.style.setProperty("--progress",pct+"%")}
+   if(mt){mt.value=pct;mt.style.setProperty("--progress",pct+"%")}
    // sync active lyric — keep centered inside lyrics column only (no page jump)
    if(state.lyricsLines&&state.lyricsLines.length){
      let idx=0;
@@ -2621,7 +2646,12 @@ function setVolume(v){
  $("#volFill").style.width=state.volume+"%";$("#lyricsVol").value=state.volume;$("#minimalVol").value=state.volume;
  applyPlayerVolume();
 }
-function seekTo(pct){try{const dur=state.ytPlayer?.getDuration?.()||0;if(dur)state.ytPlayer.seekTo((pct/100)*dur,true)}catch(e){}}
+function seekTo(pct){
+  try{const dur=state.ytPlayer?.getDuration?.()||0;if(dur)state.ytPlayer.seekTo((pct/100)*dur,true)}catch(e){}
+  const lt=$("#lyricsTimeline"),mt=$("#minimalTimeline");
+  if(lt){lt.value=pct;lt.style.setProperty("--progress",pct+"%")}
+  if(mt){mt.value=pct;mt.style.setProperty("--progress",pct+"%")}
+}
 function toggleLike(){
  const s=currentSong();if(!s)return;
  const i=state.favorites.indexOf(s.id);
@@ -3799,8 +3829,8 @@ function bind(){
  });
  const bindSeek=el=>{if(!el)return;el.addEventListener("click",e=>{const rect=el.getBoundingClientRect();seekTo(((e.clientX-rect.left)/rect.width)*100)})};
  bindSeek($("#seekBar"));bindSeek($("#rProgress"));
- $("#lyricsTimeline")?.addEventListener("input",e=>seekTo(+e.target.value));
- $("#minimalTimeline")?.addEventListener("input",e=>seekTo(+e.target.value));
+ $("#lyricsTimeline")?.addEventListener("input",e=>{const v=+e.target.value;e.target.style.setProperty("--progress",v+"%");seekTo(v)});
+ $("#minimalTimeline")?.addEventListener("input",e=>{const v=+e.target.value;e.target.style.setProperty("--progress",v+"%");seekTo(v)});
  $("#volBar")?.addEventListener("click",e=>{const rect=e.currentTarget.getBoundingClientRect();setVolume(((e.clientX-rect.left)/rect.width)*100)});
  $("#lyricsVol")?.addEventListener("input",e=>setVolume(+e.target.value));
  $("#minimalVol")?.addEventListener("input",e=>setVolume(+e.target.value));
