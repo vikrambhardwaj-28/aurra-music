@@ -260,7 +260,7 @@ button{color:inherit;cursor:pointer;border:0;background:none;padding:0}
 .theme-bg-preview{width:100%;height:48px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04) center/cover no-repeat;margin-top:2px}
 
 
-/* ---- Immersive player ---- */
+/* ---- Immersive player — Apple Music style (updated) ---- */
 .immersive-player{
   position:fixed;inset:0;z-index:100;display:none;overflow:hidden;color:#fff;
   isolation:isolate;background:#000;
@@ -270,23 +270,28 @@ button{color:inherit;cursor:pointer;border:0;background:none;padding:0}
 body:has(.immersive-player.open) .mobile-nav{display:none!important}
 body:has(.immersive-player.open) .player{display:none!important}
 @keyframes immersiveIn{from{opacity:0}to{opacity:1}}
+
+/* Apple Music style blurred artwork background */
 .immersive-player:before{
-  content:"";position:absolute;inset:-80px;z-index:-2;
+  content:"";position:absolute;inset:-100px;z-index:-2;
   background-image:var(--player-art,linear-gradient(120deg,#1c1c1e,#2c2c2e));
   background-size:cover;background-position:center;
-  filter:blur(80px) brightness(.5) saturate(1.6);transform:scale(1.35);
+  filter:blur(90px) brightness(.42) saturate(1.85);
+  transform:scale(1.4);
+  transition:background-image .4s ease;
 }
 .immersive-player:after{
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 40%,rgba(0,0,0,.15),rgba(0,0,0,.55) 70%),
-    linear-gradient(180deg,rgba(0,0,0,.2) 0%,rgba(0,0,0,.35) 45%,rgba(0,0,0,.5) 100%);
+    radial-gradient(ellipse 90% 70% at 50% 35%,rgba(0,0,0,.08),rgba(0,0,0,.55) 65%),
+    linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,.32) 40%,rgba(0,0,0,.58) 100%);
 }
+
 .immersive-close{
   position:fixed;top:max(16px,env(safe-area-inset-top));left:16px;z-index:20;width:36px;height:36px;
   border:0;border-radius:50%;background:rgba(255,255,255,.12);
   color:#fff;font-size:22px;line-height:1;display:grid;place-items:center;
-  backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);
+  backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);
   border:1px solid rgba(255,255,255,.14);
 }
 .immersive-top{
@@ -295,27 +300,47 @@ body:has(.immersive-player.open) .player{display:none!important}
 .view-switch{
   border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);
   color:rgba(255,255,255,.75);border-radius:20px;padding:8px 14px;font-size:12px;
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);font-weight:600;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);font-weight:600;
 }
 .view-switch.active{background:#fff;color:#000;border-color:#fff}
 
+/* ---------- Lyrics View (left art + controls) — Apple style ---------- */
 .lyrics-layout{
   min-height:100dvh;display:grid;
-  grid-template-columns:minmax(260px,360px) minmax(280px,1fr);
-  gap:clamp(48px,8vw,120px);padding:48px clamp(20px,8vw,120px) 40px;align-items:center;
+  grid-template-columns:minmax(260px,340px) minmax(280px,1fr);
+  gap:clamp(40px,7vw,100px);padding:48px clamp(20px,7vw,100px) 40px;align-items:center;
 }
-.lyrics-album{max-width:300px;align-self:center;display:flex;flex-direction:column;align-items:center}
+.lyrics-album{
+  max-width:300px;align-self:center;
+  display:flex;flex-direction:column;align-items:center;
+}
 .big-cover{
-  width:100%;max-width:300px;aspect-ratio:1;border-radius:10px;margin:0 auto;
+  width:100%;max-width:300px;aspect-ratio:1;border-radius:12px;margin:0 auto;
   background:linear-gradient(135deg,var(--a),#1c1c1e) center/cover no-repeat;
-  box-shadow:0 20px 50px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06);
+  box-shadow:
+    0 24px 60px rgba(0,0,0,.55),
+    0 8px 24px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.08);
 }
-.lyrics-track{display:flex;align-items:center;gap:10px;margin:16px 0 12px;max-width:300px}
+.lyrics-track{
+  display:flex;align-items:center;gap:10px;margin:18px 0 14px;max-width:300px;width:100%;
+}
 .lyrics-track div{flex:1;min-width:0}
-.lyrics-track h2{font-size:15px;font-weight:600;margin:0 0 3px;letter-spacing:-.2px}
-.lyrics-track p{margin:0;color:rgba(255,255,255,.55);font-size:13px}
-.lyrics-track button{border:0;background:rgba(255,255,255,.12);border-radius:50%;width:30px;height:30px;color:white;font-size:14px;display:inline-grid;place-items:center}
+.lyrics-track h2{
+  font-size:15px;font-weight:600;margin:0 0 3px;letter-spacing:-.25px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lyrics-track p{
+  margin:0;color:rgba(255,255,255,.55);font-size:13px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lyrics-track button{
+  border:0;background:rgba(255,255,255,.12);border-radius:50%;
+  width:30px;height:30px;color:white;font-size:14px;
+  display:inline-grid;place-items:center;flex-shrink:0;
+}
 #immersiveMore{font-size:16px;letter-spacing:1px;font-weight:700}
+
 .big-timeline{
   width:100%;max-width:300px;height:3px;accent-color:#fff;cursor:pointer;
   -webkit-appearance:none;appearance:none;background:rgba(255,255,255,.22);border-radius:3px;
@@ -327,11 +352,12 @@ body:has(.immersive-player.open) .player{display:none!important}
 .timeline-labels{
   display:flex;justify-content:space-between;font-size:11px;
   color:rgba(255,255,255,.45);margin-top:6px;font-variant-numeric:tabular-nums;
-  max-width:300px;
+  max-width:300px;width:100%;
 }
+
 .big-controls{
-  display:flex;justify-content:center;align-items:center;gap:26px;
-  margin:16px 0 12px;max-width:300px;
+  display:flex;justify-content:center;align-items:center;gap:28px;
+  margin:18px 0 14px;max-width:300px;width:100%;
 }
 .big-controls button{
   border:0;background:transparent;color:#fff;font-size:18px;
@@ -340,15 +366,16 @@ body:has(.immersive-player.open) .player{display:none!important}
 }
 .big-controls button:active{opacity:.5;transform:scale(.92)}
 .big-controls .big-play{
-  width:52px;height:52px;border-radius:50%;
+  width:54px;height:54px;border-radius:50%;
   background:#fff;color:#000;font-size:18px;
   display:grid;place-items:center;
-  box-shadow:0 4px 18px rgba(0,0,0,.28);
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
 }
 .big-controls .big-play:hover{transform:scale(1.04)}
+
 .big-volume{
   display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.5);
-  font-size:13px;margin-top:10px;max-width:300px;
+  font-size:13px;margin-top:12px;max-width:300px;width:100%;
 }
 .big-volume input{
   width:100%;height:3px;accent-color:#fff;
@@ -357,6 +384,8 @@ body:has(.immersive-player.open) .player{display:none!important}
 .big-volume input::-webkit-slider-thumb{
   -webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:#fff;
 }
+
+/* Lyrics column */
 .lyrics-column{
   max-width:580px;max-height:calc(100dvh - 90px);overflow:auto;align-self:center;
   padding:16vh 10px 16vh 0;scrollbar-width:none;scroll-behavior:smooth;
@@ -367,10 +396,16 @@ body:has(.immersive-player.open) .player{display:none!important}
 .lyrics-column::-webkit-scrollbar{display:none}
 .lyrics-column .lyric{
   font-size:clamp(22px,2.4vw,32px);line-height:1.35;font-weight:700;
-  color:rgba(255,255,255,.3);margin:0 0 26px;letter-spacing:-.4px;
-  transition:color .3s ease,opacity .3s ease;opacity:.7;
+  color:rgba(255,255,255,.28);margin:0 0 26px;letter-spacing:-.4px;
+  transition:color .3s ease,opacity .3s ease,text-shadow .3s ease;
+  opacity:.65;
 }
-.lyrics-column .lyric.active{color:#fff;opacity:1;text-shadow:none}
+.lyrics-column .lyric.active{
+  color:#fff;opacity:1;
+  text-shadow:0 0 24px rgba(255,255,255,.22),0 2px 10px rgba(0,0,0,.35);
+}
+
+/* ---------- Pure Lyrics mode — glossy finish ---------- */
 .lyrics-layout.only-lyrics-mode{
   display:flex!important;align-items:center;justify-content:center;
   padding:8vh 10vw 100px!important;background:transparent!important;
@@ -384,10 +419,23 @@ body:has(.immersive-player.open) .player{display:none!important}
 }
 .only-lyrics-mode .lyric{
   font-size:clamp(24px,3.8vw,44px)!important;line-height:1.3!important;
-  margin:0 0 28px!important;text-align:center;opacity:.5!important;color:rgba(255,255,255,.35)!important;
+  margin:0 0 28px!important;text-align:center;
+  opacity:.45!important;color:rgba(255,255,255,.32)!important;
+  font-weight:700;
+  text-shadow:0 1px 3px rgba(0,0,0,.25);
+  transition:color .35s ease,opacity .35s ease,text-shadow .35s ease,transform .25s ease;
 }
-.only-lyrics-mode .lyric.active{color:#fff!important;text-shadow:none!important;transform:none!important;opacity:1!important}
+.only-lyrics-mode .lyric.active{
+  color:#fff!important;
+  opacity:1!important;
+  text-shadow:
+    0 0 30px rgba(255,255,255,.35),
+    0 0 60px rgba(255,255,255,.12),
+    0 2px 12px rgba(0,0,0,.4)!important;
+  transform:none!important;
+}
 
+/* ---------- Classic / Minimal layout — Apple Music style ---------- */
 .minimal-layout{
   min-height:100dvh;height:100%;padding:72px 24px 48px;
   display:none;align-items:center;justify-content:center;background:transparent;
@@ -396,12 +444,13 @@ body:has(.immersive-player.open) .player{display:none!important}
   position:relative;width:min(360px,84vw);padding:0;text-align:center;
   display:flex;flex-direction:column;align-items:center;
 }
-/* Apple Music classic — cover size matched to reference */
+/* Large centered cover — Apple Music classic */
 .minimal-cover{
-  width:min(340px,72vw);aspect-ratio:1;margin:0 auto 24px;border-radius:8px;
+  width:min(340px,72vw);aspect-ratio:1;margin:0 auto 26px;border-radius:10px;
   box-shadow:
-    0 28px 80px rgba(0,0,0,.55),
-    0 0 0 1px rgba(255,255,255,.06);
+    0 32px 90px rgba(0,0,0,.6),
+    0 12px 36px rgba(0,0,0,.4),
+    0 0 0 1px rgba(255,255,255,.07);
   background-size:cover;background-position:center;
   background:linear-gradient(135deg,var(--a),#1c1c1e);
 }
@@ -411,7 +460,7 @@ body:has(.immersive-player.open) .player{display:none!important}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .minimal-content p{
-  font-size:13px;color:rgba(255,255,255,.5);margin:0 0 20px;font-weight:400;
+  font-size:13px;color:rgba(255,255,255,.5);margin:0 0 22px;font-weight:400;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
 }
 .minimal-content .big-timeline{
@@ -428,9 +477,9 @@ body:has(.immersive-player.open) .player{display:none!important}
   display:flex;justify-content:space-between;
   font-size:11px;color:rgba(255,255,255,.42);font-variant-numeric:tabular-nums;
 }
-/* Apple-style transport row */
+/* Apple-style transport — pure icon play button (no white circle) */
 .minimal-content .big-controls{
-  gap:36px;margin:22px 0 0;width:100%;max-width:340px;
+  gap:38px;margin:24px 0 0;width:100%;max-width:340px;
   display:flex;justify-content:center;align-items:center;
 }
 .minimal-content .big-controls button{
@@ -443,12 +492,11 @@ body:has(.immersive-player.open) .player{display:none!important}
   width:28px;height:28px;border-radius:0;
   background:transparent;color:#fff;font-size:28px;
   box-shadow:none;opacity:1;
-  /* play icon only — Apple Music style (no white circle) */
 }
 .minimal-content .big-controls .big-play:hover{transform:scale(1.08);background:transparent}
 .minimal-bottom{
   display:flex;align-items:center;justify-content:flex-start;gap:10px;
-  max-width:200px;width:100%;margin:28px auto 0;
+  max-width:200px;width:100%;margin:30px auto 0;
   color:rgba(255,255,255,.45);font-size:13px;
   align-self:flex-start;
 }
@@ -1027,7 +1075,8 @@ body.show-queue .rightcol{transform:none;box-shadow:-12px 0 40px rgba(0,0,0,.45)
   .lyrics-layout{grid-template-columns:1fr!important;gap:0;padding:0!important;min-height:100dvh;height:100dvh;overflow:hidden;align-items:stretch}
   .lyrics-layout.only-lyrics-mode{display:flex!important;flex-direction:column;align-items:center;justify-content:center;padding:56px 14px 28px!important}
   .only-lyrics-mode .lyrics-column{width:100%;max-width:100%;max-height:none;flex:1;padding:10vh 12px;overflow-y:auto;-webkit-overflow-scrolling:touch}
-  .only-lyrics-mode .lyric{font-size:clamp(20px,5.4vw,28px)!important;line-height:1.35!important;margin:0 0 20px!important}
+  .only-lyrics-mode .lyric{font-size:clamp(20px,5.4vw,28px)!important;line-height:1.35!important;margin:0 0 20px!important;text-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .only-lyrics-mode .lyric.active{text-shadow:0 0 24px rgba(255,255,255,.35),0 0 50px rgba(255,255,255,.12),0 2px 10px rgba(0,0,0,.4)!important}
   .lyrics-album{display:none}
   .ai-layout{display:none!important}
   .eq-viz.live i{animation:none}
