@@ -1166,66 +1166,118 @@ body.view-new .section .section-head{margin-top:14px}
 /* ---------- Apple-style Artist / Channel page ---------- */
 .artist-hero{
   position:relative;display:none;isolation:isolate;
-  min-height:clamp(280px,42vw,420px);margin:8px 0 8px;
-  border-radius:18px;overflow:hidden;
-  border:1px solid rgba(255,255,255,.14);
-  box-shadow:0 24px 64px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+  min-height:clamp(300px,44vw,440px);margin:8px 0 8px;
+  border-radius:20px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 28px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14);
+  background:rgba(20,20,24,.4);
+  -webkit-backdrop-filter:blur(40px) saturate(1.4);backdrop-filter:blur(40px) saturate(1.4);
 }
 .artist-hero.open{display:block}
+/* Crystal glassy blurred background image */
 .artist-hero-bg{
-  position:absolute;inset:0;z-index:0;
-  background:#1a1a1e center/cover no-repeat;
-  transform:scale(1.08);
-  filter:saturate(1.15) brightness(.72);
+  position:absolute;inset:-20px;z-index:0;
+  background:#121216 center/cover no-repeat;
+  transform:scale(1.2);
+  filter:blur(48px) saturate(1.35) brightness(.85);
+  opacity:.95;
 }
 .artist-hero-bg::after{
   content:"";position:absolute;inset:0;
-  backdrop-filter:blur(0px);
-  background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.25) 40%,rgba(0,0,0,.82) 100%);
+  background:
+    linear-gradient(180deg,rgba(0,0,0,.08) 0%,rgba(0,0,0,.2) 45%,rgba(0,0,0,.72) 100%),
+    linear-gradient(90deg,rgba(0,0,0,.2),transparent 25%,transparent 75%,rgba(0,0,0,.2));
 }
 .artist-hero-shade{
   position:absolute;inset:0;z-index:1;pointer-events:none;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 20%,rgba(255,255,255,.08),transparent 55%),
-    linear-gradient(90deg,rgba(0,0,0,.35),transparent 30%,transparent 70%,rgba(0,0,0,.25));
+    radial-gradient(ellipse 70% 55% at 50% 30%,rgba(255,255,255,.12),transparent 60%),
+    linear-gradient(180deg,rgba(255,255,255,.06),transparent 40%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
 }
 .artist-back{
   position:absolute;top:14px;left:14px;z-index:5;
   height:34px;padding:0 14px 0 10px;border-radius:980px;
-  background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
   color:#fff;font-size:13px;font-weight:600;
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
   display:inline-flex;align-items:center;gap:2px;cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
 }
-.artist-back:hover{background:rgba(255,255,255,.14)}
+.artist-back:hover{background:rgba(255,255,255,.18)}
 .artist-hero-content{
   position:relative;z-index:3;
-  min-height:clamp(280px,42vw,420px);
+  min-height:clamp(300px,44vw,440px);
   display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
   text-align:center;padding:48px 24px 28px;gap:14px;
 }
+/* Clear sharp avatar — no blur */
 .artist-avatar{
-  width:min(160px,34vw);aspect-ratio:1;border-radius:50%;
+  width:min(180px,38vw);aspect-ratio:1;border-radius:50%;
   background:#2a2a2e center/cover no-repeat;
-  box-shadow:0 12px 40px rgba(0,0,0,.55),0 0 0 3px rgba(255,255,255,.18),0 0 40px color-mix(in srgb,var(--a) 25%,transparent);
+  box-shadow:
+    0 16px 48px rgba(0,0,0,.55),
+    0 0 0 4px rgba(255,255,255,.22),
+    0 0 0 6px rgba(0,0,0,.2),
+    0 0 48px color-mix(in srgb,var(--a) 28%,transparent);
   flex-shrink:0;
+  filter:none;
+  image-rendering:auto;
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
 }
 .artist-meta{max-width:640px;width:100%}
 .artist-badge{
   display:inline-block;font-size:11px;font-weight:700;letter-spacing:1.2px;
-  text-transform:uppercase;color:rgba(255,255,255,.75);margin-bottom:6px;
+  text-transform:uppercase;color:rgba(255,255,255,.8);margin-bottom:6px;
+  text-shadow:0 1px 8px rgba(0,0,0,.4);
 }
 .artist-meta h1{
   margin:0 0 6px;font-size:clamp(28px,5vw,48px);font-weight:800;
   letter-spacing:-1.2px;line-height:1.05;color:#fff;
-  text-shadow:0 4px 24px rgba(0,0,0,.45);
+  text-shadow:0 4px 28px rgba(0,0,0,.5);
 }
 .artist-sub{
-  margin:0 0 16px;font-size:14px;color:rgba(255,255,255,.7);font-weight:500;
+  margin:0 0 16px;font-size:14px;color:rgba(255,255,255,.75);font-weight:500;
+  text-shadow:0 1px 10px rgba(0,0,0,.4);
 }
 .artist-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .artist-actions .btn{
   min-width:120px;padding:11px 22px;font-size:14px;font-weight:700;
+}
+/* Similar artists row */
+.similar-artists{
+  grid-column:1/-1;width:100%;margin:8px 0 12px;padding:0;
+}
+.similar-artists h3{
+  font-size:18px;font-weight:700;margin:18px 0 12px;letter-spacing:-.3px;color:#fff;
+}
+.similar-row{
+  display:flex;gap:16px;overflow-x:auto;padding:4px 2px 12px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;
+  -webkit-overflow-scrolling:touch;
+}
+.similar-row::-webkit-scrollbar{height:6px}
+.similar-card{
+  flex:0 0 120px;width:120px;text-align:center;cursor:pointer;
+  background:transparent;border:0;color:#fff;padding:0;font:inherit;
+}
+.similar-card .sim-art{
+  width:100px;height:100px;margin:0 auto 8px;border-radius:50%;
+  background:#2a2a2e center/cover no-repeat;
+  box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 0 2px rgba(255,255,255,.14);
+  transition:transform .15s,box-shadow .15s;
+}
+.similar-card:hover .sim-art{
+  transform:scale(1.05);
+  box-shadow:0 12px 32px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.28),0 0 24px var(--glow);
+}
+.similar-card b{
+  display:block;font-size:12px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;margin:0 auto;
+}
+.similar-card small{
+  display:block;font-size:11px;color:var(--muted);margin-top:2px;
 }
 body.view-artist .hero,
 body.view-artist .mood-row,
@@ -1233,11 +1285,14 @@ body.view-artist .sh-moods{display:none!important}
 body.view-artist .artist-hero{display:block}
 body.view-artist .section .section-head{margin-top:10px}
 @media(max-width:700px){
-  .artist-hero{min-height:300px;border-radius:14px;margin:4px 0}
-  .artist-hero-content{min-height:300px;padding:56px 16px 22px}
-  .artist-avatar{width:min(120px,36vw)}
+  .artist-hero{min-height:320px;border-radius:14px;margin:4px 0}
+  .artist-hero-content{min-height:320px;padding:56px 16px 22px}
+  .artist-avatar{width:min(140px,40vw)}
   .artist-meta h1{font-size:clamp(24px,7vw,34px)}
   .artist-back{top:10px;left:10px}
+  .artist-hero-bg{filter:blur(40px) saturate(1.3) brightness(.88)}
+  .similar-card{flex-basis:100px;width:100px}
+  .similar-card .sim-art{width:84px;height:84px}
 }
 
 </style>
@@ -1966,6 +2021,8 @@ function renderCards(list){
   moreBar.style.display="none";
   moreBar.innerHTML="";
  }
+ // Keep similar artists after song grid when on artist page
+ try{if(typeof renderSimilarArtists==="function") renderSimilarArtists()}catch(e){}
  requestAnimationFrame(syncRecentToCardsHeight);
 }
 function highlightPlayingCard(){
@@ -2811,12 +2868,27 @@ async function loadPlaylist(listId, page){
   }
  }catch(e){console.warn("loadPlaylist",e);toast(e.name==="TimeoutError"?"Playlist timeout — try again":"Playlist load failed");if(page===1)$("#trackHeading").textContent="Playlist failed"}
 }
+function hiResThumb(url){
+  if(!url) return "";
+  try{
+    let u=String(url);
+    // YouTube defaults → higher res
+    u=u.replace(/\/=s\d+([\-\/]|$)/,"/=s800$1")
+       .replace(/\/s\d+\-/,"/s800-")
+       .replace(/=w\d+-h\d+/,"=s800")
+       .replace(/hqdefault/g,"maxresdefault")
+       .replace(/mqdefault/g,"hqdefault")
+       .replace(/sddefault/g,"hqdefault");
+    return u;
+  }catch(e){return url}
+}
 function showArtistHero(info){
   info=info||{};
   const el=$("#artistHero");
   if(!el)return;
   const name=info.name||info.title||"Artist";
-  const thumb=info.thumb||info.avatar||"";
+  const raw=info.thumb||info.avatar||"";
+  const thumb=hiResThumb(raw)||raw;
   const sub=info.sub||"";
   const bg=$("#artistHeroBg");
   const av=$("#artistAvatar");
@@ -2825,12 +2897,25 @@ function showArtistHero(info){
   if(nm) nm.textContent=name;
   if(su) su.textContent=sub||"";
   if(bg){
-    if(thumb){bg.style.backgroundImage=`url("${thumb}")`;bg.style.backgroundSize="cover";bg.style.backgroundPosition="center top"}
-    else{bg.style.backgroundImage="linear-gradient(135deg,var(--a),#1a1a22)"}
+    if(thumb){
+      bg.style.backgroundImage=`url("${thumb}")`;
+      bg.style.backgroundSize="cover";
+      bg.style.backgroundPosition="center center";
+    }else{
+      bg.style.backgroundImage="linear-gradient(135deg,var(--a),#1a1a22)";
+    }
   }
   if(av){
-    if(thumb){av.style.backgroundImage=`url("${thumb}")`;av.textContent=""}
-    else{av.style.backgroundImage="";av.textContent="🎤"}
+    if(thumb){
+      // Clear sharp avatar — separate from blurred bg
+      av.style.backgroundImage=`url("${thumb}")`;
+      av.style.backgroundSize="cover";
+      av.style.backgroundPosition="center center";
+      av.textContent="";
+    }else{
+      av.style.backgroundImage="";
+      av.textContent="🎤";
+    }
   }
   el.hidden=false;el.classList.add("open");el.setAttribute("aria-hidden","false");
   document.body.classList.add("view-artist");
@@ -2842,6 +2927,71 @@ function hideArtistHero(){
   el.classList.remove("open");el.hidden=true;el.setAttribute("aria-hidden","true");
   document.body.classList.remove("view-artist");
   state.artistView=null;
+  state.similarArtists=null;
+  const sim=$("#similarArtists");
+  if(sim){sim.innerHTML="";sim.style.display="none"}
+}
+async function loadSimilarArtists(artistName, selfId){
+  state.similarArtists=[];
+  if(!artistName) return;
+  try{
+    const q=encodeURIComponent((artistName+" similar artists").trim());
+    const res=await fetch("/search?q="+q,{signal:AbortSignal.timeout(12000)});
+    if(!res.ok) return;
+    const data=await res.json();
+    const raw=Array.isArray(data)?data:(data.items||[]);
+    const channels=raw.map(mapSearchItem).filter(s=>s&&s.id&&s.type==="channel"&&s.id!==selfId);
+    // Also accept video authors as pseudo-channels if few channels
+    let list=channels.slice(0,12);
+    if(list.length<4){
+      const seen=new Set(list.map(c=>c.id));
+      const fromVideos=raw.map(mapSearchItem).filter(s=>s&&s.type==="video"&&s.artist);
+      const byArtist={};
+      fromVideos.forEach(s=>{
+        const key=(s.artist||"").toLowerCase().trim();
+        if(!key||key.includes((artistName||"").toLowerCase().slice(0,6))) return;
+        if(!byArtist[key]) byArtist[key]={type:"channel",id:s.artist,title:s.artist,author:s.artist,thumb:s.thumb,name:s.artist};
+      });
+      Object.values(byArtist).forEach(c=>{
+        if(list.length>=10) return;
+        if(!seen.has(c.id)){seen.add(c.id);list.push(c)}
+      });
+    }
+    state.similarArtists=list.slice(0,10);
+    renderSimilarArtists();
+  }catch(e){console.warn("similar artists",e)}
+}
+function renderSimilarArtists(){
+  let box=$("#similarArtists");
+  if(!box){
+    box=document.createElement("div");
+    box.id="similarArtists";
+    box.className="similar-artists";
+    const moreBar=$("#showMoreBar");
+    const cards=$("#cards");
+    const parent=cards&&cards.parentNode;
+    if(parent){
+      if(moreBar&&moreBar.parentNode===parent) parent.insertBefore(box, moreBar.nextSibling);
+      else if(cards) parent.insertBefore(box, cards.nextSibling);
+      else parent.appendChild(box);
+    }
+  }
+  const list=state.similarArtists||[];
+  if(!list.length||!document.body.classList.contains("view-artist")){
+    box.style.display="none";box.innerHTML="";
+    return;
+  }
+  box.style.display="block";
+  box.innerHTML=`<h3>Similar Artists</h3><div class="similar-row">`+
+    list.map(a=>{
+      const th=hiResThumb(a.thumb||a.thumbnail||"")||(a.thumb||"");
+      const name=cleanSongTitle(a.title||a.author||a.name||"Artist");
+      return `<button type="button" class="similar-card" data-type="channel" data-id="${escHtml(a.id||"")}" data-name="${escHtml(name)}" data-thumb="${escHtml(th)}">
+        <div class="sim-art" style="background-image:url('${th}')"></div>
+        <b>${escHtml(name)}</b>
+        <small>Artist</small>
+      </button>`;
+    }).join("")+`</div>`;
 }
 async function loadChannel(channelId,channelName,page,meta){
  if(!channelId&&!channelName)return;
@@ -2917,7 +3067,11 @@ async function loadChannel(channelId,channelName,page,meta){
   state.navType="search";
   try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
   toast(page>1?("+"+list.length+" more"):(displayName+" · "+list.length+" songs"));
-  window.scrollTo({top:0,behavior:"smooth"});
+  if(page===1){
+    window.scrollTo({top:0,behavior:"smooth"});
+    // Similar artists at the end of results
+    loadSimilarArtists(displayName, channelId);
+  }
  }catch(e){console.warn("loadChannel",e);toast("Channel load failed");if(page===1)$("#trackHeading").textContent="Channel failed"}
 }
 async function loadMoreResults(){
@@ -4084,6 +4238,16 @@ function bind(){
   applyEqPreset(btn.dataset.eq);
  });
  $("#eqReset")?.addEventListener("click",()=>applyEqPreset("flat"));
+ // Similar artists click
+ document.addEventListener("click",e=>{
+  const sc=e.target.closest(".similar-card");
+  if(!sc) return;
+  e.preventDefault();
+  const id=sc.dataset.id||"";
+  const name=sc.dataset.name||"";
+  const thumb=sc.dataset.thumb||"";
+  if(id||name) loadChannel(id, name, 1, {name, thumb});
+ });
  // Artist page controls
  $("#artistBack")?.addEventListener("click",()=>{
   try{hideArtistHero()}catch(e){}
