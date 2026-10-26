@@ -495,21 +495,41 @@ body:has(.immersive-player.open) .rightcol{
   filter:blur(1px);
 }
 .lyrics-column::-webkit-scrollbar{display:none}
+/* Apple Music depth-of-field lyrics */
 .lyrics-column .lyric{
-  font-size:clamp(22px,2.4vw,32px);line-height:1.35;font-weight:700;
-  color:rgba(255,255,255,.28);margin:0 0 26px;letter-spacing:-.4px;
-  transition:color .3s ease,opacity .3s ease,text-shadow .3s ease;
-  opacity:.65;
+  font-size:clamp(22px,2.4vw,32px);line-height:1.4;font-weight:700;
+  color:rgba(255,255,255,.5);margin:0 0 22px;letter-spacing:-.35px;
+  opacity:.35;
+  filter:blur(3.5px);
+  transform:scale(.98);
+  transform-origin:left center;
+  transition:
+    color .45s ease,
+    opacity .45s ease,
+    filter .5s ease,
+    text-shadow .45s ease,
+    transform .45s cubic-bezier(.22,.8,.36,1);
+  will-change:filter,opacity,transform;
+  cursor:pointer;
 }
+/* distance from active line (data-d) */
+.lyrics-column .lyric[data-d="3"]{opacity:.22;filter:blur(4px)}
+.lyrics-column .lyric[data-d="2"]{opacity:.32;filter:blur(2.6px);color:rgba(255,255,255,.42)}
+.lyrics-column .lyric[data-d="1"]{
+  opacity:.55;filter:blur(1.1px);color:rgba(255,255,255,.72);
+  transform:scale(.99);
+}
+.lyrics-column .lyric[data-d="0"],
 .lyrics-column .lyric.active{
   color:#fff;opacity:1;
+  filter:blur(0)!important;
+  transform:scale(1.02);
   text-shadow:
-    0 0 28px rgba(255,255,255,.28),
-    0 0 48px rgba(255,255,255,.1),
-    0 2px 10px rgba(0,0,0,.35);
+    0 0 24px rgba(255,255,255,.22),
+    0 2px 12px rgba(0,0,0,.3);
 }
 
-/* ---------- Pure Lyrics mode — glossy finish ---------- */
+/* ---------- Pure Lyrics mode — same Apple depth blur ---------- */
 .lyrics-layout.only-lyrics-mode{
   display:flex!important;align-items:center;justify-content:center;
   min-height:100%;height:100%;
@@ -524,21 +544,18 @@ body:has(.immersive-player.open) .rightcol{
   -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 10%,#000 90%,transparent 100%);
 }
 .only-lyrics-mode .lyric{
-  font-size:clamp(24px,3.8vw,44px)!important;line-height:1.3!important;
-  margin:0 0 28px!important;text-align:center;
-  opacity:.45!important;color:rgba(255,255,255,.32)!important;
+  font-size:clamp(24px,3.8vw,44px)!important;line-height:1.35!important;
+  margin:0 0 26px!important;text-align:center;
   font-weight:700;
-  text-shadow:0 1px 3px rgba(0,0,0,.25);
-  transition:color .35s ease,opacity .35s ease,text-shadow .35s ease,transform .25s ease;
+  transform-origin:center center!important;
 }
+.only-lyrics-mode .lyric[data-d="0"],
 .only-lyrics-mode .lyric.active{
-  color:#fff!important;
-  opacity:1!important;
+  transform:scale(1.04)!important;
   text-shadow:
-    0 0 30px rgba(255,255,255,.35),
-    0 0 60px rgba(255,255,255,.12),
-    0 2px 12px rgba(0,0,0,.4)!important;
-  transform:none!important;
+    0 0 32px rgba(255,255,255,.3),
+    0 0 60px rgba(255,255,255,.1),
+    0 2px 12px rgba(0,0,0,.35)!important;
 }
 
 /* ---------- Classic / Minimal layout — matched to Apple Music ---------- */
@@ -2521,24 +2538,43 @@ function plainToTimed(text,dur){
   const step=Math.max(2,(dur||180)/Math.max(parts.length,1));
   return parts.map((t,i)=>({time:i*step,text:t}));
 }
+function applyLyricDepth(rows, activeIdx){
+  if(!rows||!rows.length)return;
+  rows.forEach((r,i)=>{
+    const d=Math.min(3,Math.abs(i-activeIdx));
+    r.dataset.d=String(d);
+    r.classList.toggle("active",i===activeIdx);
+  });
+}
+function focusLyricLine(idx, smooth){
+  const box=$("#lyricsLines");
+  if(!box)return;
+  const rows=$$("#lyricsLines .lyric");
+  if(!rows.length)return;
+  idx=Math.max(0,Math.min(rows.length-1,idx|0));
+  state._lyricIdx=idx;
+  applyLyricDepth(rows, idx);
+  const row=rows[idx];
+  if(!row)return;
+  const top=row.offsetTop-box.clientHeight/2+row.offsetHeight/2;
+  box.scrollTo({top:Math.max(0,top),behavior:smooth===false?"auto":"smooth"});
+}
 function renderLyricLines(lines){
   const box=$("#lyricsLines");
   if(!box)return;
   if(!lines||!lines.length){
-    box.innerHTML=`<p class="lyric active">Lyrics not found for this track</p>`;
+    box.innerHTML=`<p class="lyric active" data-d="0">Lyrics not found for this track</p>`;
     return;
   }
   state._lyricIdx=0;
-  box.innerHTML=lines.map((l,i)=>`<p class="lyric ${i===0?"active":""}" data-t="${l.time||0}">${escHtml(l.text||l)}</p>`).join("");
+  box.innerHTML=lines.map((l,i)=>`<p class="lyric" data-d="${Math.min(3,i)}" data-t="${l.time||0}">${escHtml(l.text||l)}</p>`).join("");
   box.scrollTop=0;
-  box.querySelectorAll(".lyric").forEach(row=>{
-    row.addEventListener("click",()=>{
-      box.querySelectorAll(".lyric").forEach(x=>x.classList.remove("active"));
-      row.classList.add("active");
-      const top=row.offsetTop-box.clientHeight/2+row.offsetHeight/2;
-      box.scrollTo({top:Math.max(0,top),behavior:"smooth"});
-    });
+  const rows=$$("#lyricsLines .lyric");
+  applyLyricDepth(rows, 0);
+  rows.forEach((row,i)=>{
+    row.addEventListener("click",()=>focusLyricLine(i, true));
   });
+  requestAnimationFrame(()=>focusLyricLine(0, false));
 }
 function fetchWithTimeout(url, ms, opts){
   ms=ms||8000;
@@ -2744,22 +2780,14 @@ function startProgress(){
    const lt=$("#lyricsTimeline"),mt=$("#minimalTimeline");
    if(lt){lt.value=pct;lt.style.setProperty("--progress",pct+"%")}
    if(mt){mt.value=pct;mt.style.setProperty("--progress",pct+"%")}
-   // sync active lyric — keep centered inside lyrics column only (no page jump)
+   // Apple-style lyric focus: center + depth blur by distance
    if(state.lyricsLines&&state.lyricsLines.length){
      let idx=0;
      for(let i=0;i<state.lyricsLines.length;i++){
        if((state.lyricsLines[i].time||0)<=cur) idx=i; else break;
      }
      if(state._lyricIdx!==idx){
-       state._lyricIdx=idx;
-       const box=$("#lyricsLines");
-       const rows=$$("#lyricsLines .lyric");
-       if(rows[idx]&&box){
-         rows.forEach(r=>r.classList.remove("active"));
-         rows[idx].classList.add("active");
-         const top=rows[idx].offsetTop-box.clientHeight/2+rows[idx].offsetHeight/2;
-         box.scrollTo({top:Math.max(0,top),behavior:"smooth"});
-       }
+       focusLyricLine(idx, true);
      }
    }
   }catch(e){}
