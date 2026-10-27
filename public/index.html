@@ -1745,6 +1745,25 @@ body.view-artist .cards{
 }
 .side-signin{ cursor:pointer !important; pointer-events:auto !important; z-index:20 !important; }
 
+
+/* FORCE lyrics + queue panels visible when open */
+body.show-lyrics-panel .lyrics-panel{
+  transform:none !important;
+  display:flex !important;
+  z-index:200 !important;
+  visibility:visible !important;
+  pointer-events:auto !important;
+}
+body.show-queue .rightcol{
+  transform:none !important;
+  display:flex !important;
+  z-index:190 !important;
+  visibility:visible !important;
+  pointer-events:auto !important;
+}
+#lyricsBtn, #queueToggle{ cursor:pointer !important; pointer-events:auto !important; position:relative; z-index:5; }
+#lyricsBtn.on, #queueToggle.on{ background:rgba(250,35,59,.2) !important; color:var(--a) !important; }
+
 </style>
 </head>
 <body>
@@ -1877,7 +1896,7 @@ body.view-artist .cards{
 
 <!-- Premium lyrics side panel -->
 <aside class="lyrics-panel" id="lyricsPanel" aria-hidden="true">
- <button type="button" class="lyrics-panel-close" id="lyricsPanelClose" aria-label="Close">×</button>
+ <button type="button" class="lyrics-panel-close" id="lyricsPanelClose" aria-label="Close" onclick="window.closeLyricsPanel&&window.closeLyricsPanel();return false;">×</button>
  <div class="lyrics-panel-art" id="sideLyricsArt"></div>
  <div class="lyrics-panel-meta">
   <b id="sideLyricsTitle">Select a song</b>
@@ -1910,8 +1929,8 @@ body.view-artist .cards{
  <div class="player-tools">
   <span class="vol-ico" title="Volume"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></span>
   <div class="volume" id="volBar"><i id="volFill"></i></div>
-  <button type="button" class="tool-ico" id="lyricsBtn" title="Lyrics"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM8 9h8M8 13h5"/></svg></button>
-  <button type="button" class="tool-ico" id="queueToggle" title="Up Next"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+  <button type="button" class="tool-ico" id="lyricsBtn" title="Lyrics" onclick="window.toggleLyricsPanel&&window.toggleLyricsPanel();return false;"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM8 9h8M8 13h5"/></svg></button>
+  <button type="button" class="tool-ico" id="queueToggle" title="Up Next" onclick="window.toggleQueuePanel&&window.toggleQueuePanel();return false;"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
   <button type="button" class="tool-ico" id="fsBtn" title="Full screen player">⛶</button>
  </div>
 </div>
@@ -3057,20 +3076,48 @@ function syncSideLyricsMeta(){
   }
 }
 function openLyricsPanel(){
-  syncSideLyricsMeta();
-  if(state.lyricsLines&&state.lyricsLines.length) fillLyricsBox($("#sideLyricsLines"), state.lyricsLines);
+  try{ syncSideLyricsMeta(); }catch(e){}
+  try{ if(state.lyricsLines&&state.lyricsLines.length) fillLyricsBox(document.getElementById("sideLyricsLines"), state.lyricsLines); }catch(e){}
   document.body.classList.add("show-lyrics-panel");
   document.body.classList.remove("show-queue");
-  $("#lyricsPanel")?.setAttribute("aria-hidden","false");
-  $("#lyricsBtn")?.classList.add("on");
-  $("#queueToggle")?.classList.remove("on");
-  focusLyricLine(state._lyricIdx||0, false);
+  var pan=document.getElementById("lyricsPanel"); if(pan){ pan.setAttribute("aria-hidden","false"); pan.style.transform="none"; }
+  var lb=document.getElementById("lyricsBtn"); if(lb) lb.classList.add("on");
+  var qt=document.getElementById("queueToggle"); if(qt) qt.classList.remove("on");
+  var rc=document.querySelector(".rightcol"); if(rc) rc.style.transform="";
+  try{ focusLyricLine(state._lyricIdx||0, false); }catch(e){}
 }
 function closeLyricsPanel(){
   document.body.classList.remove("show-lyrics-panel");
-  $("#lyricsPanel")?.setAttribute("aria-hidden","true");
-  $("#lyricsBtn")?.classList.remove("on");
+  var pan=document.getElementById("lyricsPanel"); if(pan){ pan.setAttribute("aria-hidden","true"); pan.style.transform=""; }
+  var lb=document.getElementById("lyricsBtn"); if(lb) lb.classList.remove("on");
 }
+function openQueuePanel(){
+  try{ closeLyricsPanel(); }catch(e){}
+  document.body.classList.remove("show-lyrics-panel");
+  document.body.classList.add("show-queue");
+  var qt=document.getElementById("queueToggle"); if(qt) qt.classList.add("on");
+  var lb=document.getElementById("lyricsBtn"); if(lb) lb.classList.remove("on");
+  var rc=document.querySelector(".rightcol"); if(rc){ rc.style.display="flex"; rc.style.transform="none"; }
+}
+function closeQueuePanel(){
+  document.body.classList.remove("show-queue");
+  var qt=document.getElementById("queueToggle"); if(qt) qt.classList.remove("on");
+  var rc=document.querySelector(".rightcol"); if(rc) rc.style.transform="";
+}
+function toggleLyricsPanel(){
+  if(document.body.classList.contains("show-lyrics-panel")) closeLyricsPanel();
+  else openLyricsPanel();
+}
+function toggleQueuePanel(){
+  if(document.body.classList.contains("show-queue")) closeQueuePanel();
+  else openQueuePanel();
+}
+window.openLyricsPanel=openLyricsPanel;
+window.closeLyricsPanel=closeLyricsPanel;
+window.openQueuePanel=openQueuePanel;
+window.closeQueuePanel=closeQueuePanel;
+window.toggleLyricsPanel=toggleLyricsPanel;
+window.toggleQueuePanel=toggleQueuePanel;
 function fetchWithTimeout(url, ms, opts){
   ms=ms||8000;
   const ctrl=typeof AbortController!=="undefined"?new AbortController():null;
