@@ -1707,6 +1707,14 @@ body.view-artist .cards{
   .similar-card .sim-art{width:84px;height:84px}
 }
 
+
+/* Auth UI fixes */
+.side-signin{cursor:pointer!important;pointer-events:auto!important;position:relative;z-index:5}
+.side-signin *{pointer-events:none}
+.auth-modal.open{display:flex!important;opacity:1!important;visibility:visible!important}
+.auth-modal{z-index:9999!important}
+.auth-box{position:relative;z-index:1}
+
 </style>
 </head>
 <body>
@@ -1731,7 +1739,7 @@ body.view-artist .cards{
    <button type="button" id="openEqBtn"><span class="tb-ico">🎚</span>EQ</button>
   </div>
   <div class="side-sleep-status" id="sideSleepStatus"></div>
-  <button type="button" class="side-signin" id="sideSignIn" title="Sign In">
+  <button type="button" class="side-signin" id="sideSignIn" title="Sign In" onclick="return window.__auraSignInClick&&window.__auraSignInClick(event);">
    <span class="si-ico">👤</span>
    <span>Sign In</span>
   </button>
@@ -5294,16 +5302,28 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
     ["authSignInMsg","authSignUpMsg","authForgotMsg"].forEach(id=>{const el=$id(id);if(el){el.textContent="";el.className="auth-msg"}});
   }
   function openAuthModal(view){
-    const m=$id("authModal");if(!m)return;
+    const m=$id("authModal");if(!m){console.warn("authModal missing");return;}
     m.classList.add("open");
     m.setAttribute("aria-hidden","false");
+    document.body.style.overflow="hidden";
     showAuthView(view||"signin");
   }
+  window.openAuthModal = openAuthModal;
+  window.__auraSignInClick = function(e){
+    if(e){e.preventDefault();e.stopPropagation();}
+    const s=getSession();
+    if(s&&s.username){
+      if(confirm("Sign out from "+(s.name||s.username)+"?")){setSession(null);toastMsg("Signed out")}
+    }else openAuthModal("signin");
+    return false;
+  };
   function closeAuthModal(){
     const m=$id("authModal");if(!m)return;
     m.classList.remove("open");
     m.setAttribute("aria-hidden","true");
+    document.body.style.overflow="";
   }
+  window.closeAuthModal = closeAuthModal;
   function setAuthMsg(id,text,ok){
     const el=$id(id);if(!el)return;
     el.textContent=text||"";
