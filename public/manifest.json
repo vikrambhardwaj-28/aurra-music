@@ -2,23 +2,30 @@
   "name": "Aura Music",
   "short_name": "Aura Music",
   "description": "Premium free music streaming — Hindi, Punjabi, Haryanavi & Bollywood",
-  "start_url": "https://aura-music.markiv.site/",
-  "scope": "https://aura-music.markiv.site/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#050508",
   "theme_color": "#ff2a7a",
   "icons": [
     {
-      "src": "https://aura-music.markiv.site/logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "https://aura-music.markiv.site/logo.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
