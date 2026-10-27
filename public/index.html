@@ -20,12 +20,14 @@
 <link rel="canonical" href="https://music.markiv.site/">
 
 <!-- Favicons & App Icons — required for real Install (not only shortcut) -->
-<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="icon" href="/logo-192.png" type="image/png" sizes="192x192">
+<link rel="icon" href="/logo-512.png" type="image/png" sizes="512x512">
 <link rel="icon" href="/logo.png" type="image/png" sizes="32x32">
-<link rel="icon" href="/logo.png" type="image/png" sizes="16x16">
-<link rel="apple-touch-icon" href="/logo.png" sizes="180x180">
+<link rel="apple-touch-icon" href="/logo-192.png" sizes="180x180">
+<link rel="apple-touch-icon" href="/logo-512.png" sizes="512x512">
 <link rel="shortcut icon" href="/logo.png">
 <link rel="manifest" href="/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
 
 <!-- Open Graph / Facebook / LinkedIn -->
 <meta property="og:type" content="website">
@@ -5930,14 +5932,22 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
 /* PWA — register service worker so browser shows Install (not only shortcut) */
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("/sw.js",{scope:"/"}).catch(()=>{});
+    navigator.serviceWorker.register("/sw.js",{scope:"/"}).then(reg=>{
+      try{ reg.update(); }catch(e){}
+      console.log("SW registered", reg.scope);
+    }).catch(err=>console.warn("SW failed", err));
   });
 }
-/* Optional: capture install prompt for custom UI later */
+/* Capture install prompt so Chrome can show Install app */
 window.__auraInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault();
   window.__auraInstallPrompt=e;
+  console.log("PWA install available");
+});
+window.addEventListener("appinstalled",()=>{
+  window.__auraInstallPrompt=null;
+  console.log("PWA installed");
 });
 </script>
 </body>
