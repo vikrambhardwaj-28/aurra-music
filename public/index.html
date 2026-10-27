@@ -2047,11 +2047,12 @@ body.view-artist .cards{
 
 
 <script>
-/* AUTH → MongoDB API (/api/auth) — UI same, storage = cloud */
+/* AUTH + CLOUD SYNC → MongoDB (/api/auth) */
 (function(){
   function $(id){ return document.getElementById(id); }
   var API = "/api/auth";
   var SESSION_KEY = "aura_session_v1";
+  var pushTimer = null;
 
   function getSession(){
     try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||"null"); }catch(e){ return null; }
@@ -2134,22 +2135,95 @@ body.view-artist .cards{
     return false;
   };
 
-  async function api(path, body){
-    var res = await fetch(API + path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body||{})
-    });
+  async function api(path, body, method){
+    method = method || (body ? "POST" : "GET");
+    var headers = { "Content-Type": "application/json" };
+    var s = getSession();
+    if(s && s.token) headers["Authorization"] = "Bearer " + s.token;
+    var opts = { method: method, headers: headers };
+    if(body && method !== "GET") opts.body = JSON.stringify(body);
+    var res = await fetch(API + path, opts);
     var data = {};
     try{ data = await res.json(); }catch(e){}
     if(!res.ok){
       var err = new Error(data.error || ("Request failed "+res.status));
       err.status = res.status;
-      err.data = data;
       throw err;
     }
     return data;
   }
+
+  /* ---- Cloud library sync ---- */
+  function applyCloudToState(data){
+    if(!data || !window.__aura || !window.__aura.state) return;
+    var st = window.__aura.state;
+    if(data.playlists && typeof data.playlists === "object"){
+      st.customPlaylists = data.playlists;
+      try{ localStorage.setItem("auraPlaylists", JSON.stringify(data.playlists)); }catch(e){}
+    }
+    if(Array.isArray(data.likedSongs)){
+      st.likedSongs = data.likedSongs;
+      try{ localStorage.setItem("auraLikedSongs", JSON.stringify(data.likedSongs)); }catch(e){}
+    }
+    if(Array.isArray(data.recentPlayed)){
+      st.recentPlayed = data.recentPlayed;
+      try{ localStorage.setItem("auraRecent", JSON.stringify(data.recentPlayed)); }catch(e){}
+    }
+    if(Array.isArray(data.favorites)){
+      st.favorites = data.favorites;
+      try{ localStorage.setItem("auraFavs", JSON.stringify(data.favorites)); }catch(e){}
+    }
+    try{ if(typeof window.__aura.renderPlaylistNav === "function") window.__aura.renderPlaylistNav(); }catch(e){}
+    try{
+      var rn = document.getElementById("recentList");
+      if(rn && st.recentPlayed){
+        /* trigger re-render if available */
+        if(typeof window.__aura.renderRecent === "function") window.__aura.renderRecent();
+      }
+    }catch(e){}
+  }
+
+  async function pullCloud(){
+    var s = getSession();
+    if(!s || !s.token) return null;
+    try{
+      var data = await api("/data", null, "GET");
+      applyCloudToState(data);
+      return data;
+    }catch(e){
+      console.warn("cloud pull failed", e.message);
+      return null;
+    }
+  }
+
+  async function pushCloud(){
+    var s = getSession();
+    if(!s || !s.token) return;
+    if(!window.__aura || !window.__aura.state) return;
+    var st = window.__aura.state;
+    try{
+      await api("/data", {
+        playlists: st.customPlaylists || {},
+        likedSongs: st.likedSongs || [],
+        recentPlayed: (st.recentPlayed || []).slice(0, 40),
+        favorites: st.favorites || []
+      }, "PUT");
+    }catch(e){
+      console.warn("cloud push failed", e.message);
+    }
+  }
+
+  function pushCloudDebounced(){
+    if(pushTimer) clearTimeout(pushTimer);
+    pushTimer = setTimeout(function(){ pushCloud(); }, 800);
+  }
+
+  window.__auraCloud = {
+    pull: pullCloud,
+    push: pushCloud,
+    pushDebounced: pushCloudDebounced,
+    getSession: getSession
+  };
 
   function bind(){
     updateBtn();
@@ -2168,7 +2242,6 @@ body.view-artist .cards{
     var goIn2 = $("goSignIn2"); if(goIn2) goIn2.onclick = function(){ showView("signin"); };
     var forgot = $("authForgotBtn"); if(forgot) forgot.onclick = function(){ showView("forgot"); };
 
-    // LOGIN → POST /api/auth/login
     var signInBtn = $("authSignInBtn");
     if(signInBtn) signInBtn.onclick = async function(){
       var u = ($("authUser")&&$("authUser").value||"").trim().toLowerCase();
@@ -2180,7 +2253,10 @@ body.view-artist .cards{
         var data = await api("/login", { username: u, password: p });
         setSession(data);
         msg("authSignInMsg","Welcome, "+((data.user&&data.user.name)||u)+"!", true);
-        setTimeout(closeAuth, 500);
+        setTimeout(async function(){
+          closeAuth();
+          await pullCloud();
+        }, 400);
       }catch(e){
         msg("authSignInMsg", e.message || "Login failed");
       }finally{
@@ -2188,7 +2264,6 @@ body.view-artist .cards{
       }
     };
 
-    // SIGNUP → POST /api/auth/signup
     var signUpBtn = $("authSignUpBtn");
     if(signUpBtn) signUpBtn.onclick = async function(){
       var name = ($("suName")&&$("suName").value||"").trim();
@@ -2204,6 +2279,11 @@ body.view-artist .cards{
       try{
         var data = await api("/signup", { name: name, username: u, password: p });
         setSession(data);
+        // first login: upload any local playlists/recent to cloud
+        setTimeout(async function(){
+          try{ await pushCloud(); }catch(e){}
+          await pullCloud();
+        }, 300);
         msg("authSignUpMsg","Account ban gaya!", true);
         setTimeout(closeAuth, 500);
       }catch(e){
@@ -2213,7 +2293,6 @@ body.view-artist .cards{
       }
     };
 
-    // FORGOT → mailto (same as before)
     var fpSend = $("authForgotSend");
     if(fpSend) fpSend.onclick = function(){
       var who = ($("fpUser")&&$("fpUser").value||"").trim();
@@ -2223,6 +2302,11 @@ body.view-artist .cards{
       window.location.href = "mailto:vikram.2872006@gmail.com?subject="+subject+"&body="+body;
       msg("authForgotMsg","Mail app open hua", true);
     };
+
+    // If already logged in on page load → pull cloud library
+    if(getSession() && getSession().token){
+      setTimeout(function(){ pullCloud(); }, 600);
+    }
   }
 
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", bind);
@@ -2444,6 +2528,7 @@ function persistAllUserData(){
     saveJSON("auraPlaylists",state.customPlaylists||{});
     saveJSON("auraRecent",state.recentPlayed||[]);
     saveJSON("auraProfile",state.profile||{});
+    try{if(window.__auraCloud)window.__auraCloud.pushDebounced()}catch(e){}
   }catch(e){}
 }
 function loadPlaylists(){
@@ -2537,11 +2622,13 @@ function syncScreenWake(){
 
 const currentSong=()=>state.queue[state.currentIndex]||null;
 const isFav=id=>state.favorites.includes(id);
-const saveFavs=()=>saveJSON("auraFavs",state.favorites||[]);
-const saveLikedSongs=()=>saveJSON("auraLikedSongs",state.likedSongs||[]);
+const saveFavs=()=>{const ok=saveJSON("auraFavs",state.favorites||[]);try{if(window.__auraCloud)window.__auraCloud.pushDebounced()}catch(e){}return ok;};
+const saveLikedSongs=()=>{const ok=saveJSON("auraLikedSongs",state.likedSongs||[]);try{if(window.__auraCloud)window.__auraCloud.pushDebounced()}catch(e){}return ok;};
 const savePlaylists=()=>{
   if(!state.customPlaylists||typeof state.customPlaylists!=="object") state.customPlaylists={};
-  return saveJSON("auraPlaylists",state.customPlaylists);
+  const ok=saveJSON("auraPlaylists",state.customPlaylists);
+  try{if(window.__auraCloud)window.__auraCloud.pushDebounced()}catch(e){}
+  return ok;
 };
 // Persist playlists when tab closes / refreshes
 window.addEventListener("beforeunload",()=>{try{persistAllUserData()}catch(e){}});
@@ -2769,6 +2856,7 @@ function renderMix(){
 }
 function saveRecent(){
  saveJSON("auraRecent",state.recentPlayed||[]);
+ try{if(window.__auraCloud)window.__auraCloud.pushDebounced()}catch(e){}
 }
 function addToRecent(song){
  if(!song||!song.id)return;
@@ -5321,7 +5409,7 @@ function init(){
   }).catch(()=>{});
 }
 init();
-window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadChannel,showArtistHero,hideArtistHero};
+window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadChannel,showArtistHero,hideArtistHero,renderPlaylistNav,renderRecent,savePlaylists,saveLikedSongs,saveRecent};
 })();
 </script>
 <script>
