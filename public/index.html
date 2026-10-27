@@ -1093,55 +1093,68 @@ body.app-fs .immersive-player{padding:0!important}
 }
 body.show-queue .rightcol{transform:none;box-shadow:-12px 0 40px rgba(0,0,0,.45)}
 
-/* ---------- Lyrics side panel (premium) ---------- */
+/* ---------- Lyrics side panel (same look as queue) ---------- */
 .lyrics-panel{
-  position:fixed;right:0;top:var(--head-h);bottom:0;width:min(400px,92vw);z-index:55;
-  display:flex;flex-direction:column;
-  padding:20px 18px 24px;
-  background:rgba(22,22,26,.92);
-  backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8);
-  border-left:1px solid rgba(255,255,255,.1);
-  transform:translateX(105%);transition:transform .28s cubic-bezier(.22,.8,.36,1);
-  box-shadow:none;overflow:hidden;
+  position:fixed;right:0;top:var(--head-h);bottom:0;width:340px;z-index:55;
+  display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto;
+  padding:18px 16px;
+  background:rgba(30,30,32,.94);
+  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  border-left:1px solid var(--line);
+  transform:translateX(105%);transition:transform .25s ease;
+  box-shadow:none;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;
 }
 body.show-lyrics-panel .lyrics-panel{
   transform:none;
-  box-shadow:-16px 0 48px rgba(0,0,0,.45);
+  box-shadow:-12px 0 40px rgba(0,0,0,.45);
 }
 body.show-lyrics-panel .rightcol{transform:translateX(105%)!important}
+.lyrics-panel-card{display:flex;flex-direction:column;flex:1;min-height:0;padding:0}
+.lyrics-panel-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:0 0 12px;font-size:16px;font-weight:700;
+}
 .lyrics-panel-close{
-  position:absolute;top:14px;right:14px;z-index:2;
-  width:32px;height:32px;border-radius:50%;
-  background:rgba(255,255,255,.1);border:0;color:#fff;font-size:18px;
-  display:grid;place-items:center;cursor:pointer;
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,.1);border:0;color:#fff;font-size:16px;
+  display:grid;place-items:center;cursor:pointer;flex-shrink:0;
 }
 .lyrics-panel-close:hover{background:rgba(255,255,255,.18)}
-.lyrics-panel-art{
-  width:min(220px,70%);aspect-ratio:1;margin:8px auto 16px;border-radius:12px;
-  background:#1c1c1e center/cover no-repeat;
-  box-shadow:0 16px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.08);
-  flex-shrink:0;
+.lyrics-now{margin-bottom:4px}
+.lyrics-panel .current-art{
+  width:72px;height:72px;border-radius:8px;
+  background:#2c2c2e center/cover no-repeat;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+  display:grid;place-items:center;font-size:22px;color:var(--muted);
 }
-.lyrics-panel-meta{text-align:center;margin-bottom:14px;flex-shrink:0;padding:0 8px}
-.lyrics-panel-meta b{
-  display:block;font-size:16px;font-weight:700;color:#fff;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.lyrics-panel-meta small{
-  display:block;font-size:13px;color:var(--muted);margin-top:4px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+.lyrics-body{
+  border-top:1px solid var(--line);margin-top:14px;padding-top:12px;
+  display:flex;flex-direction:column;flex:1;min-height:0;
 }
 .lyrics-panel .lyrics-column{
   flex:1;min-height:0;max-height:none;max-width:none;width:100%;
-  padding:8vh 8px;align-self:stretch;
-  mask-image:linear-gradient(to bottom,transparent 0%,#000 8%,#000 92%,transparent 100%);
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 8%,#000 92%,transparent 100%);
+  padding:4px 0 24px;align-self:stretch;overflow-y:auto;
+  mask-image:none;-webkit-mask-image:none;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;
 }
 .lyrics-panel .lyric{
-  font-size:clamp(16px,1.6vw,20px)!important;
-  text-align:center;
-  transform-origin:center center!important;
+  font-size:14px!important;font-weight:500!important;line-height:1.45!important;
+  text-align:left!important;margin:0 0 2px!important;padding:8px 10px!important;
+  border-radius:8px;color:rgba(255,255,255,.4)!important;opacity:1!important;
+  transform:none!important;filter:none!important;
+  text-shadow:none!important;letter-spacing:0!important;
+  transition:background .15s,color .15s;
+  cursor:default;
 }
+.lyrics-panel .lyric:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.7)!important}
+.lyrics-panel .lyric.active{
+  background:rgba(255,255,255,.1)!important;color:#fff!important;
+  font-weight:600!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
+  text-shadow:none!important;filter:none!important;transform:none!important;
+}
+
 .tool-ico.on{background:rgba(250,35,59,.2);color:var(--a)}
 .right-card{padding:0 0 18px;flex-shrink:0}
 .right-title{font-size:16px;margin:0 0 12px;font-weight:700;display:flex;align-items:center;gap:6px}
@@ -1753,6 +1766,7 @@ body.show-lyrics-panel .lyrics-panel{
   z-index:200 !important;
   visibility:visible !important;
   pointer-events:auto !important;
+  width:340px !important;
 }
 body.show-queue .rightcol{
   transform:none !important;
@@ -1894,15 +1908,25 @@ body.show-queue .rightcol{
  </div>
 </aside>
 
-<!-- Premium lyrics side panel -->
+<!-- Lyrics side panel — same style as queue -->
 <aside class="lyrics-panel" id="lyricsPanel" aria-hidden="true">
- <button type="button" class="lyrics-panel-close" id="lyricsPanelClose" aria-label="Close" onclick="window.closeLyricsPanel&&window.closeLyricsPanel();return false;">×</button>
- <div class="lyrics-panel-art" id="sideLyricsArt"></div>
- <div class="lyrics-panel-meta">
-  <b id="sideLyricsTitle">Select a song</b>
-  <small id="sideLyricsArtist">Aura Music</small>
+ <div class="right-card lyrics-panel-card">
+  <div class="right-title lyrics-panel-head">
+   <span>Lyrics</span>
+   <button type="button" class="lyrics-panel-close" id="lyricsPanelClose" aria-label="Close" onclick="window.closeLyricsPanel&&window.closeLyricsPanel();return false;">×</button>
+  </div>
+  <div class="current lyrics-now">
+   <div class="current-art" id="sideLyricsArt">♫</div>
+   <div class="current-info">
+    <b id="sideLyricsTitle">Select a song</b>
+    <small id="sideLyricsArtist">Aura Music</small>
+   </div>
+  </div>
+  <div class="queue lyrics-body">
+   <div class="queue-head"><span>Now Playing</span><span id="lyricsLineCount"></span></div>
+   <div class="lyrics-column" id="sideLyricsLines"><p class="lyric active" data-d="0">Play a song to see lyrics</p></div>
+  </div>
  </div>
- <div class="lyrics-column" id="sideLyricsLines"><p class="lyric active" data-d="0">Play a song to see lyrics</p></div>
 </aside>
 </div>
 
