@@ -2047,9 +2047,63 @@ body.view-artist .cards{
 
 
 <script>
-/* BULLETPROOF AUTH — runs immediately, no dependency on other scripts */
+/* AUTH → MongoDB API (/api/auth) — UI same, storage = cloud */
 (function(){
   function $(id){ return document.getElementById(id); }
+  var API = "/api/auth";
+  var SESSION_KEY = "aura_session_v1";
+
+  function getSession(){
+    try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||"null"); }catch(e){ return null; }
+  }
+  function setSession(data){
+    try{
+      if(data && data.token){
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          token: data.token,
+          username: data.user && data.user.username,
+          name: data.user && data.user.name,
+          ts: Date.now()
+        }));
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
+    }catch(e){}
+    updateBtn();
+  }
+  function updateBtn(){
+    var btn = $("sideSignIn");
+    if(!btn) return;
+    var s = getSession();
+    if(s && s.username){
+      btn.innerHTML = '<span class="si-ico">✓</span><span>'+esc(s.name||s.username)+'</span>';
+      btn.title = "Signed in · click to sign out";
+    } else {
+      btn.innerHTML = '<span class="si-ico">👤</span><span>Sign In</span>';
+      btn.title = "Sign In";
+    }
+  }
+  function esc(s){
+    return String(s||"").replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function msg(id, text, ok){
+    var el = $(id);
+    if(!el) return;
+    el.textContent = text||"";
+    el.className = "auth-msg" + (text ? (ok ? " ok" : " err") : "");
+  }
+  function showView(name){
+    var map = {signin:"authSignInView", signup:"authSignUpView", forgot:"authForgotView"};
+    Object.keys(map).forEach(function(k){
+      var el = $(map[k]); if(!el) return;
+      var on = (k===name);
+      el.style.display = on ? "block" : "none";
+      el.classList.toggle("active", on);
+    });
+    msg("authSignInMsg",""); msg("authSignUpMsg",""); msg("authForgotMsg","");
+  }
   function openAuth(){
     var m = $("authModal");
     if(!m){ alert("Sign In panel missing"); return; }
@@ -2057,45 +2111,51 @@ body.view-artist .cards{
     m.classList.add("open");
     m.setAttribute("aria-hidden","false");
     document.body.style.overflow = "hidden";
-    // show sign-in view
-    ["authSignInView","authSignUpView","authForgotView"].forEach(function(id){
-      var el=$(id); if(el){ el.style.display = (id==="authSignInView"?"block":"none"); el.classList.toggle("active", id==="authSignInView"); }
-    });
+    showView("signin");
   }
   function closeAuth(){
-    var m=$("authModal");
+    var m = $("authModal");
     if(!m) return;
     m.style.display = "none";
     m.classList.remove("open");
     m.setAttribute("aria-hidden","true");
     document.body.style.overflow = "";
   }
-  function showView(name){
-    var map = {signin:"authSignInView", signup:"authSignUpView", forgot:"authForgotView"};
-    Object.keys(map).forEach(function(k){
-      var el=$(map[k]); if(!el) return;
-      var on = (k===name);
-      el.style.display = on ? "block" : "none";
-      el.classList.toggle("active", on);
-    });
-  }
   window.openAuthModal = openAuth;
   window.closeAuthModal = closeAuth;
   window.__auraSignInClick = function(e){
     if(e){ e.preventDefault(); e.stopPropagation(); }
-    openAuth();
+    var s = getSession();
+    if(s && s.username){
+      if(confirm("Sign out from "+(s.name||s.username)+"?")){
+        setSession(null);
+      }
+    } else openAuth();
     return false;
   };
 
+  async function api(path, body){
+    var res = await fetch(API + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body||{})
+    });
+    var data = {};
+    try{ data = await res.json(); }catch(e){}
+    if(!res.ok){
+      var err = new Error(data.error || ("Request failed "+res.status));
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
   function bind(){
+    updateBtn();
     var btn = $("sideSignIn");
     if(btn){
-      btn.onclick = function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        openAuth();
-        return false;
-      };
+      btn.onclick = function(e){ return window.__auraSignInClick(e); };
     }
     var closeBtn = $("authClose");
     if(closeBtn) closeBtn.onclick = function(){ closeAuth(); };
@@ -2108,54 +2168,60 @@ body.view-artist .cards{
     var goIn2 = $("goSignIn2"); if(goIn2) goIn2.onclick = function(){ showView("signin"); };
     var forgot = $("authForgotBtn"); if(forgot) forgot.onclick = function(){ showView("forgot"); };
 
-    // Sign in action (localStorage demo)
+    // LOGIN → POST /api/auth/login
     var signInBtn = $("authSignInBtn");
-    if(signInBtn) signInBtn.onclick = function(){
+    if(signInBtn) signInBtn.onclick = async function(){
       var u = ($("authUser")&&$("authUser").value||"").trim().toLowerCase();
       var p = ($("authPass")&&$("authPass").value)||"";
-      var msg = $("authSignInMsg");
-      if(!u||!p){ if(msg){ msg.textContent="Username aur password dono chahiye"; msg.className="auth-msg err"; } return; }
-      var users=[]; try{ users=JSON.parse(localStorage.getItem("aura_users_v1")||"[]"); }catch(e){}
-      var found = users.find(function(x){ return x.username===u && x.password===p; });
-      if(!found){ if(msg){ msg.textContent="Galat username ya password"; msg.className="auth-msg err"; } return; }
-      try{ localStorage.setItem("aura_session_v1", JSON.stringify({username:found.username,name:found.name,ts:Date.now()})); }catch(e){}
-      if(msg){ msg.textContent="Welcome, "+(found.name||found.username)+"!"; msg.className="auth-msg ok"; }
-      if(btn) btn.innerHTML = '<span class="si-ico">✓</span><span>'+(found.name||found.username)+'</span>';
-      setTimeout(closeAuth, 500);
+      if(!u||!p){ msg("authSignInMsg","Username aur password dono chahiye"); return; }
+      signInBtn.disabled = true;
+      msg("authSignInMsg","Signing in…", true);
+      try{
+        var data = await api("/login", { username: u, password: p });
+        setSession(data);
+        msg("authSignInMsg","Welcome, "+((data.user&&data.user.name)||u)+"!", true);
+        setTimeout(closeAuth, 500);
+      }catch(e){
+        msg("authSignInMsg", e.message || "Login failed");
+      }finally{
+        signInBtn.disabled = false;
+      }
     };
 
-    // Sign up
+    // SIGNUP → POST /api/auth/signup
     var signUpBtn = $("authSignUpBtn");
-    if(signUpBtn) signUpBtn.onclick = function(){
+    if(signUpBtn) signUpBtn.onclick = async function(){
       var name = ($("suName")&&$("suName").value||"").trim();
       var u = ($("suUser")&&$("suUser").value||"").trim().toLowerCase();
       var p = ($("suPass")&&$("suPass").value)||"";
       var p2 = ($("suPass2")&&$("suPass2").value)||"";
-      var msg = $("authSignUpMsg");
-      if(!name||!u||!p){ if(msg){ msg.textContent="Name, username aur password bharo"; msg.className="auth-msg err"; } return; }
-      if(u.length<3){ if(msg){ msg.textContent="Username kam se kam 3 characters"; msg.className="auth-msg err"; } return; }
-      if(p.length<4){ if(msg){ msg.textContent="Password kam se kam 4 characters"; msg.className="auth-msg err"; } return; }
-      if(p!==p2){ if(msg){ msg.textContent="Passwords match nahi karte"; msg.className="auth-msg err"; } return; }
-      var users=[]; try{ users=JSON.parse(localStorage.getItem("aura_users_v1")||"[]"); }catch(e){}
-      if(users.some(function(x){ return x.username===u; })){ if(msg){ msg.textContent="Username already taken"; msg.className="auth-msg err"; } return; }
-      var user={name:name,username:u,password:p,created:Date.now()};
-      users.push(user);
-      try{ localStorage.setItem("aura_users_v1", JSON.stringify(users)); localStorage.setItem("aura_session_v1", JSON.stringify({username:u,name:name,ts:Date.now()})); }catch(e){}
-      if(msg){ msg.textContent="Account ban gaya!"; msg.className="auth-msg ok"; }
-      if(btn) btn.innerHTML = '<span class="si-ico">✓</span><span>'+name+'</span>';
-      setTimeout(closeAuth, 500);
+      if(!name||!u||!p){ msg("authSignUpMsg","Name, username aur password bharo"); return; }
+      if(u.length<3){ msg("authSignUpMsg","Username kam se kam 3 characters"); return; }
+      if(p.length<4){ msg("authSignUpMsg","Password kam se kam 4 characters"); return; }
+      if(p!==p2){ msg("authSignUpMsg","Passwords match nahi karte"); return; }
+      signUpBtn.disabled = true;
+      msg("authSignUpMsg","Creating account…", true);
+      try{
+        var data = await api("/signup", { name: name, username: u, password: p });
+        setSession(data);
+        msg("authSignUpMsg","Account ban gaya!", true);
+        setTimeout(closeAuth, 500);
+      }catch(e){
+        msg("authSignUpMsg", e.message || "Signup failed");
+      }finally{
+        signUpBtn.disabled = false;
+      }
     };
 
-    // Forgot
+    // FORGOT → mailto (same as before)
     var fpSend = $("authForgotSend");
     if(fpSend) fpSend.onclick = function(){
       var who = ($("fpUser")&&$("fpUser").value||"").trim();
-      var msgEl = $("authForgotMsg");
-      if(!who){ if(msgEl){ msgEl.textContent="Username ya email likho"; msgEl.className="auth-msg err"; } return; }
+      if(!who){ msg("authForgotMsg","Username ya email likho"); return; }
       var subject = encodeURIComponent("Aura Music — Password help");
       var body = encodeURIComponent("Password help request\n\nUsername/Email: "+who+"\n\n— Aura Music");
       window.location.href = "mailto:vikram.2872006@gmail.com?subject="+subject+"&body="+body;
-      if(msgEl){ msgEl.textContent="Mail app open hua"; msgEl.className="auth-msg ok"; }
+      msg("authForgotMsg","Mail app open hua", true);
     };
   }
 
@@ -5410,142 +5476,7 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
  $("#lyricsPanelClose")?.addEventListener("click",closeLyricsPanel);
 })();
 
-/* ---- Auth: Sign In / Sign Up / Forgot ---- */
-(function(){
-  const AUTH_HELP_MAIL="vikram.2872006@gmail.com";
-  const AUTH_KEY="aura_users_v1";
-  const AUTH_SESSION="aura_session_v1";
-  const $id=id=>document.getElementById(id);
-  const safe=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-  const toastMsg=m=>{try{if(window.__aura&&window.__aura.toast)window.__aura.toast(m)}catch(e){}};
-
-  function loadUsers(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||"[]")}catch(e){return[]}}
-  function saveUsers(list){try{localStorage.setItem(AUTH_KEY,JSON.stringify(list||[]))}catch(e){}}
-  function getSession(){try{return JSON.parse(localStorage.getItem(AUTH_SESSION)||"null")}catch(e){return null}}
-  function setSession(user){
-    try{
-      if(user) localStorage.setItem(AUTH_SESSION,JSON.stringify({username:user.username,name:user.name,ts:Date.now()}));
-      else localStorage.removeItem(AUTH_SESSION);
-    }catch(e){}
-    updateAuthUI();
-  }
-  function updateAuthUI(){
-    const s=getSession();
-    const btn=$id("sideSignIn");
-    if(!btn) return;
-    if(s&&s.username){
-      btn.innerHTML=`<span class="si-ico">✓</span><span>${safe(s.name||s.username)}</span>`;
-      btn.title="Signed in · click to manage";
-    }else{
-      btn.innerHTML=`<span class="si-ico">👤</span><span>Sign In</span>`;
-      btn.title="Sign In";
-    }
-  }
-  function showAuthView(which){
-    const map={signin:"authSignInView",signup:"authSignUpView",forgot:"authForgotView"};
-    Object.values(map).forEach(id=>{const el=$id(id);if(el)el.classList.remove("active")});
-    const target=$id(map[which]||map.signin);
-    if(target) target.classList.add("active");
-    ["authSignInMsg","authSignUpMsg","authForgotMsg"].forEach(id=>{const el=$id(id);if(el){el.textContent="";el.className="auth-msg"}});
-  }
-  function openAuthModal(view){
-    const m=$id("authModal");if(!m){console.warn("authModal missing");return;}
-    m.classList.add("open");
-    m.setAttribute("aria-hidden","false");
-    document.body.style.overflow="hidden";
-    showAuthView(view||"signin");
-  }
-  window.openAuthModal = openAuthModal;
-  window.__auraSignInClick = function(e){
-    if(e){e.preventDefault();e.stopPropagation();}
-    const s=getSession();
-    if(s&&s.username){
-      if(confirm("Sign out from "+(s.name||s.username)+"?")){setSession(null);toastMsg("Signed out")}
-    }else openAuthModal("signin");
-    return false;
-  };
-  function closeAuthModal(){
-    const m=$id("authModal");if(!m)return;
-    m.classList.remove("open");
-    m.setAttribute("aria-hidden","true");
-    document.body.style.overflow="";
-  }
-  window.closeAuthModal = closeAuthModal;
-  function setAuthMsg(id,text,ok){
-    const el=$id(id);if(!el)return;
-    el.textContent=text||"";
-    el.className="auth-msg"+(text?(ok?" ok":" err"):"");
-  }
-
-  function bindAuth(){
-    updateAuthUI();
-    $id("authClose")?.addEventListener("click",closeAuthModal);
-    $id("authModal")?.addEventListener("click",e=>{if(e.target===$id("authModal"))closeAuthModal()});
-    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$id("authModal")?.classList.contains("open"))closeAuthModal()});
-    $id("goSignUp")?.addEventListener("click",()=>showAuthView("signup"));
-    $id("goSignIn")?.addEventListener("click",()=>showAuthView("signin"));
-    $id("goSignIn2")?.addEventListener("click",()=>showAuthView("signin"));
-    $id("authForgotBtn")?.addEventListener("click",()=>showAuthView("forgot"));
-
-    $id("authSignInBtn")?.addEventListener("click",()=>{
-      const u=($id("authUser")?.value||"").trim().toLowerCase();
-      const p=$id("authPass")?.value||"";
-      if(!u||!p){setAuthMsg("authSignInMsg","Username aur password dono chahiye");return}
-      const found=loadUsers().find(x=>x.username===u&&x.password===p);
-      if(!found){setAuthMsg("authSignInMsg","Galat username ya password");return}
-      setSession(found);
-      setAuthMsg("authSignInMsg","Welcome back, "+(found.name||found.username)+"!",true);
-      toastMsg("Signed in as "+(found.name||found.username));
-      setTimeout(closeAuthModal,600);
-    });
-
-    $id("authSignUpBtn")?.addEventListener("click",()=>{
-      const name=($id("suName")?.value||"").trim();
-      const u=($id("suUser")?.value||"").trim().toLowerCase();
-      const p=$id("suPass")?.value||"";
-      const p2=$id("suPass2")?.value||"";
-      if(!name||!u||!p){setAuthMsg("authSignUpMsg","Name, username aur password bharo");return}
-      if(u.length<3){setAuthMsg("authSignUpMsg","Username kam se kam 3 characters");return}
-      if(p.length<4){setAuthMsg("authSignUpMsg","Password kam se kam 4 characters");return}
-      if(p!==p2){setAuthMsg("authSignUpMsg","Passwords match nahi karte");return}
-      const users=loadUsers();
-      if(users.some(x=>x.username===u)){setAuthMsg("authSignUpMsg","Username already taken");return}
-      const user={name,username:u,password:p,created:Date.now()};
-      users.push(user);saveUsers(users);setSession(user);
-      setAuthMsg("authSignUpMsg","Account ban gaya!",true);
-      toastMsg("Welcome, "+name);
-      setTimeout(closeAuthModal,600);
-    });
-
-    $id("authForgotSend")?.addEventListener("click",()=>{
-      const who=($id("fpUser")?.value||"").trim();
-      const msg=($id("fpMsg")?.value||"").trim();
-      if(!who){setAuthMsg("authForgotMsg","Username ya email likho");return}
-      const subject=encodeURIComponent("Aura Music — Password help");
-      const body=encodeURIComponent(
-        "Password help request\n\nUsername/Email: "+who+
-        "\nMessage: "+(msg||"(none)")+
-        "\n\n— sent from Aura Music app"
-      );
-      window.location.href=`mailto:${AUTH_HELP_MAIL}?subject=${subject}&body=${body}`;
-      setAuthMsg("authForgotMsg","Mail app open hua · "+AUTH_HELP_MAIL+" pe request jayegi",true);
-    });
-
-    $id("sideSignIn")?.addEventListener("click",e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      const s=getSession();
-      if(s&&s.username){
-        if(confirm("Sign out from "+(s.name||s.username)+"?")){setSession(null);toastMsg("Signed out")}
-      }else openAuthModal("signin");
-    });
-  }
-
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",bindAuth);
-  else bindAuth();
-})();
-
-
+/* old localStorage auth removed — using API auth */
 /* PWA — register service worker so browser shows Install (not only shortcut) */
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{
