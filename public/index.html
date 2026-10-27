@@ -1805,6 +1805,244 @@ body.show-queue .rightcol{
 #lyricsBtn, #queueToggle{ cursor:pointer !important; pointer-events:auto !important; position:relative; z-index:5; }
 #lyricsBtn.on, #queueToggle.on{ background:rgba(250,35,59,.2) !important; color:var(--a) !important; }
 
+
+/* ==== AURA GLASS POLISH v2 — glow + floating + mobile (no logic change) ==== */
+:root{
+  --glass-bg:rgba(28,28,32,.72);
+  --glass-bg-strong:rgba(32,32,36,.88);
+  --glass-border:rgba(255,255,255,.12);
+  --glass-glow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.06),inset 0 1px 0 rgba(255,255,255,.08);
+  --glass-glow-soft:0 12px 40px rgba(0,0,0,.35),0 0 24px rgba(250,35,59,.08);
+  --blur:blur(28px) saturate(1.7);
+  --ease-fast:cubic-bezier(.22,.8,.36,1);
+}
+/* faster smooth transitions site-wide */
+.sidebar,.player,.rightcol,.lyrics-panel,.lyrics-panel-inner,.mobile-nav,
+.float-box,.auth-box,.profile-box,.pl-box,.theme-panel,.song-ctx,
+.music-card,.tool-ico,.nav button,.side-signin,.btn,.view-switch{
+  transition:transform .2s var(--ease-fast),opacity .18s ease,background .15s ease,box-shadow .2s ease,border-color .15s ease!important;
+}
+
+/* Sidebar glass */
+.sidebar{
+  background:rgba(18,18,22,.65)!important;
+  backdrop-filter:var(--blur)!important;-webkit-backdrop-filter:var(--blur)!important;
+  border-right:1px solid var(--glass-border)!important;
+  box-shadow:4px 0 24px rgba(0,0,0,.25);
+}
+
+/* Top player bar glass + glow */
+.player{
+  background:rgba(28,28,32,.7)!important;
+  backdrop-filter:var(--blur)!important;-webkit-backdrop-filter:var(--blur)!important;
+  border-bottom:1px solid var(--glass-border)!important;
+  box-shadow:0 4px 24px rgba(0,0,0,.3),0 0 40px rgba(250,35,59,.04);
+}
+.lcd{
+  background:rgba(255,255,255,.07)!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+.transport .play-main,.player .play-main{
+  box-shadow:0 4px 16px rgba(250,35,59,.25),0 0 0 1px rgba(255,255,255,.08);
+}
+
+/* Queue floating glass card */
+.rightcol{
+  right:12px!important;top:calc(var(--head-h) + 10px)!important;bottom:88px!important;
+  width:340px!important;padding:0!important;
+  background:transparent!important;border:none!important;
+  transform:translateX(calc(100% + 28px));
+  opacity:0;pointer-events:none;
+  transition:transform .22s var(--ease-fast),opacity .18s ease!important;
+  overflow:visible!important;
+}
+body.show-queue .rightcol{
+  transform:none!important;opacity:1!important;pointer-events:auto!important;
+  box-shadow:none!important;
+}
+.rightcol > .right-card:first-child{
+  border-radius:16px 16px 0 0;
+}
+.rightcol{
+  border-radius:16px;
+  background:rgba(36,36,40,.88)!important;
+  backdrop-filter:var(--blur)!important;-webkit-backdrop-filter:var(--blur)!important;
+  border:1px solid var(--glass-border)!important;
+  box-shadow:var(--glass-glow-soft)!important;
+  padding:16px!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+}
+body.show-queue .rightcol{opacity:1!important}
+
+/* Lyrics floating glass + glow */
+.lyrics-panel{
+  right:12px!important;top:calc(var(--head-h) + 10px)!important;bottom:88px!important;
+  width:340px!important;background:transparent!important;border:none!important;
+  transform:translateX(calc(100% + 28px))!important;
+  opacity:0!important;pointer-events:none!important;
+  transition:transform .22s var(--ease-fast),opacity .18s ease!important;
+}
+body.show-lyrics-panel .lyrics-panel{
+  transform:none!important;opacity:1!important;pointer-events:auto!important;
+  z-index:200!important;
+}
+.lyrics-panel-inner{
+  background:rgba(32,32,38,.78)!important;
+  backdrop-filter:blur(36px) saturate(1.85)!important;-webkit-backdrop-filter:blur(36px) saturate(1.85)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  border-radius:16px!important;
+  box-shadow:
+    0 16px 48px rgba(0,0,0,.45),
+    0 0 40px rgba(250,35,59,.1),
+    inset 0 1px 0 rgba(255,255,255,.1)!important;
+}
+.lyrics-panel .lyric.active{
+  background:rgba(255,255,255,.12)!important;
+  box-shadow:0 0 20px rgba(255,255,255,.06),inset 0 0 0 1px rgba(255,255,255,.1)!important;
+  color:#fff!important;
+}
+
+/* Floating modals — glass */
+.float-box,.auth-box,.profile-box,.pl-box{
+  background:rgba(30,30,36,.82)!important;
+  backdrop-filter:blur(32px) saturate(1.8)!important;-webkit-backdrop-filter:blur(32px) saturate(1.8)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.5),0 0 32px rgba(250,35,59,.08),inset 0 1px 0 rgba(255,255,255,.1)!important;
+  border-radius:18px!important;
+}
+.float-modal,.auth-modal,.profile-modal,.pl-modal{
+  background:rgba(0,0,0,.55)!important;
+  backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;
+}
+.theme-panel,.song-ctx,.search-sugg{
+  background:rgba(36,36,42,.9)!important;
+  backdrop-filter:var(--blur)!important;-webkit-backdrop-filter:var(--blur)!important;
+  border:1px solid var(--glass-border)!important;
+  box-shadow:var(--glass-glow)!important;
+}
+
+/* Cards subtle glass hover glow */
+.music-card{
+  border-radius:12px;
+  transition:transform .18s var(--ease-fast),box-shadow .2s ease!important;
+}
+.music-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 12px 28px rgba(0,0,0,.35),0 0 20px rgba(250,35,59,.08);
+}
+.music-card .art{
+  box-shadow:0 6px 18px rgba(0,0,0,.3);
+  border-radius:10px;
+}
+
+/* Hero glass */
+.hero{
+  background:linear-gradient(135deg,rgba(250,35,59,.14),rgba(28,28,32,.75))!important;
+  backdrop-filter:blur(20px)!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* Buttons glow */
+.btn.primary,.auth-primary,.profile-actions .save,.pl-actions .save{
+  box-shadow:0 6px 20px rgba(250,35,59,.35),inset 0 1px 0 rgba(255,255,255,.15)!important;
+}
+.tool-ico.on,#lyricsBtn.on,#queueToggle.on{
+  background:rgba(250,35,59,.18)!important;
+  color:var(--a)!important;
+  box-shadow:0 0 16px rgba(250,35,59,.2);
+}
+
+/* Mobile nav glass floating */
+.mobile-nav{
+  background:rgba(22,22,26,.82)!important;
+  backdrop-filter:blur(24px) saturate(1.7)!important;-webkit-backdrop-filter:blur(24px) saturate(1.7)!important;
+  border-top:1px solid rgba(255,255,255,.1)!important;
+  box-shadow:0 -8px 32px rgba(0,0,0,.35);
+}
+.mobile-nav button.active{
+  color:#fff!important;
+  text-shadow:0 0 12px rgba(250,35,59,.4);
+}
+
+/* Mobile action bar glass */
+.mobile-action-bar{
+  background:rgba(28,28,32,.75)!important;
+  backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+}
+
+/* Mobile player dock polish */
+@media (max-width:900px){
+  .player{
+    background:rgba(20,20,24,.82)!important;
+    backdrop-filter:blur(28px) saturate(1.7)!important;
+    border-radius:16px 16px 0 0;
+    box-shadow:0 -8px 32px rgba(0,0,0,.4),0 0 24px rgba(250,35,59,.06);
+  }
+  .rightcol,.lyrics-panel{
+    right:8px!important;left:8px!important;width:auto!important;
+    top:auto!important;bottom:calc(72px + env(safe-area-inset-bottom,0px))!important;
+    max-height:min(62vh,520px);
+  }
+  .lyrics-panel-inner,.rightcol{
+    border-radius:16px!important;
+  }
+  body.show-queue .rightcol,
+  body.show-lyrics-panel .lyrics-panel{
+    transform:none!important;opacity:1!important;
+  }
+  .music-card:hover{transform:none}
+  .sidebar{display:none!important}
+  .layout{margin-left:0!important}
+  .center{padding-left:14px!important;padding-right:14px!important}
+  .page-title{font-size:24px!important}
+  .cards{gap:12px!important}
+}
+
+/* Toast glass */
+.toast{
+  background:rgba(40,40,46,.9)!important;
+  backdrop-filter:blur(20px)!important;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 8px 28px rgba(0,0,0,.4),0 0 16px rgba(250,35,59,.12)!important;
+}
+
+/* Scrollbar subtle */
+::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.16)!important;
+  border-radius:8px;
+}
+
+/* Reduce heavy filters on immersive for speed */
+.immersive-player:before{
+  will-change:auto;
+}
+.music-card .art,.current-art,.now-art{
+  will-change:transform;
+}
+
+/* Side signin glass */
+.side-signin{
+  background:rgba(255,255,255,.06)!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  border-radius:12px!important;
+  backdrop-filter:blur(12px);
+}
+.side-signin:hover{
+  background:rgba(255,255,255,.12)!important;
+  box-shadow:0 0 16px rgba(250,35,59,.1);
+}
+
+/* Fix: ensure queue/lyrics don't leave ghost overlays */
+body:not(.show-queue) .rightcol{pointer-events:none!important}
+body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
+
+/* ==== end glass polish ==== */
+
 </style>
 </head>
 <body>
