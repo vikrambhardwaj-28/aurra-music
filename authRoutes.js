@@ -29,9 +29,20 @@ const historySchema = new mongoose.Schema({
   playedAt: { type: Date, default: Date.now },
 });
 
+/* Full library sync (playlists + liked + recent + favorites) */
+const userDataSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true, index: true },
+  playlists: { type: mongoose.Schema.Types.Mixed, default: {} },
+  likedSongs: { type: Array, default: [] },
+  recentPlayed: { type: Array, default: [] },
+  favorites: { type: Array, default: [] },
+  updatedAt: { type: Date, default: Date.now },
+});
+
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 const Playlist = mongoose.models.Playlist || mongoose.model("Playlist", playlistSchema);
 const History = mongoose.models.History || mongoose.model("History", historySchema);
+const UserData = mongoose.models.UserData || mongoose.model("UserData", userDataSchema);
 
 function auth(req, res, next) {
   const h = req.headers.authorization || "";
@@ -58,6 +69,7 @@ router.post("/signup", async (req, res) => {
     }
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, username, passwordHash });
+    await UserData.create({ userId: user._id, playlists: {}, likedSongs: [], recentPlayed: [], favorites: [] });
     const token = jwt.sign({ id: user._id, username, name }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token, user: { name, username } });
   } catch (e) {
@@ -90,6 +102,55 @@ router.get("/me", auth, async (req, res) => {
   res.json({ user });
 });
 
+/* ---- Library sync ---- */
+router.get("/data", auth, async (req, res) => {
+  try {
+    let doc = await UserData.findOne({ userId: req.user.id });
+    if (!doc) {
+      doc = await UserData.create({
+        userId: req.user.id,
+        playlists: {},
+        likedSongs: [],
+        recentPlayed: [],
+        favorites: [],
+      });
+    }
+    res.json({
+      playlists: doc.playlists || {},
+      likedSongs: doc.likedSongs || [],
+      recentPlayed: doc.recentPlayed || [],
+      favorites: doc.favorites || [],
+      updatedAt: doc.updatedAt,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put("/data", auth, async (req, res) => {
+  try {
+    const playlists = req.body.playlists && typeof req.body.playlists === "object" ? req.body.playlists : {};
+    const likedSongs = Array.isArray(req.body.likedSongs) ? req.body.likedSongs : [];
+    const recentPlayed = Array.isArray(req.body.recentPlayed) ? req.body.recentPlayed : [];
+    const favorites = Array.isArray(req.body.favorites) ? req.body.favorites : [];
+    const doc = await UserData.findOneAndUpdate(
+      { userId: req.user.id },
+      {
+        playlists,
+        likedSongs: likedSongs.slice(0, 500),
+        recentPlayed: recentPlayed.slice(0, 50),
+        favorites: favorites.slice(0, 500),
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+    res.json({ ok: true, updatedAt: doc.updatedAt });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* legacy playlist / history endpoints (still work) */
 router.get("/playlists", auth, async (req, res) => {
   const list = await Playlist.find({ userId: req.user.id }).sort({ updatedAt: -1 });
   res.json({ playlists: list });
