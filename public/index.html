@@ -1715,6 +1715,33 @@ body.view-artist .cards{
 .auth-modal{z-index:9999!important}
 .auth-box{position:relative;z-index:1}
 
+
+/* AUTH FORCE SHOW */
+.auth-modal.open,
+.auth-modal[aria-hidden="false"]{
+  display:flex !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  z-index:99999 !important;
+  position:fixed !important;
+  inset:0 !important;
+  align-items:center !important;
+  justify-content:center !important;
+  background:rgba(0,0,0,.8) !important;
+}
+.auth-box{
+  display:block !important;
+  width:min(400px,94vw) !important;
+  max-height:90vh !important;
+  overflow-y:auto !important;
+  background:#1c1c1e !important;
+  color:#fff !important;
+  border-radius:18px !important;
+  padding:26px 22px 22px !important;
+  position:relative !important;
+}
+.side-signin{ cursor:pointer !important; pointer-events:auto !important; z-index:20 !important; }
+
 </style>
 </head>
 <body>
@@ -1739,7 +1766,7 @@ body.view-artist .cards{
    <button type="button" id="openEqBtn"><span class="tb-ico">🎚</span>EQ</button>
   </div>
   <div class="side-sleep-status" id="sideSleepStatus"></div>
-  <button type="button" class="side-signin" id="sideSignIn" title="Sign In" onclick="return window.__auraSignInClick&&window.__auraSignInClick(event);">
+  <button type="button" class="side-signin" id="sideSignIn" title="Sign In" onclick="window.__auraSignInClick&&window.__auraSignInClick(event);return false;">
    <span class="si-ico">👤</span>
    <span>Sign In</span>
   </button>
@@ -1984,6 +2011,7 @@ body.view-artist .cards{
    <div class="auth-switch">New here?<button type="button" id="goSignUp">Sign Up</button></div>
   </div>
 
+
   <!-- SIGN UP -->
   <div class="auth-view" id="authSignUpView">
    <h3>Create Account</h3>
@@ -2016,6 +2044,125 @@ body.view-artist .cards{
  </div>
 </div>
 
+
+
+<script>
+/* BULLETPROOF AUTH — runs immediately, no dependency on other scripts */
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function openAuth(){
+    var m = $("authModal");
+    if(!m){ alert("Sign In panel missing"); return; }
+    m.style.display = "flex";
+    m.classList.add("open");
+    m.setAttribute("aria-hidden","false");
+    document.body.style.overflow = "hidden";
+    // show sign-in view
+    ["authSignInView","authSignUpView","authForgotView"].forEach(function(id){
+      var el=$(id); if(el){ el.style.display = (id==="authSignInView"?"block":"none"); el.classList.toggle("active", id==="authSignInView"); }
+    });
+  }
+  function closeAuth(){
+    var m=$("authModal");
+    if(!m) return;
+    m.style.display = "none";
+    m.classList.remove("open");
+    m.setAttribute("aria-hidden","true");
+    document.body.style.overflow = "";
+  }
+  function showView(name){
+    var map = {signin:"authSignInView", signup:"authSignUpView", forgot:"authForgotView"};
+    Object.keys(map).forEach(function(k){
+      var el=$(map[k]); if(!el) return;
+      var on = (k===name);
+      el.style.display = on ? "block" : "none";
+      el.classList.toggle("active", on);
+    });
+  }
+  window.openAuthModal = openAuth;
+  window.closeAuthModal = closeAuth;
+  window.__auraSignInClick = function(e){
+    if(e){ e.preventDefault(); e.stopPropagation(); }
+    openAuth();
+    return false;
+  };
+
+  function bind(){
+    var btn = $("sideSignIn");
+    if(btn){
+      btn.onclick = function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        openAuth();
+        return false;
+      };
+    }
+    var closeBtn = $("authClose");
+    if(closeBtn) closeBtn.onclick = function(){ closeAuth(); };
+    var modal = $("authModal");
+    if(modal){
+      modal.addEventListener("click", function(e){ if(e.target===modal) closeAuth(); });
+    }
+    var goUp = $("goSignUp"); if(goUp) goUp.onclick = function(){ showView("signup"); };
+    var goIn = $("goSignIn"); if(goIn) goIn.onclick = function(){ showView("signin"); };
+    var goIn2 = $("goSignIn2"); if(goIn2) goIn2.onclick = function(){ showView("signin"); };
+    var forgot = $("authForgotBtn"); if(forgot) forgot.onclick = function(){ showView("forgot"); };
+
+    // Sign in action (localStorage demo)
+    var signInBtn = $("authSignInBtn");
+    if(signInBtn) signInBtn.onclick = function(){
+      var u = ($("authUser")&&$("authUser").value||"").trim().toLowerCase();
+      var p = ($("authPass")&&$("authPass").value)||"";
+      var msg = $("authSignInMsg");
+      if(!u||!p){ if(msg){ msg.textContent="Username aur password dono chahiye"; msg.className="auth-msg err"; } return; }
+      var users=[]; try{ users=JSON.parse(localStorage.getItem("aura_users_v1")||"[]"); }catch(e){}
+      var found = users.find(function(x){ return x.username===u && x.password===p; });
+      if(!found){ if(msg){ msg.textContent="Galat username ya password"; msg.className="auth-msg err"; } return; }
+      try{ localStorage.setItem("aura_session_v1", JSON.stringify({username:found.username,name:found.name,ts:Date.now()})); }catch(e){}
+      if(msg){ msg.textContent="Welcome, "+(found.name||found.username)+"!"; msg.className="auth-msg ok"; }
+      if(btn) btn.innerHTML = '<span class="si-ico">✓</span><span>'+(found.name||found.username)+'</span>';
+      setTimeout(closeAuth, 500);
+    };
+
+    // Sign up
+    var signUpBtn = $("authSignUpBtn");
+    if(signUpBtn) signUpBtn.onclick = function(){
+      var name = ($("suName")&&$("suName").value||"").trim();
+      var u = ($("suUser")&&$("suUser").value||"").trim().toLowerCase();
+      var p = ($("suPass")&&$("suPass").value)||"";
+      var p2 = ($("suPass2")&&$("suPass2").value)||"";
+      var msg = $("authSignUpMsg");
+      if(!name||!u||!p){ if(msg){ msg.textContent="Name, username aur password bharo"; msg.className="auth-msg err"; } return; }
+      if(u.length<3){ if(msg){ msg.textContent="Username kam se kam 3 characters"; msg.className="auth-msg err"; } return; }
+      if(p.length<4){ if(msg){ msg.textContent="Password kam se kam 4 characters"; msg.className="auth-msg err"; } return; }
+      if(p!==p2){ if(msg){ msg.textContent="Passwords match nahi karte"; msg.className="auth-msg err"; } return; }
+      var users=[]; try{ users=JSON.parse(localStorage.getItem("aura_users_v1")||"[]"); }catch(e){}
+      if(users.some(function(x){ return x.username===u; })){ if(msg){ msg.textContent="Username already taken"; msg.className="auth-msg err"; } return; }
+      var user={name:name,username:u,password:p,created:Date.now()};
+      users.push(user);
+      try{ localStorage.setItem("aura_users_v1", JSON.stringify(users)); localStorage.setItem("aura_session_v1", JSON.stringify({username:u,name:name,ts:Date.now()})); }catch(e){}
+      if(msg){ msg.textContent="Account ban gaya!"; msg.className="auth-msg ok"; }
+      if(btn) btn.innerHTML = '<span class="si-ico">✓</span><span>'+name+'</span>';
+      setTimeout(closeAuth, 500);
+    };
+
+    // Forgot
+    var fpSend = $("authForgotSend");
+    if(fpSend) fpSend.onclick = function(){
+      var who = ($("fpUser")&&$("fpUser").value||"").trim();
+      var msgEl = $("authForgotMsg");
+      if(!who){ if(msgEl){ msgEl.textContent="Username ya email likho"; msgEl.className="auth-msg err"; } return; }
+      var subject = encodeURIComponent("Aura Music — Password help");
+      var body = encodeURIComponent("Password help request\n\nUsername/Email: "+who+"\n\n— Aura Music");
+      window.location.href = "mailto:vikram.2872006@gmail.com?subject="+subject+"&body="+body;
+      if(msgEl){ msgEl.textContent="Mail app open hua"; msgEl.className="auth-msg ok"; }
+    };
+  }
+
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+})();
+</script>
 
 <div class="pl-modal" id="plModal" aria-hidden="true">
  <div class="pl-box glass">
