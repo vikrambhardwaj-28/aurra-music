@@ -1210,7 +1210,10 @@ body.show-lyrics-panel .rightcol{transform:translateX(105%)!important}
 
 /* ---------- Compact / tablet / mobile (<=1000px) ---------- */
 @media(max-width:1000px){
-  .sidebar,.rightcol{display:none!important}
+  .sidebar{display:none!important}
+  .rightcol{display:none!important}
+  body.show-queue .rightcol{display:flex!important;z-index:80}
+  body.show-lyrics-panel .lyrics-panel{z-index:85}
   #queueToggle{display:none}
   .layout{margin-left:0;padding:0 0 calc(180px + env(safe-area-inset-bottom,0px));overflow:visible;height:auto}
   .center{padding:0 16px 40px;overflow:visible;height:auto}
@@ -5409,7 +5412,7 @@ function init(){
   }).catch(()=>{});
 }
 init();
-window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadChannel,showArtistHero,hideArtistHero,renderPlaylistNav,renderRecent,savePlaylists,saveLikedSongs,saveRecent};
+window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadChannel,showArtistHero,hideArtistHero,renderPlaylistNav,renderRecent,savePlaylists,saveLikedSongs,saveRecent,openLyricsPanel,closeLyricsPanel};
 })();
 </script>
 <script>
@@ -5549,19 +5552,43 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
  const qt=$("#queueToggle");
  if(qt){
   qt.addEventListener("click",e=>{
+   e.preventDefault();
    e.stopPropagation();
-   closeLyricsPanel();
+   try{ if(window.__aura&&window.__aura.closeLyricsPanel) window.__aura.closeLyricsPanel(); }catch(err){}
+   document.body.classList.remove("show-lyrics-panel");
    const on=document.body.classList.toggle("show-queue");
    qt.classList.toggle("on",on);
+   const lb2=$("#lyricsBtn"); if(lb2) lb2.classList.remove("on");
   });
  }
  const lb=$("#lyricsBtn");
- if(lb)lb.addEventListener("click",e=>{
-  e.stopPropagation();
-  if(document.body.classList.contains("show-lyrics-panel")) closeLyricsPanel();
-  else openLyricsPanel();
+ if(lb){
+  lb.addEventListener("click",e=>{
+   e.preventDefault();
+   e.stopPropagation();
+   if(document.body.classList.contains("show-lyrics-panel")){
+    try{ if(window.__aura&&window.__aura.closeLyricsPanel) window.__aura.closeLyricsPanel(); }catch(err){}
+    document.body.classList.remove("show-lyrics-panel");
+    lb.classList.remove("on");
+   }else{
+    document.body.classList.remove("show-queue");
+    const qt2=$("#queueToggle"); if(qt2) qt2.classList.remove("on");
+    try{ if(window.__aura&&window.__aura.openLyricsPanel) window.__aura.openLyricsPanel(); }
+    else{
+      document.body.classList.add("show-lyrics-panel");
+      lb.classList.add("on");
+      const pan=document.getElementById("lyricsPanel");
+      if(pan) pan.setAttribute("aria-hidden","false");
+    }
+   }
+  });
+ }
+ const lpc=$("#lyricsPanelClose");
+ if(lpc) lpc.addEventListener("click",()=>{
+  try{ if(window.__aura&&window.__aura.closeLyricsPanel) window.__aura.closeLyricsPanel(); }catch(err){}
+  document.body.classList.remove("show-lyrics-panel");
+  const lb3=$("#lyricsBtn"); if(lb3) lb3.classList.remove("on");
  });
- $("#lyricsPanelClose")?.addEventListener("click",closeLyricsPanel);
 })();
 
 /* old localStorage auth removed — using API auth */
