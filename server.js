@@ -4,6 +4,9 @@ const cors = require("cors");
 const path = require("path");
 const { spawn } = require("child_process");
 const ytSearch = require("yt-search");
+const mongoose = require("mongoose");
+const authRoutes = require("./authRoutes");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -22,7 +25,6 @@ try {
 const searchCache = new Map();
 const CACHE_TTL = 15 * 60 * 1000;
 const CACHE_MAX = 300;
-
 function getCache(key) {
   const item = searchCache.get(key);
   if (!item) return null;
@@ -32,21 +34,18 @@ function getCache(key) {
   }
   return item.data;
 }
-
 function setCache(key, data) {
   if (searchCache.size >= CACHE_MAX) {
     searchCache.delete(searchCache.keys().next().value);
   }
   searchCache.set(key, { data, exp: Date.now() + CACHE_TTL });
 }
-
 const MAX_CONCURRENT_DOWNLOADS = Math.max(
   1,
   parseInt(process.env.MAX_DOWNLOADS || "2", 10) || 2
 );
 let activeDownloads = 0;
 const downloadQueue = [];
-
 function pumpQueue() {
   while (activeDownloads < MAX_CONCURRENT_DOWNLOADS && downloadQueue.length) {
     const next = downloadQueue.shift();
@@ -61,11 +60,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public"), { maxAge: "1h" }));
 
+// MongoDB + Auth routes
+if (process.env.MONGODB_URI) {
+  mongoose
+    .connect(process.env.MONGODB_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch((e) => console.error("MongoDB error:", e.message));
+} else {
+  console.warn("MONGODB_URI missing — auth disabled");
+}
+app.use("/api/auth", authRoutes);
+
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
     cache: searchCache.size,
     lyrics: !!lyricsHandler,
+    mongo: mongoose.connection.readyState === 1,
     ytdlp: process.env.YTDLP_PATH || "yt-dlp",
     downloads: {
       active: activeDownloads,
@@ -75,7 +86,6 @@ app.get("/health", (req, res) => {
     t: Date.now(),
   });
 });
-
 if (lyricsHandler) {
   app.get("/lyrics", lyricsHandler);
   app.get("/api/lyrics", lyricsHandler);
@@ -85,7 +95,6 @@ if (lyricsHandler) {
 // SEARCH — videos + channels + playlists
 // --------------------------------------------------
 const SEARCH_PAGE_SIZE = 12;
-
 async function doSearch(query, page = 1) {
   page = Math.max(1, page | 0);
   // fetch enough pages for this slice (yt-search ~20 videos per page)
@@ -96,11 +105,9 @@ async function doSearch(query, page = 1) {
       setTimeout(() => rej(new Error("timeout")), 18000)
     ),
   ]);
-
   const allVideos = result.videos || [];
   const start = (page - 1) * SEARCH_PAGE_SIZE;
   const slice = allVideos.slice(start, start + SEARCH_PAGE_SIZE);
-
   const videos = slice.map((v) => ({
     type: "video",
     id: v.videoId,
@@ -111,7 +118,6 @@ async function doSearch(query, page = 1) {
     timestamp: v.timestamp || "",
     seconds: v.seconds || 0,
   }));
-
   // channels + playlists only on first page
   let channels = [];
   let playlists = [];
@@ -126,7 +132,6 @@ async function doSearch(query, page = 1) {
       subscribers: c.subCountLabel || c.subscriberCount || c.subscribers || c.subCount || "",
       url: c.url || "",
     }));
-
     playlists = (result.playlists || [])
       .slice(0, 6)
       .map((p) => {
@@ -146,26 +151,21 @@ async function doSearch(query, page = 1) {
       })
       .filter((p) => p.id && p.id.length >= 10);
   }
-
   // Full page of videos => likely more exist (page 2 will confirm)
   const hasMore = videos.length >= SEARCH_PAGE_SIZE;
-
   const items = page === 1 ? [...channels, ...playlists, ...videos] : videos;
   return { items, page, hasMore, total: allVideos.length };
 }
-
 app.get("/search", async (req, res) => {
   const query = String(req.query.q || "").trim();
   if (!query) return res.status(400).json({ error: "query required" });
   const page = Math.max(1, parseInt(req.query.page || "1", 10) || 1);
-
   const key = query.toLowerCase() + "::p" + page;
   const hit = getCache(key);
   if (hit) {
     res.setHeader("X-Cache", "HIT");
     return res.json(hit);
   }
-
   let lastErr;
   for (let i = 0; i < 3; i++) {
     try {
@@ -187,7 +187,6 @@ app.get("/search", async (req, res) => {
 // PLAYLIST videos — yt-dlp primary (reliable), yt-search fallback
 // --------------------------------------------------
 const PLAYLIST_PAGE_SIZE = 25;
-
 function fetchPlaylistViaYtDlp(listId, page = 1) {
   return new Promise((resolve, reject) => {
     const bin = process.env.YTDLP_PATH || "yt-dlp";
@@ -225,7 +224,6 @@ function fetchPlaylistViaYtDlp(listId, page = 1) {
     })();
     if (cookies) args.push("--cookies", cookies);
     args.push(url);
-
     const child = spawn(bin, args, { stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     let err = "";
@@ -235,7 +233,6 @@ function fetchPlaylistViaYtDlp(listId, page = 1) {
       } catch (_) {}
       reject(new Error("yt-dlp playlist timeout"));
     }, 28000);
-
     child.stdout.on("data", (c) => {
       out += c.toString();
     });
@@ -300,7 +297,6 @@ function fetchPlaylistViaYtDlp(listId, page = 1) {
     });
   });
 }
-
 async function fetchPlaylistViaYtSearch(listId) {
   const result = await Promise.race([
     ytSearch({ listId }),
@@ -327,7 +323,6 @@ async function fetchPlaylistViaYtSearch(listId) {
     }));
   return { title: result.title || "Playlist", videos };
 }
-
 async function handlePlaylist(req, res) {
   let listId = String(req.query.list || req.query.id || "").trim();
   const page = Math.max(1, parseInt(req.query.page || "1", 10) || 1);
@@ -345,10 +340,8 @@ async function handlePlaylist(req, res) {
   if (!listId || listId.length < 10) {
     return res.status(400).json({ error: "list id required", got: listId });
   }
-
   console.log("Playlist load:", listId, "page", page);
   let lastErr = "";
-
   // 1) yt-dlp first (more reliable on Render)
   try {
     const data = await fetchPlaylistViaYtDlp(listId, page);
@@ -372,7 +365,6 @@ async function handlePlaylist(req, res) {
     lastErr = "yt-dlp: " + e.message;
     console.warn("Playlist yt-dlp fail:", e.message);
   }
-
   // 2) yt-search fallback (only page 1 — no real pagination)
   if (page === 1) {
     try {
@@ -394,7 +386,6 @@ async function handlePlaylist(req, res) {
       console.warn("Playlist yt-search fail:", e.message);
     }
   }
-
   console.error("Playlist fail:", listId, lastErr);
   res.status(502).json({
     error: "Playlist failed",
@@ -402,7 +393,6 @@ async function handlePlaylist(req, res) {
     listId,
   });
 }
-
 app.get("/playlist", handlePlaylist);
 app.get("/api/playlist", handlePlaylist);
 
@@ -414,11 +404,9 @@ async function handleChannel(req, res) {
   const channelName = String(req.query.q || req.query.name || "").trim();
   const page = Math.max(1, parseInt(req.query.page || "1", 10) || 1);
   const pages = page === 1 ? 2 : Math.min(page + 1, 4);
-
   if (!channelId && !channelName) {
     return res.status(400).json({ error: "channel id or name required" });
   }
-
   try {
     const query = channelName || channelId;
     console.log("Channel load:", query, "page", page);
@@ -428,17 +416,14 @@ async function handleChannel(req, res) {
         setTimeout(() => rej(new Error("timeout")), 22000)
       ),
     ]);
-
     const all = (result.videos || []).filter((v) => {
       // no Shorts
       if (v.seconds && v.seconds > 0 && v.seconds < 60) return false;
       return true;
     });
-
     // page slice: page1 = 0-24, page2 = 24-48, etc
     const start = (page - 1) * 12;
     const slice = all.slice(start, start + 12);
-
     const videos = slice.map((v) => ({
       type: "video",
       id: v.videoId,
@@ -450,9 +435,7 @@ async function handleChannel(req, res) {
       timestamp: v.timestamp || "",
       mood: "Channel",
     }));
-
     const hasMore = videos.length >= 12; // full page => more may exist
-
     res.json({
       title: channelName || "Channel",
       videos,
@@ -465,7 +448,6 @@ async function handleChannel(req, res) {
     res.status(500).json({ error: "Channel failed", detail: e.message });
   }
 }
-
 app.get("/channel", handleChannel);
 app.get("/api/channel", handleChannel);
 
@@ -481,7 +463,6 @@ function safeTitle(raw) {
       .slice(0, 80) || "aura-song"
   );
 }
-
 function getCookiesPath() {
   const fs = require("fs");
   const pathMod = require("path");
@@ -493,7 +474,6 @@ function getCookiesPath() {
       : "");
   return cookies && fs.existsSync(cookies) ? cookies : "";
 }
-
 function buildStreamArgs(url, client) {
   const args = [
     "-f", "bestaudio/best", "-o", "-",
@@ -507,7 +487,6 @@ function buildStreamArgs(url, client) {
   args.push(url);
   return args;
 }
-
 function buildMp3FileArgs(url, client, outTemplate) {
   const args = [
     "-f", "bestaudio/best", "-x", "--audio-format", "mp3",
@@ -522,7 +501,6 @@ function buildMp3FileArgs(url, client, outTemplate) {
   args.push(url);
   return args;
 }
-
 function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {}) {
   const fs = require("fs");
   const os = require("os");
@@ -538,25 +516,20 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
       queued: downloadQueue.length,
     });
   }
-
   const url = `https://www.youtube.com/watch?v=${id}`;
   const bin = process.env.YTDLP_PATH || "yt-dlp";
   const safe = safeTitle(title);
   const asMp3 = !inline;
   const clients = String(process.env.YT_CLIENTS || "android,ios,tv_embedded,web")
     .split(",").map((s) => s.trim()).filter(Boolean);
-
   console.log(inline ? "Stream:" : "Download(MP3-file):", id, safe, "clients=", clients.join("|"));
-
   let attempt = 0, started = false, lastErr = "", child = null, finished = false, tempMp3 = null;
-
   const cleanupChild = () => {
     if (child) { try { child.kill("SIGTERM"); } catch (_) {} child = null; }
   };
   const cleanupTemp = () => {
     if (tempMp3) { try { fs.unlinkSync(tempMp3); } catch (_) {} tempMp3 = null; }
   };
-
   const fail = (code) => {
     cleanupTemp();
     if (res.headersSent || finished) return;
@@ -581,7 +554,6 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
           : "pip install -U yt-dlp | try localhost",
     });
   };
-
   const tryStreamNext = () => {
     if (started || res.headersSent || finished) return;
     if (attempt >= clients.length) { fail(1); return; }
@@ -617,7 +589,6 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
       tryStreamNext();
     });
   };
-
   const tryMp3Next = () => {
     if (started || res.headersSent || finished) return;
     if (attempt >= clients.length) { fail(1); return; }
@@ -680,7 +651,6 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
       tryMp3Next();
     });
   };
-
   activeDownloads++;
   let released = false;
   const release = () => {
@@ -689,12 +659,10 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
     activeDownloads = Math.max(0, activeDownloads - 1);
     pumpQueue();
   };
-
   const origEnd = res.end.bind(res);
   res.end = function (...a) { release(); cleanupTemp(); return origEnd(...a); };
   const origJson = res.json.bind(res);
   res.json = function (...a) { release(); cleanupTemp(); return origJson(...a); };
-
   const req = res.req;
   if (req) {
     req.on("close", () => {
@@ -704,11 +672,9 @@ function runYtDlpAudio(videoId, res, { inline = false, title = "aura-song" } = {
       release();
     });
   }
-
   if (asMp3) tryMp3Next();
   else tryStreamNext();
 }
-
 app.get("/download", (req, res) => {
   runYtDlpAudio(req.query.id, res, { inline: false, title: req.query.title });
 });
@@ -721,13 +687,11 @@ app.get("/stream", (req, res) => {
 app.get("/api/stream", (req, res) => {
   runYtDlpAudio(req.query.id, res, { inline: true, title: req.query.title });
 });
-
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
-
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Aura Music on", PORT);
-  console.log("Routes: /search /playlist /channel /stream /download /lyrics /health");
+  console.log("Routes: /search /playlist /channel /stream /download /lyrics /health /api/auth");
   console.log("yt-dlp bin:", process.env.YTDLP_PATH || "yt-dlp");
 });
