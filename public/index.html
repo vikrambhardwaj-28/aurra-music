@@ -642,6 +642,63 @@ body:has(.immersive-player.open) .rightcol{
 }
 .profile-actions .save,.pl-actions .save{border:0;background:var(--a);box-shadow:0 4px 16px var(--glow)}
 
+/* Auth modal — Sign In / Sign Up */
+.auth-modal{
+  position:fixed;inset:0;z-index:210;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.auth-modal.open{display:flex}
+.auth-box{
+  width:min(400px,94vw);max-height:90vh;overflow-y:auto;border-radius:18px;padding:26px 22px 22px;
+  background:rgba(28,28,32,.96);border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 24px 70px rgba(0,0,0,.55);
+  scrollbar-width:thin;
+}
+.auth-box h3{margin:0 0 6px;font-size:22px;font-weight:700;letter-spacing:-.3px}
+.auth-box .auth-sub{margin:0 0 16px;font-size:13px;color:var(--muted);line-height:1.4}
+.auth-benefits{
+  list-style:none;margin:0 0 18px;padding:12px 14px;border-radius:12px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+}
+.auth-benefits li{
+  font-size:13px;color:rgba(255,255,255,.85);padding:5px 0 5px 22px;position:relative;line-height:1.35;
+}
+.auth-benefits li::before{
+  content:"✓";position:absolute;left:0;color:var(--a);font-weight:700;font-size:12px;
+}
+.auth-box label{display:block;font-size:11px;color:var(--muted);letter-spacing:.5px;margin:0 0 5px;font-weight:600}
+.auth-box input{
+  width:100%;height:42px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface-2,#1c1c1e);color:#fff;padding:0 12px;margin-bottom:12px;outline:0;box-sizing:border-box;
+}
+.auth-box input:focus{border-color:var(--a)}
+.auth-box .auth-primary{
+  width:100%;height:44px;border:0;border-radius:12px;margin-top:4px;
+  background:var(--a);color:#fff;font-size:15px;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 20px var(--glow);
+}
+.auth-box .auth-primary:hover{filter:brightness(1.08)}
+.auth-links{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:8px;flex-wrap:wrap}
+.auth-links button{
+  background:none;border:0;color:var(--a);font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;
+}
+.auth-links button:hover{text-decoration:underline}
+.auth-switch{margin-top:16px;text-align:center;font-size:13px;color:var(--muted)}
+.auth-switch button{background:none;border:0;color:#fff;font-weight:700;cursor:pointer;margin-left:4px}
+.auth-switch button:hover{color:var(--a)}
+.auth-view{display:none}
+.auth-view.active{display:block}
+.auth-close{
+  position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;
+  border:0;background:rgba(255,255,255,.1);color:#fff;font-size:18px;cursor:pointer;
+  display:grid;place-items:center;
+}
+.auth-box{position:relative}
+.auth-msg{font-size:12px;margin:0 0 10px;min-height:16px;color:var(--a)}
+.auth-msg.ok{color:#1ed760}
+.auth-msg.err{color:#ff6b6b}
+
 #heroGreeting{font-size:12px;color:var(--muted);letter-spacing:.2px;margin:0 0 4px;min-height:16px;font-weight:500}
 .hero .eyebrow,.hero h1,.hero p,.hero-actions,#heroGreeting{position:relative;z-index:2}
 .hero-thumb-wrap{position:absolute;right:24px;top:50%;transform:translateY(-50%);z-index:2;width:100px;height:100px;perspective:600px}
@@ -1888,6 +1945,65 @@ body.view-artist .cards{
   <div class="profile-actions">
    <button type="button" id="profCancel">Cancel</button>
    <button type="button" class="save" id="profSave">Save</button>
+  </div>
+ </div>
+</div>
+
+<!-- Sign In / Sign Up -->
+<div class="auth-modal" id="authModal" aria-hidden="true">
+ <div class="auth-box glass">
+  <button type="button" class="auth-close" id="authClose" aria-label="Close">×</button>
+
+  <!-- SIGN IN -->
+  <div class="auth-view active" id="authSignInView">
+   <h3>Sign In</h3>
+   <p class="auth-sub">Apne account se login karo — playlists aur history cloud pe safe rahegi.</p>
+   <ul class="auth-benefits">
+    <li>Playlists har device pe sync</li>
+    <li>Liked songs & listening history save</li>
+    <li>Theme & preferences yaad rahenge</li>
+    <li>Premium feel, personal library</li>
+   </ul>
+   <div class="auth-msg" id="authSignInMsg"></div>
+   <label>USERNAME</label>
+   <input id="authUser" placeholder="Username" maxlength="32" autocomplete="username">
+   <label>PASSWORD</label>
+   <input id="authPass" type="password" placeholder="Password" maxlength="64" autocomplete="current-password">
+   <button type="button" class="auth-primary" id="authSignInBtn">Sign In</button>
+   <div class="auth-links">
+    <button type="button" id="authForgotBtn">Forgot password?</button>
+   </div>
+   <div class="auth-switch">New here?<button type="button" id="goSignUp">Sign Up</button></div>
+  </div>
+
+  <!-- SIGN UP -->
+  <div class="auth-view" id="authSignUpView">
+   <h3>Create Account</h3>
+   <p class="auth-sub">Free account banao — name, username aur password set karo.</p>
+   <div class="auth-msg" id="authSignUpMsg"></div>
+   <label>FULL NAME</label>
+   <input id="suName" placeholder="Your name" maxlength="40" autocomplete="name">
+   <label>USERNAME</label>
+   <input id="suUser" placeholder="Choose a username" maxlength="32" autocomplete="username">
+   <label>PASSWORD</label>
+   <input id="suPass" type="password" placeholder="Password" maxlength="64" autocomplete="new-password">
+   <label>CONFIRM PASSWORD</label>
+   <input id="suPass2" type="password" placeholder="Confirm password" maxlength="64" autocomplete="new-password">
+   <button type="button" class="auth-primary" id="authSignUpBtn">Sign Up</button>
+   <div class="auth-switch">Already have an account?<button type="button" id="goSignIn">Sign In</button></div>
+  </div>
+
+  <!-- FORGOT PASSWORD -->
+  <div class="auth-view" id="authForgotView">
+   <h3>Forgot Password</h3>
+   <p class="auth-sub">Help ke liye apna username / email bhejo — support mail <b style="color:#fff">vikram.2872006@gmail.com</b> pe jayegi.</p>
+   <div class="auth-msg" id="authForgotMsg"></div>
+   <label>USERNAME OR EMAIL</label>
+   <input id="fpUser" placeholder="Username or email" maxlength="64" autocomplete="username">
+   <label>MESSAGE (optional)</label>
+   <input id="fpMsg" placeholder="Account recover help…" maxlength="200">
+   <button type="button" class="auth-primary" id="authForgotSend">Send help request</button>
+   <div class="auth-switch"><button type="button" id="goSignIn2">← Back to Sign In</button></div>
   </div>
  </div>
 </div>
@@ -5137,12 +5253,125 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
   else openLyricsPanel();
  });
  $("#lyricsPanelClose")?.addEventListener("click",closeLyricsPanel);
- $("#sideSignIn")?.addEventListener("click",()=>{
-  try{if(typeof openProfileModal==="function") openProfileModal();
-  else if($("#profileModal")){$("#profileModal").classList.add("open");$("#profileModal").setAttribute("aria-hidden","false")}
-  else toast("Sign In · coming soon")}catch(err){toast("Sign In · coming soon")}
- });
 })();
+
+/* ---- Auth: Sign In / Sign Up / Forgot (local demo until MongoDB backend) ---- */
+const AUTH_HELP_MAIL="vikram.2872006@gmail.com";
+const AUTH_KEY="aura_users_v1";
+const AUTH_SESSION="aura_session_v1";
+function loadUsers(){
+  try{return JSON.parse(localStorage.getItem(AUTH_KEY)||"[]")}catch(e){return[]}
+}
+function saveUsers(list){
+  try{localStorage.setItem(AUTH_KEY,JSON.stringify(list||[]))}catch(e){}
+}
+function setSession(user){
+  try{
+    if(user) localStorage.setItem(AUTH_SESSION,JSON.stringify({username:user.username,name:user.name,ts:Date.now()}));
+    else localStorage.removeItem(AUTH_SESSION);
+  }catch(e){}
+  updateAuthUI();
+}
+function getSession(){
+  try{return JSON.parse(localStorage.getItem(AUTH_SESSION)||"null")}catch(e){return null}
+}
+function updateAuthUI(){
+  const s=getSession();
+  const btn=$("#sideSignIn");
+  if(!btn)return;
+  if(s&&s.username){
+    btn.innerHTML=`<span class="si-ico">✓</span><span>${escHtml(s.name||s.username)}</span>`;
+    btn.title="Signed in · click to manage";
+  }else{
+    btn.innerHTML=`<span class="si-ico">👤</span><span>Sign In</span>`;
+    btn.title="Sign In";
+  }
+}
+function openAuthModal(view){
+  const m=$("#authModal");if(!m)return;
+  m.classList.add("open");m.setAttribute("aria-hidden","false");
+  showAuthView(view||"signin");
+}
+function closeAuthModal(){
+  const m=$("#authModal");if(!m)return;
+  m.classList.remove("open");m.setAttribute("aria-hidden","true");
+}
+function showAuthView(which){
+  const map={signin:"authSignInView",signup:"authSignUpView",forgot:"authForgotView"};
+  Object.values(map).forEach(id=>{const el=$(id);if(el)el.classList.remove("active")});
+  const target=$(map[which]||map.signin);
+  if(target) target.classList.add("active");
+  ["authSignInMsg","authSignUpMsg","authForgotMsg"].forEach(id=>{const el=$(id);if(el){el.textContent="";el.className="auth-msg"}});
+}
+function setAuthMsg(id,text,ok){
+  const el=$(id);if(!el)return;
+  el.textContent=text||"";
+  el.className="auth-msg"+(text?(ok?" ok":" err"):"");
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  updateAuthUI();
+  $("#authClose")?.addEventListener("click",closeAuthModal);
+  $("#authModal")?.addEventListener("click",e=>{if(e.target===$("#authModal"))closeAuthModal()});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#authModal")?.classList.contains("open"))closeAuthModal()});
+  $("#goSignUp")?.addEventListener("click",()=>showAuthView("signup"));
+  $("#goSignIn")?.addEventListener("click",()=>showAuthView("signin"));
+  $("#goSignIn2")?.addEventListener("click",()=>showAuthView("signin"));
+  $("#authForgotBtn")?.addEventListener("click",()=>showAuthView("forgot"));
+
+  $("#authSignInBtn")?.addEventListener("click",()=>{
+    const u=($("#authUser")?.value||"").trim().toLowerCase();
+    const p=$("#authPass")?.value||"";
+    if(!u||!p){setAuthMsg("authSignInMsg","Username aur password dono chahiye");return}
+    const users=loadUsers();
+    const found=users.find(x=>x.username===u&&x.password===p);
+    if(!found){setAuthMsg("authSignInMsg","Galat username ya password");return}
+    setSession(found);
+    setAuthMsg("authSignInMsg","Welcome back, "+(found.name||found.username)+"!",true);
+    toast("Signed in as "+(found.name||found.username));
+    setTimeout(closeAuthModal,600);
+  });
+
+  $("#authSignUpBtn")?.addEventListener("click",()=>{
+    const name=($("#suName")?.value||"").trim();
+    const u=($("#suUser")?.value||"").trim().toLowerCase();
+    const p=$("#suPass")?.value||"";
+    const p2=$("#suPass2")?.value||"";
+    if(!name||!u||!p){setAuthMsg("authSignUpMsg","Name, username aur password bharo");return}
+    if(u.length<3){setAuthMsg("authSignUpMsg","Username kam se kam 3 characters");return}
+    if(p.length<4){setAuthMsg("authSignUpMsg","Password kam se kam 4 characters");return}
+    if(p!==p2){setAuthMsg("authSignUpMsg","Passwords match nahi karte");return}
+    const users=loadUsers();
+    if(users.some(x=>x.username===u)){setAuthMsg("authSignUpMsg","Username already taken");return}
+    const user={name,username:u,password:p,created:Date.now()};
+    users.push(user);saveUsers(users);setSession(user);
+    setAuthMsg("authSignUpMsg","Account ban gaya!",true);
+    toast("Welcome, "+name);
+    setTimeout(closeAuthModal,600);
+  });
+
+  $("#authForgotSend")?.addEventListener("click",()=>{
+    const who=($("#fpUser")?.value||"").trim();
+    const msg=($("#fpMsg")?.value||"").trim();
+    if(!who){setAuthMsg("authForgotMsg","Username ya email likho");return}
+    const subject=encodeURIComponent("Aura Music — Password help");
+    const body=encodeURIComponent(
+      "Password help request\n\nUsername/Email: "+who+
+      "\nMessage: "+(msg||"(none)")+
+      "\n\n— sent from Aura Music app"
+    );
+    window.location.href=`mailto:${AUTH_HELP_MAIL}?subject=${subject}&body=${body}`;
+    setAuthMsg("authForgotMsg","Mail app open hua · "+AUTH_HELP_MAIL+" pe request jayegi",true);
+  });
+
+  $("#sideSignIn")?.addEventListener("click",e=>{
+    e.preventDefault();
+    const s=getSession();
+    if(s&&s.username){
+      if(confirm("Sign out from "+(s.name||s.username)+"?")){setSession(null);toast("Signed out")}
+    }else openAuthModal("signin");
+  });
+});
+
 
 /* PWA — register service worker so browser shows Install (not only shortcut) */
 if("serviceWorker" in navigator){
