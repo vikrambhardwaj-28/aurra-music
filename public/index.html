@@ -1093,61 +1093,88 @@ body.app-fs .immersive-player{padding:0!important}
 }
 body.show-queue .rightcol{transform:none;box-shadow:-12px 0 40px rgba(0,0,0,.45)}
 
-/* ---------- Lyrics side panel (same look as queue) ---------- */
+/* ---------- Lyrics side panel — match queue panel ---------- */
 .lyrics-panel{
-  position:fixed;right:0;top:var(--head-h);bottom:0;width:340px;z-index:55;
-  display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto;
-  padding:18px 16px;
-  background:rgba(30,30,32,.94);
-  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
-  border-left:1px solid var(--line);
-  transform:translateX(105%);transition:transform .25s ease;
-  box-shadow:none;
-  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;
+  position:fixed;right:12px;top:calc(var(--head-h) + 10px);bottom:88px;
+  width:340px;z-index:55;
+  display:flex;flex-direction:column;
+  padding:0;
+  background:transparent;
+  border:none;
+  transform:translateX(calc(100% + 24px));
+  transition:transform .25s ease, opacity .2s ease;
+  opacity:0;pointer-events:none;
+  overflow:visible;
 }
 body.show-lyrics-panel .lyrics-panel{
   transform:none;
-  box-shadow:-12px 0 40px rgba(0,0,0,.45);
+  opacity:1;
+  pointer-events:auto;
 }
-body.show-lyrics-panel .rightcol{transform:translateX(105%)!important}
-.lyrics-panel-card{display:flex;flex-direction:column;flex:1;min-height:0;padding:0}
+body.show-lyrics-panel .rightcol{transform:translateX(calc(100% + 24px))!important;opacity:0;pointer-events:none}
+.lyrics-panel-inner{
+  flex:1;min-height:0;display:flex;flex-direction:column;
+  padding:16px 16px 14px;
+  border-radius:16px;
+  background:rgba(36,36,40,.92);
+  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 16px 48px rgba(0,0,0,.45);
+  overflow:hidden;
+}
 .lyrics-panel-head{
   display:flex;align-items:center;justify-content:space-between;
-  margin:0 0 12px;font-size:16px;font-weight:700;
+  margin:0 0 14px;font-size:16px;font-weight:700;color:#fff;
 }
 .lyrics-panel-close{
   width:28px;height:28px;border-radius:50%;
   background:rgba(255,255,255,.1);border:0;color:#fff;font-size:16px;
   display:grid;place-items:center;cursor:pointer;flex-shrink:0;
+  transition:background .15s;
 }
 .lyrics-panel-close:hover{background:rgba(255,255,255,.18)}
-.lyrics-now{margin-bottom:4px}
+.lyrics-now{margin-bottom:12px}
 .lyrics-panel .current-art{
-  width:72px;height:72px;border-radius:8px;
+  width:64px;height:64px;border-radius:10px;
   background:#2c2c2e center/cover no-repeat;
-  box-shadow:0 6px 18px rgba(0,0,0,.35);
-  display:grid;place-items:center;font-size:22px;color:var(--muted);
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  display:grid;place-items:center;font-size:20px;color:var(--muted);
+  flex-shrink:0;
 }
-.lyrics-body{
-  border-top:1px solid var(--line);margin-top:14px;padding-top:12px;
-  display:flex;flex-direction:column;flex:1;min-height:0;
+.lyrics-panel .current{display:flex;align-items:center;gap:12px}
+.lyrics-panel .current-info{flex:1;min-width:0}
+.lyrics-panel .current-info b{
+  display:block;font-size:14px;font-weight:600;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lyrics-panel .current-info small{
+  display:block;font-size:12px;color:var(--muted);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lyrics-divider{
+  height:1px;background:rgba(255,255,255,.1);margin:0 0 12px;
+}
+.lyrics-panel .queue-head{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;font-weight:600;color:rgba(255,255,255,.85);
+  margin:0 0 8px;
 }
 .lyrics-panel .lyrics-column{
-  flex:1;min-height:0;max-height:none;max-width:none;width:100%;
-  padding:4px 0 24px;align-self:stretch;overflow-y:auto;
+  flex:1;min-height:0;width:100%;max-width:none;max-height:none;
+  padding:0 0 8px;overflow-y:auto;align-self:stretch;
   mask-image:none;-webkit-mask-image:none;
   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;
 }
 .lyrics-panel .lyric{
-  font-size:14px!important;font-weight:500!important;line-height:1.45!important;
-  text-align:left!important;margin:0 0 2px!important;padding:8px 10px!important;
-  border-radius:8px;color:rgba(255,255,255,.4)!important;opacity:1!important;
-  transform:none!important;filter:none!important;
-  text-shadow:none!important;letter-spacing:0!important;
-  transition:background .15s,color .15s;
-  cursor:default;
+  font-size:13.5px!important;font-weight:500!important;line-height:1.4!important;
+  text-align:left!important;margin:0 0 2px!important;padding:9px 10px!important;
+  border-radius:8px;color:rgba(255,255,255,.42)!important;opacity:1!important;
+  transform:none!important;filter:none!important;text-shadow:none!important;
+  letter-spacing:0!important;transition:background .15s,color .15s;
 }
-.lyrics-panel .lyric:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.7)!important}
+.lyrics-panel .lyric:hover{
+  background:rgba(255,255,255,.06);color:rgba(255,255,255,.72)!important;
+}
 .lyrics-panel .lyric.active{
   background:rgba(255,255,255,.1)!important;color:#fff!important;
   font-weight:600!important;
@@ -1766,7 +1793,7 @@ body.show-lyrics-panel .lyrics-panel{
   z-index:200 !important;
   visibility:visible !important;
   pointer-events:auto !important;
-  width:340px !important;
+  opacity:1 !important;
 }
 body.show-queue .rightcol{
   transform:none !important;
@@ -1908,9 +1935,9 @@ body.show-queue .rightcol{
  </div>
 </aside>
 
-<!-- Lyrics side panel — same style as queue -->
+<!-- Lyrics side panel — same design as queue -->
 <aside class="lyrics-panel" id="lyricsPanel" aria-hidden="true">
- <div class="right-card lyrics-panel-card">
+ <div class="lyrics-panel-inner">
   <div class="right-title lyrics-panel-head">
    <span>Lyrics</span>
    <button type="button" class="lyrics-panel-close" id="lyricsPanelClose" aria-label="Close" onclick="window.closeLyricsPanel&&window.closeLyricsPanel();return false;">×</button>
@@ -1922,10 +1949,9 @@ body.show-queue .rightcol{
     <small id="sideLyricsArtist">Aura Music</small>
    </div>
   </div>
-  <div class="queue lyrics-body">
-   <div class="queue-head"><span>Now Playing</span><span id="lyricsLineCount"></span></div>
-   <div class="lyrics-column" id="sideLyricsLines"><p class="lyric active" data-d="0">Play a song to see lyrics</p></div>
-  </div>
+  <div class="lyrics-divider"></div>
+  <div class="queue-head"><span>Now Playing</span><span id="lyricsLineCount"></span></div>
+  <div class="lyrics-column" id="sideLyricsLines"><p class="lyric active" data-d="0">Play a song to see lyrics</p></div>
  </div>
 </aside>
 </div>
