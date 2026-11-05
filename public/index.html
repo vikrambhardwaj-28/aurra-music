@@ -124,8 +124,8 @@
   --a:#fa233b;
   --b:#fb5c74;
   --glow:rgba(250,35,59,.35);
-  --shine:rgba(255,255,255,.12);
-  --gloss:1.4;
+  --shine:rgba(255,255,255,.18);
+  --gloss:1.55;
   --side-w:280px;
   --head-h:64px;
   --radius:10px;
@@ -1118,10 +1118,10 @@ body.show-lyrics-panel .rightcol{transform:translateX(calc(100% + 24px))!importa
   flex:1;min-height:0;display:flex;flex-direction:column;
   padding:16px 16px 14px;
   border-radius:16px;
-  background:rgba(36,36,40,.92);
-  backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
-  border:1px solid rgba(255,255,255,.1);
-  box-shadow:0 16px 48px rgba(0,0,0,.45);
+  background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.03)),rgba(14,14,18,.55);
+  backdrop-filter:blur(48px) saturate(1.8);-webkit-backdrop-filter:blur(48px) saturate(1.8);
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 20px 56px rgba(0,0,0,.55),var(--g-hi),0 1px 0 rgba(255,255,255,.2);
   overflow:hidden;
 }
 .lyrics-panel-head{
@@ -1355,22 +1355,25 @@ body.show-lyrics-panel .rightcol{transform:translateX(calc(100% + 24px))!importa
 }
 
 /* ============================================================
-   PREMIUM DARK BLACK GLASS — Apple Music 8K finishing
-   Pure black · frosted glass · subtle specular · no layout changes
+   PREMIUM LIQUID GLASS — beyond Apple Music
+   Pure black · heavy frost · strong specular sheen · liquid gloss · no layout changes
    ============================================================ */
 :root{
   --bg:#000000;
-  --sidebar:rgba(12,12,14,.55);
-  --surface:rgba(28,28,32,.58);
-  --surface-2:rgba(255,255,255,.08);
-  --surface-3:rgba(255,255,255,.14);
-  --line:rgba(255,255,255,.10);
-  --line-strong:rgba(255,255,255,.18);
-  --g-border:rgba(255,255,255,.14);
-  --g-hi:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(0,0,0,.25);
-  --g-blur:blur(40px) saturate(1.6);
+  --sidebar:rgba(10,10,14,.42);
+  --surface:rgba(22,22,28,.48);
+  --surface-2:rgba(255,255,255,.09);
+  --surface-3:rgba(255,255,255,.16);
+  --line:rgba(255,255,255,.12);
+  --line-strong:rgba(255,255,255,.22);
+  --g-border:rgba(255,255,255,.18);
+  --g-hi:inset 0 1px 0 rgba(255,255,255,.38),inset 0 -1px 0 rgba(0,0,0,.35),inset 1px 0 0 rgba(255,255,255,.08),inset -1px 0 0 rgba(255,255,255,.05);
+  --g-blur:blur(48px) saturate(1.85) brightness(1.05);
+  --g-specular:linear-gradient(145deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.08) 22%,transparent 48%,transparent 62%,rgba(255,255,255,.06) 100%);
   --text:#f5f5f7;
   --muted:#98989f;
+  --gloss:1.55;
+  --shine:rgba(255,255,255,.18);
 }
 
 /* pure black ambient — very subtle accent wash only */
@@ -1389,17 +1392,30 @@ body:after{
 }
 @keyframes auraFloat{from{transform:translate(0,0) scale(1)}to{transform:translate(18vw,12vh) scale(1.25)}}
 
-/* shared premium glass */
+/* shared premium liquid glass */
 .sidebar,.player,.rightcol,.mobile-nav,.search-sugg,.float-box,.profile-box,.pl-box,.theme-panel,.song-ctx,
-.toast,.hero,.tool-btns button,.btn,.icon-btn,.mobile-action-bar button,.genre-tile,#genreBack{
+.toast,.hero,.tool-btns button,.btn,.icon-btn,.mobile-action-bar button,.genre-tile,#genreBack,
+.lyrics-panel-inner,.lcd,.auth-box{
   -webkit-backdrop-filter:var(--g-blur);backdrop-filter:var(--g-blur);
 }
+/* liquid specular sheen on glass panels */
+.sidebar::before,.player::before,.rightcol::before,.lyrics-panel-inner::before,.float-box::before,
+.profile-box::before,.pl-box::before,.theme-panel::before,.auth-box::before,.hero::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+  background:var(--g-specular);opacity:.85;mix-blend-mode:soft-light;
+}
+.sidebar,.player,.rightcol,.lyrics-panel-inner,.float-box,.profile-box,.pl-box,.theme-panel,.auth-box{
+  position:relative;overflow:hidden;
+}
+.player{overflow:visible}
+.sidebar::before{border-radius:0}
 
-/* sidebar — deep frosted black */
+
+/* sidebar — deep liquid frosted black */
 .sidebar{
-  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015)),var(--sidebar);
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.02)),var(--sidebar);
   border-right:1px solid var(--g-border);
-  box-shadow:inset -1px 0 0 rgba(255,255,255,.05),20px 0 80px rgba(0,0,0,.5);
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.1),24px 0 90px rgba(0,0,0,.55);
 }
 .logo{box-shadow:0 0 20px var(--glow),inset 0 1px 0 rgba(255,255,255,.35)}
 .brand b{text-shadow:0 0 16px color-mix(in srgb,var(--a) 45%,transparent);letter-spacing:-.5px}
@@ -1422,20 +1438,20 @@ body:after{
 .avatar{box-shadow:0 0 20px var(--glow),inset 0 1px 0 rgba(255,255,255,.35)}
 .page-title{text-shadow:0 0 24px color-mix(in srgb,var(--a) 30%,transparent);letter-spacing:-.8px}
 .search input{
-  background:rgba(255,255,255,.07);border:1px solid var(--g-border);
-  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);box-shadow:var(--g-hi);
+  background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);
+  -webkit-backdrop-filter:blur(28px) saturate(1.5);backdrop-filter:blur(28px) saturate(1.5);box-shadow:var(--g-hi);
 }
-.search input:focus{background:rgba(255,255,255,.1);border-color:color-mix(in srgb,var(--a) 65%,#fff);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 18%,transparent),0 0 22px var(--glow)}
+.search input:focus{background:rgba(255,255,255,.12);border-color:color-mix(in srgb,var(--a) 70%,#fff);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 22%,transparent),0 0 26px var(--glow),var(--g-hi)}
 .search-sugg{
   background:rgba(16,16,20,.78);border:1px solid var(--g-border);
   box-shadow:0 24px 64px rgba(0,0,0,.65),0 0 28px color-mix(in srgb,var(--a) 14%,transparent),var(--g-hi);
 }
 
-/* hero — premium glass card */
+/* hero — liquid glass card */
 .hero{
-  background:linear-gradient(135deg,color-mix(in srgb,var(--a) 48%,transparent),color-mix(in srgb,var(--b) 12%,transparent) 58%,rgba(255,255,255,.04));
-  border:1px solid rgba(255,255,255,.2);
-  box-shadow:0 24px 64px rgba(0,0,0,.5),0 0 60px color-mix(in srgb,var(--a) 24%,transparent),var(--g-hi);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--a) 52%,transparent),color-mix(in srgb,var(--b) 16%,transparent) 55%,rgba(255,255,255,.06));
+  border:1px solid rgba(255,255,255,.26);
+  box-shadow:0 28px 72px rgba(0,0,0,.55),0 0 70px color-mix(in srgb,var(--a) 28%,transparent),var(--g-hi),0 1px 0 rgba(255,255,255,.28);
 }
 .hero::before{
   content:"";position:absolute;right:-8%;top:-45%;width:60%;height:150%;z-index:-1;pointer-events:none;
@@ -1444,8 +1460,8 @@ body:after{
 .hero-thumb{box-shadow:0 16px 48px rgba(0,0,0,.55),0 0 40px var(--glow)}
 .btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);box-shadow:var(--g-hi)}
 .btn:hover{background:rgba(255,255,255,.18);box-shadow:var(--g-hi),0 0 20px rgba(255,255,255,.2)}
-.btn.primary{background:linear-gradient(145deg,#fff,#ebebf0);color:#0a0a0c;border-color:#fff;box-shadow:0 0 26px rgba(255,255,255,.4),inset 0 1px 0 #fff}
-.btn.primary:hover{box-shadow:0 0 34px rgba(255,255,255,.55),inset 0 1px 0 #fff}
+.btn.primary{background:linear-gradient(145deg,#fff,#f0f0f5);color:#0a0a0c;border-color:#fff;box-shadow:0 0 30px rgba(255,255,255,.5),inset 0 1px 0 #fff,inset 0 -1px 0 rgba(0,0,0,.06)}
+.btn.primary:hover{box-shadow:0 0 40px rgba(255,255,255,.65),inset 0 1px 0 #fff}
 
 /* mood tiles */
 .mood{border:1px solid rgba(255,255,255,.22);box-shadow:0 8px 28px rgba(0,0,0,.4),var(--g-hi)}
@@ -1456,8 +1472,8 @@ body:after{
 .mood:hover{box-shadow:0 12px 36px rgba(0,0,0,.5),0 0 28px rgba(255,255,255,.22)}
 
 /* cards — crisp album art glass */
-.art{box-shadow:0 10px 28px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.11),inset 0 1px 0 rgba(255,255,255,.2)}
-.music-card:hover .art{box-shadow:0 16px 42px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.18),0 0 30px var(--glow)}
+.art{box-shadow:0 12px 32px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.14),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(0,0,0,.2)}
+.music-card:hover .art{box-shadow:0 18px 48px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.22),0 0 36px var(--glow),inset 0 1px 0 rgba(255,255,255,.32)}
 .art .play-dot{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);box-shadow:0 0 14px var(--glow)}
 .music-card.is-playing .art{box-shadow:0 0 0 2px var(--a),0 0 32px var(--glow);animation:glowPulse 2.4s ease-in-out infinite}
 .music-card.is-playing b{text-shadow:0 0 12px var(--glow)}
@@ -1476,9 +1492,9 @@ body:after{
 .transport .play-main{
   font-size:20px;color:#fff;
   background:linear-gradient(145deg,var(--a),var(--b));
-  box-shadow:0 0 22px var(--glow),inset 0 1px 0 rgba(255,255,255,.4);
+  box-shadow:0 0 26px var(--glow),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.2);
 }
-.transport .play-main:hover{background:linear-gradient(145deg,var(--a),var(--b));box-shadow:0 0 32px var(--glow),inset 0 1px 0 rgba(255,255,255,.4)}
+.transport .play-main:hover{background:linear-gradient(145deg,var(--a),var(--b));box-shadow:0 0 38px var(--glow),inset 0 1px 0 rgba(255,255,255,.55)}
 .transport .play-main svg,.right-controls .big svg{display:block;margin:auto}
 .tool-ico{border:1px solid transparent}
 .tool-ico:hover{background:rgba(255,255,255,.1);border-color:var(--g-border);box-shadow:0 0 14px var(--glow)}
@@ -1487,12 +1503,12 @@ body:after{
 
 /* glass modals / panels */
 .float-box,.profile-box,.pl-box,.theme-panel,.song-ctx{
-  background:linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.03)),rgba(14,14,18,.72);
-  border:1px solid var(--g-border);
-  box-shadow:0 28px 80px rgba(0,0,0,.65),0 0 40px color-mix(in srgb,var(--a) 16%,transparent),var(--g-hi);
+  background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),rgba(12,12,16,.62);
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 32px 90px rgba(0,0,0,.7),0 0 48px color-mix(in srgb,var(--a) 20%,transparent),var(--g-hi),0 1px 0 rgba(255,255,255,.25);
 }
 .float-modal,.profile-modal,.pl-modal{-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
-.toast{background:rgba(22,22,28,.78);border:1px solid var(--g-border);box-shadow:0 12px 36px rgba(0,0,0,.55),0 0 22px var(--glow)}
+.toast{background:rgba(18,18,24,.72);border:1px solid rgba(255,255,255,.2);box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 28px var(--glow),var(--g-hi)}
 .mobile-action-bar button{background:rgba(255,255,255,.07);border:1px solid var(--g-border);box-shadow:var(--g-hi)}
 .queue-item:hover,.queue-item.active,.recent-item:hover{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
 .mix-cover{box-shadow:0 0 14px var(--glow)}
@@ -1505,8 +1521,8 @@ body.view-new .section .section-head{margin-top:14px}
 .genre-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
 .genre-tile{
   position:relative;height:104px;border-radius:18px;overflow:hidden;text-align:left;color:#fff;
-  background:var(--g);border:1px solid rgba(255,255,255,.24);
-  box-shadow:0 12px 32px rgba(0,0,0,.45),var(--g-hi),0 0 20px color-mix(in srgb,var(--gc) 26%,transparent);
+  background:var(--g);border:1px solid rgba(255,255,255,.32);
+  box-shadow:0 14px 36px rgba(0,0,0,.5),var(--g-hi),0 0 28px color-mix(in srgb,var(--gc) 32%,transparent),0 1px 0 rgba(255,255,255,.3);
   transition:transform .18s,box-shadow .18s;
 }
 .genre-tile::after{
@@ -1530,18 +1546,18 @@ body.view-new .section .section-head{margin-top:14px}
   .player{
     top:auto;bottom:16px;left:calc(var(--side-w) + 20px);right:20px;height:78px;
     border-radius:24px;padding:0 22px;
-    border:1px solid var(--g-border);
-    background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.04)),rgba(10,10,14,.52);
-    box-shadow:0 24px 64px rgba(0,0,0,.65),0 0 40px color-mix(in srgb,var(--a) 22%,transparent),var(--g-hi);
+    border:1px solid rgba(255,255,255,.22);
+    background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.05) 45%,rgba(255,255,255,.03)),rgba(8,8,12,.42);
+    box-shadow:0 28px 72px rgba(0,0,0,.7),0 0 48px color-mix(in srgb,var(--a) 28%,transparent),var(--g-hi),0 1px 0 rgba(255,255,255,.25);
   }
-  .lcd{height:58px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid var(--g-border);box-shadow:var(--g-hi)}
+  .lcd{height:58px;border-radius:16px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);box-shadow:var(--g-hi),0 1px 0 rgba(255,255,255,.15)}
   .now-art{width:56px;height:56px}
   .lcd-mid{padding:0 14px}
   .rightcol{
     top:16px;right:20px;bottom:112px;width:340px;border-radius:24px;
-    border:1px solid var(--g-border);
-    background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),rgba(10,10,14,.58);
-    box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 36px color-mix(in srgb,var(--a) 16%,transparent),var(--g-hi);
+    border:1px solid rgba(255,255,255,.2);
+    background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.03)),rgba(8,8,12,.48);
+    box-shadow:0 28px 72px rgba(0,0,0,.65),0 0 42px color-mix(in srgb,var(--a) 20%,transparent),var(--g-hi),0 1px 0 rgba(255,255,255,.2);
     transform:translateX(125%);
   }
   body.show-queue .rightcol{transform:none}
@@ -1554,17 +1570,17 @@ body.view-new .section .section-head{margin-top:14px}
   .topbar{background:rgba(0,0,0,.55)}
   .player{
     left:10px;right:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));height:62px;
-    border-radius:20px;padding:0 12px;border:1px solid var(--g-border);
-    background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.04)),rgba(10,10,14,.55);
-    box-shadow:0 16px 44px rgba(0,0,0,.6),0 0 28px color-mix(in srgb,var(--a) 22%,transparent),var(--g-hi);
+    border-radius:20px;padding:0 12px;border:1px solid rgba(255,255,255,.22);
+    background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),rgba(8,8,12,.45);
+    box-shadow:0 18px 48px rgba(0,0,0,.65),0 0 32px color-mix(in srgb,var(--a) 26%,transparent),var(--g-hi),0 1px 0 rgba(255,255,255,.22);
   }
   .player .seek{left:18px;right:18px;top:0;height:3px}
   .seekbar{height:3px;border-radius:3px}
   .seekbar i{border-radius:3px}
   .transport .play-main{width:40px;height:40px;font-size:18px;background:linear-gradient(145deg,var(--a),var(--b))}
   .mobile-nav{
-    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),rgba(8,8,12,.65);
-    border-top:1px solid var(--g-border);box-shadow:0 -12px 44px rgba(0,0,0,.45);
+    background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.03)),rgba(6,6,10,.55);
+    border-top:1px solid rgba(255,255,255,.18);box-shadow:0 -14px 48px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);
   }
   .mobile-nav button.active{text-shadow:0 0 12px var(--glow)}
   .mobile-nav button.active svg{filter:drop-shadow(0 0 5px var(--glow))}
@@ -5941,7 +5957,7 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
   setTitle("New");
   const h=$("#trackHeading");if(h)h.textContent="✨ New · Pick a style";
   const b=$("#genreBack");if(b)b.style.display="none";
-  box.innerHTML='<div class="new-view"><p class="nv-sub">Koi bhi style chuno — us type ke new uploaded aur trending songs ki list ban jayegi.</p><div class="genre-grid">'+
+  box.innerHTML='<div class="new-view"><p class="nv-sub">Pick any style — we will build a list of newly uploaded and trending songs for that vibe.</p><div class="genre-grid">'+
    GENRES.map((g,i)=>'<button type="button" class="genre-tile" data-gi="'+i+'" style="--g:linear-gradient(145deg,'+g.c[0]+','+g.c[1]+');--gc:'+g.c[0]+'"><span class="gt-ico">'+g.i+'</span><b>'+esc(g.n)+'</b><small>New · Trending</small></button>').join("")+
    '</div></div>';
   window.scrollTo({top:0,behavior:"smooth"});
