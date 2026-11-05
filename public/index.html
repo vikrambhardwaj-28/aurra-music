@@ -1376,9 +1376,9 @@ body.show-lyrics-panel .rightcol{transform:translateX(calc(100% + 24px))!importa
   --shine:rgba(255,255,255,.14);
 }
 
-/* pure black ambient — very subtle accent wash only */
+/* ambient layer follows --bg so theme color actually shows */
 body:before{
-  background-color:#000;
+  background-color:var(--bg);
   background-image:
     radial-gradient(1100px 700px at 6% -10%,color-mix(in srgb,var(--a) 22%,transparent),transparent 58%),
     radial-gradient(900px 650px at 100% 0%,color-mix(in srgb,var(--b) 14%,transparent),transparent 55%),
@@ -2200,18 +2200,26 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
   --glass-bg-strong:rgba(18,18,24,.12)!important;
   --blur:blur(80px) saturate(2.2)!important;
   --g-blur:blur(80px) saturate(2.2)!important;
+  --line:rgba(255,255,255,.18)!important;
+  --line-strong:rgba(255,255,255,.26)!important;
 }
-html,body{background:#000!important}
-body:before{opacity:.9!important}
+/* Background follows theme --bg (was forced black — that blocked color changes) */
+html,body{
+  background:var(--bg)!important;
+}
+body:before{
+  background-color:var(--bg)!important;
+  opacity:1!important;
+}
 
-/* LEFT PANEL */
+/* LEFT PANEL — clear glass edge so lines stay visible */
 .sidebar{
   background:rgba(8,8,12,.06)!important;
   background-image:none!important;
   backdrop-filter:blur(80px) saturate(2.2)!important;
   -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border-right:1px solid rgba(255,255,255,.08)!important;
-  box-shadow:none!important;
+  border-right:1px solid rgba(255,255,255,.22)!important;
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.10)!important;
 }
 
 /* BOTTOM / FLOATING PLAYER */
@@ -2220,12 +2228,12 @@ body:before{opacity:.9!important}
   background-image:none!important;
   backdrop-filter:blur(80px) saturate(2.2)!important;
   -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.10)!important;
-  box-shadow:0 8px 40px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.12)!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  box-shadow:0 8px 40px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.16)!important;
 }
 .lcd{
   background:rgba(255,255,255,.04)!important;
-  border:1px solid rgba(255,255,255,.08)!important;
+  border:1px solid rgba(255,255,255,.16)!important;
   box-shadow:none!important;
 }
 
@@ -2236,7 +2244,7 @@ body.show-queue .rightcol{
   background-image:none!important;
   backdrop-filter:blur(80px) saturate(2.2)!important;
   -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.10)!important;
+  border:1px solid rgba(255,255,255,.20)!important;
 }
 
 /* LYRICS PANEL */
@@ -2245,7 +2253,7 @@ body.show-queue .rightcol{
   background-image:none!important;
   backdrop-filter:blur(80px) saturate(2.2)!important;
   -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.10)!important;
+  border:1px solid rgba(255,255,255,.20)!important;
 }
 
 /* MOBILE NAV + TOPBAR */
@@ -2254,13 +2262,14 @@ body.show-queue .rightcol{
   background-image:none!important;
   backdrop-filter:blur(80px) saturate(2.2)!important;
   -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border-top:1px solid rgba(255,255,255,.08)!important;
+  border-top:1px solid rgba(255,255,255,.18)!important;
   box-shadow:none!important;
 }
 .topbar{
   background:rgba(0,0,0,.06)!important;
   backdrop-filter:blur(60px) saturate(2)!important;
   -webkit-backdrop-filter:blur(60px) saturate(2)!important;
+  border-bottom:1px solid rgba(255,255,255,.12)!important;
 }
 
 /* MODALS / MENUS / THEME / TOAST / SEARCH */
@@ -2269,21 +2278,21 @@ body.show-queue .rightcol{
   background-image:none!important;
   backdrop-filter:blur(72px) saturate(2.2)!important;
   -webkit-backdrop-filter:blur(72px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.10)!important;
+  border:1px solid rgba(255,255,255,.20)!important;
   box-shadow:0 20px 60px rgba(0,0,0,.25)!important;
 }
 
 /* HERO */
 .hero{
   background:linear-gradient(135deg,color-mix(in srgb,var(--a) 22%,transparent),color-mix(in srgb,var(--b) 8%,transparent) 55%,rgba(255,255,255,.03))!important;
-  border:1px solid rgba(255,255,255,.12)!important;
+  border:1px solid rgba(255,255,255,.20)!important;
   box-shadow:0 20px 50px rgba(0,0,0,.2)!important;
 }
 
 /* BUTTONS / CHIPS slightly glass */
 .btn,.tool-btns button,.mobile-action-bar button,.icon-btn,#genreBack{
   background:rgba(255,255,255,.06)!important;
-  border:1px solid rgba(255,255,255,.10)!important;
+  border:1px solid rgba(255,255,255,.16)!important;
   backdrop-filter:blur(24px)!important;
   -webkit-backdrop-filter:blur(24px)!important;
 }
@@ -5295,7 +5304,16 @@ function bind(){
   if(b)root.style.setProperty("--b",b);
   if(bg){
    root.style.setProperty("--bg",bg);
-   document.body.style.background=bg;
+   // Force background color to show (override any leftover #000 rules)
+   root.style.setProperty("background",bg);
+   document.body.style.setProperty("background",bg);
+   document.body.style.setProperty("background-color",bg);
+   // Keep ambient layer in sync
+   try{
+    const st=document.getElementById("auraThemeBgFix")||(()=>{const s=document.createElement("style");s.id="auraThemeBgFix";document.head.appendChild(s);return s})();
+    st.textContent=`html,body{background:${bg}!important;background-color:${bg}!important}body:before{background-color:${bg}!important}`;
+   }catch(e){}
+   try{document.querySelector('meta[name="theme-color"]')?.setAttribute("content",bg)}catch(e){}
   }
   if(gloss!=null){
    const g=(+gloss/100).toFixed(2);
