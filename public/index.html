@@ -1376,13 +1376,13 @@ body.show-lyrics-panel .rightcol{transform:translateX(calc(100% + 24px))!importa
   --shine:rgba(255,255,255,.14);
 }
 
-/* ambient layer follows --bg so theme color actually shows */
+/* ambient layer follows --bg — soft accent washes only */
 body:before{
   background-color:var(--bg);
   background-image:
-    radial-gradient(1100px 700px at 6% -10%,color-mix(in srgb,var(--a) 22%,transparent),transparent 58%),
-    radial-gradient(900px 650px at 100% 0%,color-mix(in srgb,var(--b) 14%,transparent),transparent 55%),
-    radial-gradient(800px 600px at 50% 120%,rgba(40,40,80,.18),transparent 60%);
+    radial-gradient(1100px 700px at 6% -10%,color-mix(in srgb,var(--a) 28%,transparent),transparent 58%),
+    radial-gradient(900px 650px at 100% 0%,color-mix(in srgb,var(--b) 18%,transparent),transparent 55%),
+    radial-gradient(800px 600px at 50% 120%,rgba(30,20,50,.22),transparent 60%);
   background-attachment:fixed;
 }
 body:after{
@@ -1833,20 +1833,18 @@ body.show-queue .rightcol{
   transition:transform .2s var(--ease-fast),opacity .18s ease,background .15s ease,box-shadow .2s ease,border-color .15s ease!important;
 }
 
-/* Sidebar glass — extreme transparent + heavy blur */
+/* Sidebar / player base glass (final block overrides for strength) */
 .sidebar{
-  background:rgba(12,12,16,.10)!important;
-  backdrop-filter:blur(72px) saturate(2.2)!important;-webkit-backdrop-filter:blur(72px) saturate(2.2)!important;
-  border-right:1px solid rgba(255,255,255,.10)!important;
-  box-shadow:4px 0 28px rgba(0,0,0,.12), inset -1px 0 0 rgba(255,255,255,.08);
+  background:rgba(22,16,32,.50);
+  backdrop-filter:blur(44px) saturate(1.7);-webkit-backdrop-filter:blur(44px) saturate(1.7);
+  border-right:1px solid rgba(255,255,255,.16);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 12px 0 36px rgba(0,0,0,.18);
 }
-
-/* Player bar glass — extreme transparent + heavy blur */
 .player{
-  background:rgba(14,14,18,.14)!important;
-  backdrop-filter:blur(72px) saturate(2.2)!important;-webkit-backdrop-filter:blur(72px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.12)!important;
-  box-shadow:0 8px 36px rgba(0,0,0,.18),0 0 40px rgba(250,35,59,.05), inset 0 1px 0 rgba(255,255,255,.16);
+  background:rgba(20,14,28,.55);
+  backdrop-filter:blur(44px) saturate(1.7);-webkit-backdrop-filter:blur(44px) saturate(1.7);
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 10px 36px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.18);
 }
 .lcd{
   background:rgba(255,255,255,.07)!important;
@@ -2191,121 +2189,135 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
 
 /* ==== end glass polish ==== */
 
-/* ==== FORCE MAX TRANSPARENCY — final overrides (cannot be beaten) ==== */
+/* ==== PREMIUM LIQUID GLASS — balanced frosted glass ==== */
 :root{
-  --sidebar:rgba(8,8,12,.06)!important;
-  --surface:rgba(16,16,22,.10)!important;
-  --surface-2:rgba(255,255,255,.04)!important;
-  --glass-bg:rgba(16,16,22,.08)!important;
-  --glass-bg-strong:rgba(18,18,24,.12)!important;
-  --blur:blur(80px) saturate(2.2)!important;
-  --g-blur:blur(80px) saturate(2.2)!important;
-  --line:rgba(255,255,255,.18)!important;
-  --line-strong:rgba(255,255,255,.26)!important;
-}
-/* Background follows theme --bg (was forced black — that blocked color changes) */
-html,body{
-  background:var(--bg)!important;
-}
-body:before{
-  background-color:var(--bg)!important;
-  opacity:1!important;
+  --sidebar:rgba(22,18,30,.50)!important;
+  --surface:rgba(28,24,38,.45)!important;
+  --surface-2:rgba(255,255,255,.09)!important;
+  --surface-3:rgba(255,255,255,.13)!important;
+  --glass-bg:rgba(255,255,255,.11)!important;
+  --glass-bg-strong:rgba(255,255,255,.15)!important;
+  --blur:blur(44px) saturate(1.65)!important;
+  --g-blur:blur(44px) saturate(1.65)!important;
+  --line:rgba(255,255,255,.16)!important;
+  --line-strong:rgba(255,255,255,.24)!important;
+  --g-border:rgba(255,255,255,.18)!important;
 }
 
-/* LEFT PANEL — clear glass edge so lines stay visible */
+html,body{background:var(--bg)!important}
+body:before{background-color:var(--bg)!important;opacity:1!important}
+
+/* SIDEBAR — real frosted glass */
 .sidebar{
-  background:rgba(8,8,12,.06)!important;
-  background-image:none!important;
-  backdrop-filter:blur(80px) saturate(2.2)!important;
-  -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border-right:1px solid rgba(255,255,255,.22)!important;
-  box-shadow:inset -1px 0 0 rgba(255,255,255,.10)!important;
+  background:rgba(22,16,32,.52)!important;
+  backdrop-filter:blur(44px) saturate(1.7)!important;
+  -webkit-backdrop-filter:blur(44px) saturate(1.7)!important;
+  border-right:1px solid rgba(255,255,255,.18)!important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset -1px 0 0 rgba(255,255,255,.06),
+    16px 0 48px rgba(0,0,0,.22)!important;
 }
 
-/* BOTTOM / FLOATING PLAYER */
+/* PLAYER — floating frosted bar */
 .player{
-  background:rgba(10,10,14,.08)!important;
-  background-image:none!important;
-  backdrop-filter:blur(80px) saturate(2.2)!important;
-  -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.22)!important;
-  box-shadow:0 8px 40px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.16)!important;
+  background:rgba(20,14,28,.58)!important;
+  backdrop-filter:blur(44px) saturate(1.7)!important;
+  -webkit-backdrop-filter:blur(44px) saturate(1.7)!important;
+  border:1px solid rgba(255,255,255,.20)!important;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -1px 0 rgba(0,0,0,.12)!important;
 }
 .lcd{
-  background:rgba(255,255,255,.04)!important;
-  border:1px solid rgba(255,255,255,.16)!important;
-  box-shadow:none!important;
+  background:rgba(255,255,255,.09)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10)!important;
 }
 
 /* QUEUE */
 .rightcol,
 body.show-queue .rightcol{
-  background:rgba(12,12,18,.10)!important;
-  background-image:none!important;
-  backdrop-filter:blur(80px) saturate(2.2)!important;
-  -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.20)!important;
+  background:rgba(22,16,32,.55)!important;
+  backdrop-filter:blur(44px) saturate(1.65)!important;
+  -webkit-backdrop-filter:blur(44px) saturate(1.65)!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 16px 48px rgba(0,0,0,.28)!important;
 }
 
-/* LYRICS PANEL */
+/* LYRICS */
 .lyrics-panel-inner{
-  background:rgba(12,12,18,.10)!important;
-  background-image:none!important;
-  backdrop-filter:blur(80px) saturate(2.2)!important;
-  -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.20)!important;
+  background:rgba(22,16,32,.58)!important;
+  backdrop-filter:blur(44px) saturate(1.65)!important;
+  -webkit-backdrop-filter:blur(44px) saturate(1.65)!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 16px 48px rgba(0,0,0,.3)!important;
 }
 
 /* MOBILE NAV + TOPBAR */
 .mobile-nav{
-  background:rgba(8,8,12,.08)!important;
-  background-image:none!important;
-  backdrop-filter:blur(80px) saturate(2.2)!important;
-  -webkit-backdrop-filter:blur(80px) saturate(2.2)!important;
-  border-top:1px solid rgba(255,255,255,.18)!important;
-  box-shadow:none!important;
+  background:rgba(18,14,26,.62)!important;
+  backdrop-filter:blur(36px) saturate(1.55)!important;
+  -webkit-backdrop-filter:blur(36px) saturate(1.55)!important;
+  border-top:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:0 -10px 32px rgba(0,0,0,.22)!important;
 }
 .topbar{
-  background:rgba(0,0,0,.06)!important;
-  backdrop-filter:blur(60px) saturate(2)!important;
-  -webkit-backdrop-filter:blur(60px) saturate(2)!important;
-  border-bottom:1px solid rgba(255,255,255,.12)!important;
+  background:rgba(14,10,20,.40)!important;
+  backdrop-filter:blur(32px) saturate(1.45)!important;
+  -webkit-backdrop-filter:blur(32px) saturate(1.45)!important;
+  border-bottom:1px solid rgba(255,255,255,.10)!important;
 }
 
-/* MODALS / MENUS / THEME / TOAST / SEARCH */
+/* MODALS / MENUS */
 .float-box,.profile-box,.pl-box,.theme-panel,.song-ctx,.auth-box,.search-sugg,.toast{
-  background:rgba(14,14,20,.12)!important;
-  background-image:none!important;
-  backdrop-filter:blur(72px) saturate(2.2)!important;
-  -webkit-backdrop-filter:blur(72px) saturate(2.2)!important;
+  background:rgba(26,20,36,.72)!important;
+  backdrop-filter:blur(36px) saturate(1.6)!important;
+  -webkit-backdrop-filter:blur(36px) saturate(1.6)!important;
   border:1px solid rgba(255,255,255,.20)!important;
-  box-shadow:0 20px 60px rgba(0,0,0,.25)!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.16)!important;
 }
 
 /* HERO */
 .hero{
-  background:linear-gradient(135deg,color-mix(in srgb,var(--a) 22%,transparent),color-mix(in srgb,var(--b) 8%,transparent) 55%,rgba(255,255,255,.03))!important;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.03) 45%,transparent 75%),
+    linear-gradient(135deg,color-mix(in srgb,var(--a) 38%,transparent),color-mix(in srgb,var(--b) 16%,transparent) 60%,rgba(18,10,24,.50))!important;
   border:1px solid rgba(255,255,255,.20)!important;
-  box-shadow:0 20px 50px rgba(0,0,0,.2)!important;
+  box-shadow:0 20px 50px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.18)!important;
+  backdrop-filter:blur(24px) saturate(1.45)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(1.45)!important;
 }
 
-/* BUTTONS / CHIPS slightly glass */
-.btn,.tool-btns button,.mobile-action-bar button,.icon-btn,#genreBack{
-  background:rgba(255,255,255,.06)!important;
+.mood,.genre-tile{
   border:1px solid rgba(255,255,255,.16)!important;
-  backdrop-filter:blur(24px)!important;
-  -webkit-backdrop-filter:blur(24px)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 8px 22px rgba(0,0,0,.16)!important;
+}
+
+.btn,.tool-btns button,.mobile-action-bar button,.icon-btn,#genreBack{
+  background:rgba(255,255,255,.10)!important;
+  border:1px solid rgba(255,255,255,.15)!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10)!important;
 }
 .btn.primary{
   background:linear-gradient(145deg,#fff,#f0f0f5)!important;
   color:#0a0a0c!important;
   border-color:#fff!important;
+  box-shadow:0 4px 16px rgba(0,0,0,.2)!important;
 }
 
-/* cards art keep solid so albums still readable */
+.nav button.active{
+  background:rgba(255,255,255,.14)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10)!important;
+}
+.nav button:hover{background:rgba(255,255,255,.08)!important}
+
 .art,.music-card .art{opacity:1!important}
 
-/* ==== end force transparency ==== */
+/* ==== end premium liquid glass ==== */
 
 </style>
 </head>
