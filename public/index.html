@@ -1368,7 +1368,7 @@ body.show-lyrics-panel .rightcol{transform:translateX(calc(100% + 24px))!importa
   --line-strong:rgba(255,255,255,.22);
   --g-border:rgba(255,255,255,.18);
   --g-hi:inset 0 1px 0 rgba(255,255,255,.38),inset 0 -1px 0 rgba(0,0,0,.35),inset 1px 0 0 rgba(255,255,255,.08),inset -1px 0 0 rgba(255,255,255,.05);
-  --g-blur:blur(48px) saturate(1.85) brightness(1.05);
+  --g-blur:blur(40px) saturate(1.75);
   --g-specular:linear-gradient(145deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.08) 22%,transparent 48%,transparent 62%,rgba(255,255,255,.06) 100%);
   --text:#f5f5f7;
   --muted:#98989f;
@@ -1392,23 +1392,12 @@ body:after{
 }
 @keyframes auraFloat{from{transform:translate(0,0) scale(1)}to{transform:translate(18vw,12vh) scale(1.25)}}
 
-/* shared premium liquid glass */
+/* shared premium liquid glass — safe (no overflow/position overrides) */
 .sidebar,.player,.rightcol,.mobile-nav,.search-sugg,.float-box,.profile-box,.pl-box,.theme-panel,.song-ctx,
 .toast,.hero,.tool-btns button,.btn,.icon-btn,.mobile-action-bar button,.genre-tile,#genreBack,
 .lyrics-panel-inner,.lcd,.auth-box{
   -webkit-backdrop-filter:var(--g-blur);backdrop-filter:var(--g-blur);
 }
-/* liquid specular sheen on glass panels */
-.sidebar::before,.player::before,.rightcol::before,.lyrics-panel-inner::before,.float-box::before,
-.profile-box::before,.pl-box::before,.theme-panel::before,.auth-box::before,.hero::after{
-  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
-  background:var(--g-specular);opacity:.85;mix-blend-mode:soft-light;
-}
-.sidebar,.player,.rightcol,.lyrics-panel-inner,.float-box,.profile-box,.pl-box,.theme-panel,.auth-box{
-  position:relative;overflow:hidden;
-}
-.player{overflow:visible}
-.sidebar::before{border-radius:0}
 
 
 /* sidebar — deep liquid frosted black */
