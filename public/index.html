@@ -3096,25 +3096,15 @@ body.show-queue .rightcol{
 }
 .search-overlay-close:hover{background:rgba(255,255,255,.18)}
 
-/* Hide old fixed topbar search on desktop — search lives in overlay */
-@media (min-width:901px){
-  .topbar .search{display:none!important}
-}
+/* Search lives in topbar */
+.topbar .search{flex:1;max-width:420px;min-width:180px}
+
 /* Sidebar search button active look */
 #sideSearchBtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
 <div id="customBgLayer" aria-hidden="true"></div>
-
-<div class="search-overlay" id="searchOverlay" aria-hidden="true">
- <div class="search-overlay-inner">
-  <div class="search-overlay-card">
-   <label class="search"><span class="mag">⌕</span><input id="search" placeholder="Search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false"><button type="button" class="search-clear" id="searchClear" title="Clear search" aria-label="Clear search">×</button><span class="shortcut">⌘ K</span><div class="search-sugg" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div></label>
-  </div>
-  <button type="button" class="search-overlay-close" id="searchOverlayClose" aria-label="Close search">×</button>
- </div>
-</div>
 
 <div class="layout">
 <aside class="sidebar">
@@ -3154,7 +3144,7 @@ body.show-queue .rightcol{
 <main class="center">
  <header class="topbar">
   <h1 class="page-title">Listen Now</h1>
-  
+  <label class="search"><span class="mag">⌕</span><input id="search" placeholder="Search songs, artists, albums" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false"><button type="button" class="search-clear" id="searchClear" title="Clear search" aria-label="Clear search">×</button><span class="shortcut">⌘ K</span><div class="search-sugg" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div></label>
  </header>
  <div class="mobile-action-bar mobile-only" id="mobileActionBar" aria-label="Quick tools">
   <button type="button" id="mActSleep"><span>⏱</span>Sleep</button>
@@ -4823,48 +4813,6 @@ function _setSearchCache(q,page,data){
     _searchCache.delete(first);
   }
 }
-async function _fetchSearchFast(q,page,signal){
-  const qs="q="+encodeURIComponent(q)+"&page="+page;
-  // Race relative + production hosts — first OK response wins
-  const urls=[
-    "/search?"+qs,
-    "https://music.markiv.site/search?"+qs,
-    "https://aura-music.markiv.site/search?"+qs
-  ];
-  // de-dupe if already on production origin
-  const seen=new Set();
-  const uniq=[];
-  for(const u of urls){
-    try{
-      const abs=new URL(u,location.href).href;
-      if(seen.has(abs))continue;
-      seen.add(abs);uniq.push(u);
-    }catch(e){uniq.push(u)}
-  }
-  return await new Promise((resolve,reject)=>{
-    let pending=uniq.length;
-    let done=false;
-    let lastErr=null;
-    if(!pending){reject(new Error("no search urls"));return}
-    uniq.forEach(url=>{
-      fetch(url,{signal,cache:"no-store"})
-        .then(async res=>{
-          if(!res.ok)throw new Error("HTTP "+res.status);
-          return res.json();
-        })
-        .then(data=>{
-          if(done)return;
-          done=true;
-          resolve(data);
-        })
-        .catch(err=>{
-          lastErr=err;
-          pending--;
-          if(!done&&pending<=0)reject(lastErr||new Error("search failed"));
-        });
-    });
-  });
-}
 async function searchLocal(q, page){
  q=(q||"").trim();
  page=page||1;
@@ -4873,7 +4821,6 @@ async function searchLocal(q, page){
   _searchReq++;
   state._searchMore=null;state._channelMore=null;state._playlistMore=null;
   state.songs=[...CATALOG];renderCards(CATALOG);$("#trackHeading").textContent="🔥 Trending Now";
-  forceCloseSearchUI();
   return;
  }
  const req=++_searchReq;
@@ -4881,47 +4828,16 @@ async function searchLocal(q, page){
   if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
   _searchAbort=typeof AbortController!=="undefined"?new AbortController():null;
   state._channelMore=null;state._playlistMore=null;
-  forceCloseSearchUI();
-  // INSTANT local matches while network search runs
-  const ql=q.toLowerCase();
-  const localHits=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql)).slice(0,24);
-  if(localHits.length){
-   state.fromDiscovery=true;
-   state.songs=localHits;
-   state.queue=localHits.slice();
-   renderCards(localHits);
-   $("#trackHeading").textContent="Searching… · "+localHits.length+" local";
-  }else{
-   $("#trackHeading").textContent="Searching…";
-  }
-  // serve cache instantly if available
-  const cached=_getSearchCache(q,page);
-  if(cached&&cached.length){
-   const list=cached.map(mapSearchItem).filter(s=>s.id);
-   if(list.length&&req===_searchReq){
-    state.fromDiscovery=true;
-    const videos=list.filter(s=>s.type==="video"||!s.type);
-    state.queue=videos.length?videos:[];
-    state.songs=list;
-    state._searchMore={q,page:1,hasMore:true};
-    state.navType="search";
-    renderCards(list);
-    $("#trackHeading").textContent="Search · "+list.length+" results";
-    toast(list.length+" results");
-    // still refresh in background below
-  }
+  $("#trackHeading").textContent="Searching…";
  }
- }
- const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(8000);
+ const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(14000);
  try{
-  const data=await _fetchSearchFast(q,page,signal);
+  const res=await fetch("/search?q="+encodeURIComponent(q)+"&page="+page,{signal,cache:"no-store"});
   if(req!==_searchReq)return;
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const data=await res.json();
   const raw=Array.isArray(data)?data:(data.items||[]);
-  try{_setSearchCache(q,page,raw)}catch(e){}
   const list=raw.map(mapSearchItem).filter(s=>s.id);
-  const vidCount=list.filter(s=>s.type==="video"||!s.type).length;
-  // Normal search: always keep Show More until an empty page comes back
-  const hasMore=true;
   if(!list.length&&page===1){
    state._searchMore=null;
    $("#trackHeading").textContent="No results";
@@ -4984,6 +4900,7 @@ async function searchLocal(q, page){
   toast("Search API offline — showing local");
  }
 }
+
 function updateSleepSideUI(txt,hint){
  if($("#sleepStatus")) $("#sleepStatus").textContent=txt||"";
  if($("#sideSleepStatus")) $("#sideSleepStatus").textContent=txt||"";
@@ -6058,7 +5975,7 @@ function bind(){
  $("#immersivePlayer").addEventListener("click",e=>{if(e.target===$("#immersivePlayer"))closePlayer()});
  document.addEventListener("keydown",e=>{
   if(e.key==="Escape"&&$("#immersivePlayer").classList.contains("open"))closePlayer();
-  if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();openSearchOverlay()}
+  if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();const inp=document.getElementById("search");if(inp){inp.focus();try{inp.select()}catch(err){}}}
   if(e.code==="Space"&&e.target.tagName!=="INPUT"){e.preventDefault();togglePlay()}
  });
  $$(".view-switch").forEach(b=>b.onclick=()=>setView(b.dataset.view));
@@ -6377,54 +6294,20 @@ body.has-bg-image:before{
  
 
 function forceCloseSearchUI(){
-  try{
-    var ov=document.getElementById("searchOverlay");
-    if(ov){ ov.classList.remove("open"); ov.style.display="none"; ov.setAttribute("aria-hidden","true"); }
-    document.body.style.overflow="";
-    var sb=document.getElementById("searchSuggestions");
-    if(sb) sb.classList.remove("open");
-  }catch(e){}
-  try{ if(typeof window.closeSearchOverlay==="function") window.closeSearchOverlay(); }catch(e){}
+  try{hideSuggestions()}catch(e){}
 }
-
-/* Spotlight search overlay */
 function openSearchOverlay(){
-  const ov=document.getElementById("searchOverlay");
-  if(!ov)return;
-  ov.style.display="flex";
-  ov.classList.add("open");
-  ov.setAttribute("aria-hidden","false");
-  document.body.style.overflow="hidden";
-  setTimeout(()=>{try{$("#search")?.focus()}catch(e){}},50);
+  const inp=document.getElementById("search");
+  if(inp){inp.focus();try{inp.select()}catch(err){}}
 }
 function closeSearchOverlay(){
-  const ov=document.getElementById("searchOverlay");
-  if(!ov)return;
-  ov.classList.remove("open");
-  ov.style.display="none";
-  ov.setAttribute("aria-hidden","true");
-  if(!document.getElementById("themePanel")?.classList.contains("open")
-     &&!document.getElementById("authModal")?.classList.contains("open")
-     &&!document.getElementById("profileModal")?.classList.contains("open")){
-    document.body.style.overflow="";
-  }
   try{hideSuggestions()}catch(e){}
-  try{$("#search")?.blur()}catch(e){}
 }
 window.closeSearchOverlay=closeSearchOverlay;
 window.openSearchOverlay=openSearchOverlay;
 document.getElementById("sideSearchBtn")?.addEventListener("click",e=>{
   e.preventDefault();e.stopPropagation();
   openSearchOverlay();
-});
-document.getElementById("searchOverlayClose")?.addEventListener("click",closeSearchOverlay);
-document.getElementById("searchOverlay")?.addEventListener("click",e=>{
-  if(e.target.id==="searchOverlay") closeSearchOverlay();
-});
-document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"&&document.getElementById("searchOverlay")?.classList.contains("open")){
-    closeSearchOverlay();
-  }
 });
 
 $("#themeToggle")?.addEventListener("click",e=>{e.stopPropagation();
@@ -6620,10 +6503,10 @@ $("#themeToggle")?.addEventListener("click",e=>{e.stopPropagation();
    state.navType="search";
    state._libraryView=false;
    if(!restoreBrowseCache()){
-    openSearchOverlay();
+    const inp=document.getElementById("search");
+    if(inp){inp.focus();try{inp.select()}catch(err){}}
    }else{
     toast("Previous results restored");
-    openSearchOverlay();
    }
   }else if(act==="library"){
    pushNav();
