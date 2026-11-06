@@ -2183,345 +2183,6 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
 
 /* ==== end glass polish ==== */
 
-/* ============================================================
-   AURA LIQUID GLASS — max transparency · liquid blur · 3D depth
-   ============================================================ */
-:root{
-  --sidebar:rgba(20,26,36,.16)!important;
-  --surface:rgba(22,28,38,.22)!important;
-  --surface-2:rgba(255,255,255,.07)!important;
-  --surface-3:rgba(255,255,255,.12)!important;
-  --g-border:rgba(255,255,255,.20)!important;
-  --g-blur:blur(72px) saturate(2.15)!important;
-  --g-hi:inset 0 1.5px 0 rgba(255,255,255,.38), inset 0 -1px 0 rgba(0,0,0,.3), inset 1px 0 0 rgba(255,255,255,.1), inset -1px 0 0 rgba(0,0,0,.14)!important;
-}
-
-/* —— Floating liquid glass sidebar — strong 3D on BIG panel only —— */
-.sidebar{
-  position:fixed!important;
-  left:10px!important;top:10px!important;bottom:10px!important;
-  width:var(--side-w)!important;
-  padding:108px 12px 14px!important;
-  background:
-    linear-gradient(160deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.04) 35%,rgba(255,255,255,.015) 100%),
-    rgba(14,20,30,.16)!important;
-  backdrop-filter:blur(72px) saturate(2.2)!important;
-  -webkit-backdrop-filter:blur(72px) saturate(2.2)!important;
-  border:1px solid rgba(255,255,255,.22)!important;
-  border-radius:24px!important;
-  box-shadow:
-    0 32px 88px rgba(0,0,0,.52),
-    0 10px 28px rgba(0,0,0,.28),
-    0 2px 6px rgba(0,0,0,.18),
-    inset 0 2px 0 rgba(255,255,255,.48),
-    inset 0 -2px 0 rgba(0,0,0,.28),
-    inset 2px 0 0 rgba(255,255,255,.10),
-    inset -2px 0 0 rgba(0,0,0,.14)!important;
-}
-
-/* Sidebar nav buttons — more gap, soft look (light 3D only) */
-.sidebar .nav{
-  gap:8px!important;
-}
-.sidebar .nav button{
-  padding:12px 14px!important;
-  margin:0!important;
-  border-radius:12px!important;
-  border:1px solid transparent!important;
-  box-shadow:none!important;
-  background:transparent!important;
-  transition:background .15s ease, color .15s ease!important;
-  transform:none!important;
-}
-.sidebar .nav button:hover{
-  background:rgba(255,255,255,.08)!important;
-  box-shadow:none!important;
-  transform:none!important;
-}
-.sidebar .nav button.active{
-  background:rgba(255,255,255,.12)!important;
-  border:1px solid rgba(255,255,255,.12)!important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important;
-  transform:none!important;
-}
-.sidebar .playlist .nav{
-  gap:6px!important;
-}
-.sidebar .side-label{
-  margin:18px 10px 8px!important;
-}
-
-.layout{margin-left:calc(var(--side-w) + 20px)!important}
-.player{left:calc(var(--side-w) + 20px)!important}
-.search{left:22px!important;top:72px!important;width:calc(var(--side-w) - 24px)!important}
-.artist-hero-bg{left:calc(var(--side-w,260px) + 20px)!important}
-
-/* —— Hero center panel —— ultra transparent liquid —— */
-.hero{
-  background:
-    linear-gradient(150deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.04) 45%,rgba(255,255,255,.015) 100%),
-    rgba(16,22,32,.18)!important;
-  border:1px solid rgba(255,255,255,.20)!important;
-  border-radius:24px!important;
-  box-shadow:
-    0 24px 70px rgba(0,0,0,.36),
-    0 0 50px color-mix(in srgb,var(--a) 10%,transparent),
-    inset 0 1.5px 0 rgba(255,255,255,.36),
-    inset 0 -1px 0 rgba(0,0,0,.25),
-    inset 1px 0 0 rgba(255,255,255,.08)!important;
-  backdrop-filter:blur(56px) saturate(2.1)!important;
-  -webkit-backdrop-filter:blur(56px) saturate(2.1)!important;
-}
-
-/* —— Global liquid blur on all glass surfaces —— */
-.sidebar,.player,.rightcol,.mobile-nav,.search-sugg,
-.float-box,.profile-box,.pl-box,.theme-panel,.song-ctx,
-.toast,.hero,.auth-box,.genre-tile,.lcd,.tool-btns button,
-.icon-btn,.btn,.mobile-action-bar button,.mood,.nav button.active{
-  backdrop-filter:blur(72px) saturate(2.15)!important;
-  -webkit-backdrop-filter:blur(72px) saturate(2.15)!important;
-}
-
-/* —— Modals / panels —— liquid + 3D —— */
-.float-box,.profile-box,.pl-box,.theme-panel,.song-ctx,.auth-box,.search-sugg{
-  background:
-    linear-gradient(155deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.045) 42%,rgba(255,255,255,.02) 100%),
-    rgba(12,16,26,.22)!important;
-  border:1px solid rgba(255,255,255,.20)!important;
-  border-radius:22px!important;
-  box-shadow:
-    0 28px 72px rgba(0,0,0,.42),
-    0 8px 24px rgba(0,0,0,.2),
-    inset 0 1.5px 0 rgba(255,255,255,.36),
-    inset 0 -1px 0 rgba(0,0,0,.26),
-    inset 1px 0 0 rgba(255,255,255,.08),
-    inset -1px 0 0 rgba(0,0,0,.12)!important;
-}
-.theme-panel{border-radius:20px!important}
-.song-ctx{border-radius:16px!important}
-
-/* —— Player bar —— 3D only on the BIG rounded box —— */
-.player{
-  background:
-    linear-gradient(145deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.04) 50%,rgba(255,255,255,.018) 100%),
-    rgba(12,16,26,.22)!important;
-  border:1px solid rgba(255,255,255,.20)!important;
-  box-shadow:
-    0 26px 68px rgba(0,0,0,.46),
-    0 6px 16px rgba(0,0,0,.22),
-    inset 0 2px 0 rgba(255,255,255,.46),
-    inset 0 -2px 0 rgba(0,0,0,.26),
-    inset 1px 0 0 rgba(255,255,255,.08),
-    inset -1px 0 0 rgba(0,0,0,.12)!important;
-}
-
-@media(min-width:1001px){
-  .player{
-    top:auto!important;bottom:16px!important;
-    left:calc(var(--side-w) + 20px)!important;right:20px!important;
-    height:78px!important;border-radius:26px!important;
-    border:1px solid rgba(255,255,255,.22)!important;
-    background:
-      linear-gradient(145deg,rgba(255,255,255,.15) 0%,rgba(255,255,255,.04) 50%,rgba(255,255,255,.015) 100%),
-      rgba(10,14,22,.20)!important;
-    box-shadow:
-      0 32px 80px rgba(0,0,0,.48),
-      0 8px 20px rgba(0,0,0,.22),
-      inset 0 2px 0 rgba(255,255,255,.48),
-      inset 0 -2px 0 rgba(0,0,0,.26),
-      inset 1px 0 0 rgba(255,255,255,.08)!important;
-  }
-  .rightcol{
-    border-radius:26px!important;
-    border:1px solid rgba(255,255,255,.18)!important;
-    background:
-      linear-gradient(160deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.03) 55%,rgba(255,255,255,.012) 100%),
-      rgba(10,14,22,.20)!important;
-    box-shadow:
-      0 26px 70px rgba(0,0,0,.38),
-      inset 0 1.5px 0 rgba(255,255,255,.34),
-      inset 0 -1px 0 rgba(0,0,0,.24)!important;
-  }
-  .lcd{
-    background:
-      linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),
-      rgba(255,255,255,.05)!important;
-    border:1px solid rgba(255,255,255,.16)!important;
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.22),
-      inset 0 -1px 0 rgba(0,0,0,.18),
-      0 4px 14px rgba(0,0,0,.2)!important;
-  }
-}
-
-@media(max-width:1000px){
-  .player{
-    left:10px!important;right:10px!important;
-    border-radius:22px!important;
-    border:1px solid rgba(255,255,255,.20)!important;
-    background:
-      linear-gradient(145deg,rgba(255,255,255,.15) 0%,rgba(255,255,255,.04) 50%,rgba(255,255,255,.015) 100%),
-      rgba(10,14,22,.28)!important;
-    box-shadow:
-      0 18px 48px rgba(0,0,0,.4),
-      inset 0 1.5px 0 rgba(255,255,255,.34),
-      inset 0 -1px 0 rgba(0,0,0,.22)!important;
-  }
-  .mobile-nav{
-    left:8px!important;right:8px!important;bottom:6px!important;
-    border-radius:20px!important;
-    border:1px solid rgba(255,255,255,.18)!important;
-    background:
-      linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),
-      rgba(12,16,26,.24)!important;
-    box-shadow:
-      0 14px 40px rgba(0,0,0,.38),
-      inset 0 1.5px 0 rgba(255,255,255,.28)!important;
-  }
-}
-
-/* —— Buttons / tiles (NOT player icons, NOT sidebar nav) —— mild 3D —— */
-.tool-btns button,
-.icon-btn,
-.btn,
-.genre-tile,
-.mobile-action-bar button,
-.mood,
-.side-signin,
-.side-label button,
-.avatar{
-  box-shadow:
-    0 3px 12px rgba(0,0,0,.22),
-    inset 0 1px 0 rgba(255,255,255,.2),
-    inset 0 -1px 0 rgba(0,0,0,.15)!important;
-  border:1px solid rgba(255,255,255,.12)!important;
-  transition:transform .12s ease, box-shadow .15s ease, background .15s ease!important;
-}
-.tool-btns button:hover,
-.icon-btn:hover,
-.btn:hover,
-.genre-tile:hover,
-.mobile-action-bar button:hover,
-.mood:hover,
-.side-signin:hover{
-  box-shadow:
-    0 6px 20px rgba(0,0,0,.26),
-    inset 0 1px 0 rgba(255,255,255,.28),
-    inset 0 -1px 0 rgba(0,0,0,.12)!important;
-  transform:translateY(-1px)!important;
-}
-
-/* Primary CTA buttons — gentle raise */
-.btn.primary{
-  box-shadow:
-    0 6px 22px color-mix(in srgb,var(--a) 30%,transparent),
-    0 2px 8px rgba(0,0,0,.25),
-    inset 0 1px 0 rgba(255,255,255,.4),
-    inset 0 -1px 0 rgba(0,0,0,.15)!important;
-}
-.btn.primary:hover{
-  box-shadow:
-    0 8px 28px color-mix(in srgb,var(--a) 38%,transparent),
-    0 3px 10px rgba(0,0,0,.22),
-    inset 0 1px 0 rgba(255,255,255,.48)!important;
-  transform:translateY(-1px)!important;
-}
-
-/* Logo / avatar — soft emboss only */
-.logo,.avatar{
-  box-shadow:
-    0 4px 16px color-mix(in srgb,var(--a) 32%,transparent),
-    0 1px 4px rgba(0,0,0,.25),
-    inset 0 1px 0 rgba(255,255,255,.35),
-    inset 0 -1px 0 rgba(0,0,0,.15)!important;
-}
-
-/* Music cards — 3D only on cover art; title/artist stay inside, never spill */
-.music-card{
-  box-shadow:none!important;
-  overflow:hidden!important;
-  min-width:0!important;
-  max-width:100%!important;
-  transform:none!important;
-}
-.music-card .art{
-  box-shadow:
-    0 12px 32px rgba(0,0,0,.42),
-    0 3px 10px rgba(0,0,0,.22),
-    inset 0 1.5px 0 rgba(255,255,255,.22)!important;
-  border-radius:12px!important;
-  overflow:hidden!important;
-}
-.music-card:hover .art{
-  box-shadow:
-    0 16px 42px rgba(0,0,0,.48),
-    0 5px 14px rgba(0,0,0,.25),
-    inset 0 1.5px 0 rgba(255,255,255,.28)!important;
-  transform:translateY(-2px)!important;
-}
-.music-card b,
-.music-card small{
-  display:block!important;
-  max-width:100%!important;
-  width:100%!important;
-  min-width:0!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-  white-space:nowrap!important;
-  box-sizing:border-box!important;
-  padding:0 2px!important;
-}
-.music-card b{margin:10px 0 2px!important;line-height:1.3!important}
-.music-card small{margin:0 0 2px!important;line-height:1.3!important}
-
-/* Mood / genre tiles keep light lift */
-.mood,.genre-tile{
-  box-shadow:
-    0 8px 28px rgba(0,0,0,.3),
-    0 2px 6px rgba(0,0,0,.15),
-    inset 0 1px 0 rgba(255,255,255,.15)!important;
-}
-.mood:hover,.genre-tile:hover{
-  box-shadow:
-    0 12px 36px rgba(0,0,0,.35),
-    0 3px 10px rgba(0,0,0,.18),
-    inset 0 1px 0 rgba(255,255,255,.2)!important;
-  transform:translateY(-2px)!important;
-}
-
-/* —— Bottom player: 3D ONLY on big rounded box, NOT on icons —— */
-.player .transport button,
-.player .tool-ico,
-.player .vol-ico,
-.player .heart,
-.player .play-controls button{
-  box-shadow:none!important;
-  border:none!important;
-  background:transparent!important;
-  transform:none!important;
-}
-.player .transport button:hover,
-.player .tool-ico:hover,
-.player .heart:hover{
-  box-shadow:none!important;
-  background:rgba(255,255,255,.08)!important;
-  transform:none!important;
-}
-.player .transport .play-main{
-  box-shadow:none!important;
-  border:none!important;
-}
-.player .transport .play-main:hover{
-  box-shadow:none!important;
-  transform:scale(1.05)!important;
-}
-
-/* Wallpaper always wins over color gradients */
-body.has-bg-image{background:transparent!important;background-color:transparent!important}
-body.has-bg-image:before{z-index:-2!important;opacity:1!important}
-body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
-
-
 </style>
 </head>
 <body>
@@ -2761,7 +2422,7 @@ body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
 <div class="profile-modal" id="profileModal" aria-hidden="true">
  <div class="profile-box glass">
   <h3>Your Profile</h3>
-  <p>Your name will appear in the hero greeting</p>
+  <p>Name dikhega hero pe greeting ke saath</p>
   <label>FIRST NAME</label>
   <input id="profFirst" placeholder="e.g. Rahul" maxlength="24" autocomplete="given-name">
   <label>LAST NAME</label>
@@ -2781,12 +2442,12 @@ body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
   <!-- SIGN IN -->
   <div class="auth-view active" id="authSignInView">
    <h3>Sign In</h3>
-   <p class="auth-sub">Sign in to your account — playlists and history stay safely in the cloud.</p>
+   <p class="auth-sub">Apne account se login karo — playlists aur history cloud pe safe rahegi.</p>
    <ul class="auth-benefits">
-    <li>Playlists sync across every device</li>
-    <li>Liked songs and listening history saved</li>
-    <li>Theme and preferences remembered</li>
-    <li>Premium feel with a personal library</li>
+    <li>Playlists har device pe sync</li>
+    <li>Liked songs & listening history save</li>
+    <li>Theme & preferences yaad rahenge</li>
+    <li>Premium feel, personal library</li>
    </ul>
    <div class="auth-msg" id="authSignInMsg"></div>
    <label>USERNAME</label>
@@ -2804,7 +2465,7 @@ body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
   <!-- SIGN UP -->
   <div class="auth-view" id="authSignUpView">
    <h3>Create Account</h3>
-   <p class="auth-sub">Create a free account — set your name, username, and password.</p>
+   <p class="auth-sub">Free account banao — name, username aur password set karo.</p>
    <div class="auth-msg" id="authSignUpMsg"></div>
    <label>FULL NAME</label>
    <input id="suName" placeholder="Your name" maxlength="40" autocomplete="name">
@@ -2821,7 +2482,7 @@ body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
   <!-- FORGOT PASSWORD -->
   <div class="auth-view" id="authForgotView">
    <h3>Forgot Password</h3>
-   <p class="auth-sub">Send your username or email for help — the request goes to <b style="color:#fff">vikram.2872006@gmail.com</b>.</p>
+   <p class="auth-sub">Help ke liye apna username / email bhejo — support mail <b style="color:#fff">vikram.2872006@gmail.com</b> pe jayegi.</p>
    <div class="auth-msg" id="authForgotMsg"></div>
    <label>USERNAME OR EMAIL</label>
    <input id="fpUser" placeholder="Username or email" maxlength="64" autocomplete="username">
@@ -3035,7 +2696,7 @@ body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
     if(signInBtn) signInBtn.onclick = async function(){
       var u = ($("authUser")&&$("authUser").value||"").trim().toLowerCase();
       var p = ($("authPass")&&$("authPass").value)||"";
-      if(!u||!p){ msg("authSignInMsg","Username and password are required"); return; }
+      if(!u||!p){ msg("authSignInMsg","Username aur password dono chahiye"); return; }
       signInBtn.disabled = true;
       msg("authSignInMsg","Signing in…", true);
       try{
@@ -3059,10 +2720,10 @@ body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
       var u = ($("suUser")&&$("suUser").value||"").trim().toLowerCase();
       var p = ($("suPass")&&$("suPass").value)||"";
       var p2 = ($("suPass2")&&$("suPass2").value)||"";
-      if(!name||!u||!p){ msg("authSignUpMsg","Please enter name, username, and password"); return; }
-      if(u.length<3){ msg("authSignUpMsg","Username must be at least 3 characters"); return; }
-      if(p.length<4){ msg("authSignUpMsg","Password must be at least 4 characters"); return; }
-      if(p!==p2){ msg("authSignUpMsg","Passwords do not match"); return; }
+      if(!name||!u||!p){ msg("authSignUpMsg","Name, username aur password bharo"); return; }
+      if(u.length<3){ msg("authSignUpMsg","Username kam se kam 3 characters"); return; }
+      if(p.length<4){ msg("authSignUpMsg","Password kam se kam 4 characters"); return; }
+      if(p!==p2){ msg("authSignUpMsg","Passwords match nahi karte"); return; }
       signUpBtn.disabled = true;
       msg("authSignUpMsg","Creating account…", true);
       try{
@@ -3073,7 +2734,7 @@ body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
           try{ await pushCloud(); }catch(e){}
           await pullCloud();
         }, 300);
-        msg("authSignUpMsg","Account created!", true);
+        msg("authSignUpMsg","Account ban gaya!", true);
         setTimeout(closeAuth, 500);
       }catch(e){
         msg("authSignUpMsg", e.message || "Signup failed");
@@ -3128,6 +2789,8 @@ body.has-bg-image:after{opacity:0!important;visibility:hidden!important}
  <div class="theme-row"><label>Accent A</label><input type="color" id="colorA" value="#fa233b"></div>
  <div class="theme-row"><label>Accent B</label><input type="color" id="colorB" value="#fb5c74"></div>
  <div class="theme-row"><label>Background</label><input type="color" id="colorBg" value="#000000"></div>
+ <div class="theme-row"><label>Text</label><input type="color" id="colorText" value="#f5f5f7"></div>
+ <div class="theme-row"><label>Muted text</label><input type="color" id="colorMuted" value="#98989f"></div>
  <div class="theme-row"><label>Gloss</label><input type="range" id="glossRange" min="100" max="200" value="145"></div>
  <div class="theme-bg-row">
   <label>BACKGROUND IMAGE</label>
@@ -4223,18 +3886,16 @@ async function searchLocal(q, page){
   $("#trackHeading").textContent="Searching…";
   toast("Searching…");
  }
- const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(14000);
+ // Faster timeout so failed/slow searches recover quicker
+ const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(8000);
  try{
-  const res=await fetch("/search?q="+encodeURIComponent(q)+"&page="+page,{signal});
+  const res=await fetch("/search?q="+encodeURIComponent(q)+"&page="+page,{signal,cache:"no-store"});
   if(req!==_searchReq)return;
   if(!res.ok) throw new Error("HTTP "+res.status);
   const data=await res.json();
   if(req!==_searchReq)return;
   const raw=Array.isArray(data)?data:(data.items||[]);
   const list=raw.map(mapSearchItem).filter(s=>s.id);
-  const vidCount=list.filter(s=>s.type==="video"||!s.type).length;
-  // Normal search: always keep Show More until an empty page comes back
-  const hasMore=true;
   if(!list.length&&page===1){
    state._searchMore=null;
    $("#trackHeading").textContent="No results";
@@ -4252,18 +3913,22 @@ async function searchLocal(q, page){
   const videos=list.filter(s=>s.type==="video"||!s.type);
   if(page===1){
    if(!state._keepArtistView){try{hideArtistHero()}catch(e){}}
+   // Paint results immediately — cache/history after paint
    state.queue=videos.length?videos:[];
    state.songs=list;
    state._searchMore={q,page:1,hasMore:true};
    state.navType="search";
    renderCards(list);
    $("#trackHeading").textContent="Search · "+list.length+" results";
-   saveSearchHistory(q);
-   try{
-     if(state.saveBrowseCache) state.saveBrowseCache();
-     else state.browseCache={songs:(state.songs||[]).slice(),heading:($("#trackHeading")&&$("#trackHeading").textContent)||"",searchMore:state._searchMore?{...state._searchMore}:null,playlistMore:state._playlistMore?{...state._playlistMore}:null,channelMore:state._channelMore?{...state._channelMore}:null,searchQ:q,fromDiscovery:true,navType:"search"};
-   }catch(e){}
    toast(list.length+" results found");
+   // Non-critical work after UI is shown
+   queue requestAnimationFrame(()=>{
+    try{saveSearchHistory(q)}catch(e){}
+    try{
+      if(state.saveBrowseCache) state.saveBrowseCache();
+      else state.browseCache={songs:(state.songs||[]).slice(),heading:($("#trackHeading")&&$("#trackHeading").textContent)||"",searchMore:state._searchMore?{...state._searchMore}:null,playlistMore:state._playlistMore?{...state._playlistMore}:null,channelMore:state._channelMore?{...state._channelMore}:null,searchQ:q,fromDiscovery:true,navType:"search"};
+    }catch(e){}
+   });
   }else{
    const seen=new Set((state.songs||[]).map(s=>s.id));
    const fresh=list.filter(s=>s.id&&!seen.has(s.id));
@@ -5144,38 +4809,31 @@ function bind(){
    const script=document.createElement("script");
    script.src="https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&jsonp="+cb+"&q="+encodeURIComponent(q);
    script.onerror=()=>finish([]);
-   setTimeout(()=>finish([]),3500);
+   setTimeout(()=>finish([]),1800);
    (document.head||document.documentElement).appendChild(script);
   });
  }
  async function fetchSuggestions(q){
   q=(q||"").trim();
   if(q.length<1){showHistoryPanel();return}
-  // bump generation so late responses are ignored
   const gen=++_suggGen;
   try{
-   // 1) instant local catalog (songs with thumbs)
+   // 1) instant local catalog
    const ql=q.toLowerCase();
    const local=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql)).slice(0,4);
    if(local.length && gen===_suggGen) showSuggestions(local,q);
 
-   // 2) YouTube-style text suggestions (fast, no CORS issues via JSONP)
+   // 2) YouTube-style text suggestions (JSONP)
    const texts=await fetchYoutubeSuggest(q);
    if(gen!==_suggGen)return;
    if(texts&&texts.length){
-    // merge: keep local song hits first, then unique text queries
-    if(local.length){
-     // show text suggestions (YouTube style) — preferred for autocomplete feel
-     showSuggestions(texts,q);
-    }else{
-     showSuggestions(texts,q);
-    }
+    showSuggestions(texts,q);
     return;
    }
-   // 3) fallback: light /search if suggest empty
+   // 3) light /search fallback only if suggest empty (shorter timeout)
    if(_suggAbort){try{_suggAbort.abort()}catch(e){}}
    _suggAbort=typeof AbortController!=="undefined"?new AbortController():null;
-   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:_suggAbort.signal||AbortSignal.timeout(4000)});
+   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:_suggAbort.signal||AbortSignal.timeout(2500),cache:"no-store"});
    if(gen!==_suggGen)return;
    if(!res.ok)return;
    const data=await res.json();
@@ -5219,8 +4877,8 @@ function bind(){
   updateClearBtn();
   clearTimeout(_suggTimer);
   if(!q.trim()){showHistoryPanel();return}
-  // faster: 120ms debounce
-  _suggTimer=setTimeout(()=>fetchSuggestions(q),120);
+  // faster suggestions
+  _suggTimer=setTimeout(()=>fetchSuggestions(q),80);
  });
  $("#search").addEventListener("keydown",e=>{
   const open=suggBox&&suggBox.classList.contains("open");
@@ -5513,14 +5171,21 @@ function bind(){
   if($("#bgImageUrl")&&url&&!String(url).startsWith("data:"))$("#bgImageUrl").value=url;
   if($("#bgImageUrl")&&!url)$("#bgImageUrl").value="";
  }
- function applyThemeColors(a,b,bg,gloss){
+ function applyThemeColors(a,b,bg,gloss,text,muted){
   const root=document.documentElement;
   if(a){root.style.setProperty("--a",a);root.style.setProperty("--glow",a+"55")}
   if(b)root.style.setProperty("--b",b);
   if(bg){
    root.style.setProperty("--bg",bg);
-   document.body.style.background=bg;
+   if(!document.body.classList.contains("has-bg-image") && !state.bgImage){
+    document.body.style.background=bg;
+   }
   }
+  if(text){
+   root.style.setProperty("--text",text);
+   document.body.style.color=text;
+  }
+  if(muted) root.style.setProperty("--muted",muted);
   if(gloss!=null){
    const g=(+gloss/100).toFixed(2);
    root.style.setProperty("--gloss",g);
@@ -5532,6 +5197,8 @@ function bind(){
     a:a||cs.getPropertyValue("--a").trim(),
     b:b||cs.getPropertyValue("--b").trim(),
     bg:bg||cs.getPropertyValue("--bg").trim(),
+    text:text||cs.getPropertyValue("--text").trim(),
+    muted:muted||cs.getPropertyValue("--muted").trim(),
     gloss:gloss!=null?+gloss:Math.round((parseFloat(cs.getPropertyValue("--gloss"))||1.45)*100)
    }))
   }catch(e){}
@@ -5552,6 +5219,10 @@ function bind(){
   if($("#colorA"))$("#colorA").value=toHex(a);
   if($("#colorB"))$("#colorB").value=toHex(b);
   if($("#colorBg"))$("#colorBg").value=toHex(bg);
+  const tx=(cs.getPropertyValue("--text")||"#f5f5f7").trim();
+  const mu=(cs.getPropertyValue("--muted")||"#98989f").trim();
+  if($("#colorText"))$("#colorText").value=toHex(tx);
+  if($("#colorMuted"))$("#colorMuted").value=toHex(mu);
   if($("#glossRange")) $("#glossRange").value=Math.round((parseFloat(cs.getPropertyValue("--gloss"))||1.45)*100);
   if($("#bgImageDim"))$("#bgImageDim").value=state.bgImageDim||55;
   if($("#bgImageUrl"))$("#bgImageUrl").value=(state.bgImage&&!String(state.bgImage).startsWith("data:"))?state.bgImage:"";
@@ -5825,6 +5496,8 @@ function bind(){
  $("#colorA")?.addEventListener("input",e=>applyThemeColors(e.target.value,null,null));
  $("#colorB")?.addEventListener("input",e=>applyThemeColors(null,e.target.value,null));
  $("#colorBg")?.addEventListener("input",e=>applyThemeColors(null,null,e.target.value));
+ $("#colorText")?.addEventListener("input",e=>applyThemeColors(null,null,null,null,e.target.value,null));
+ $("#colorMuted")?.addEventListener("input",e=>applyThemeColors(null,null,null,null,null,e.target.value));
  $("#glossRange")?.addEventListener("input",e=>applyThemeColors(null,null,null,+e.target.value));
  $("#bgImageApply")?.addEventListener("click",()=>{
   const url=($("#bgImageUrl")?.value||"").trim();
@@ -5867,7 +5540,7 @@ function bind(){
  // restore saved theme + bg image
  try{
   const saved=JSON.parse(localStorage.getItem("auraThemeAM")||"null");
-  if(saved)applyThemeColors(saved.a,saved.b,saved.bg,saved.gloss);
+  if(saved)applyThemeColors(saved.a,saved.b,saved.bg,saved.gloss,saved.text,saved.muted);
  }catch(e){}
  if(state.bgImage)applyBgImage(state.bgImage,state.bgImageDim);
  // Sleep timer + EQ modals
@@ -6280,7 +5953,7 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
   setTitle("New");
   const h=$("#trackHeading");if(h)h.textContent="✨ New · Pick a style";
   const b=$("#genreBack");if(b)b.style.display="none";
-  box.innerHTML='<div class="new-view"><p class="nv-sub">Pick any style — we will build a list of newly uploaded and trending songs for that vibe.</p><div class="genre-grid">'+
+  box.innerHTML='<div class="new-view"><p class="nv-sub">Koi bhi style chuno — us type ke new uploaded aur trending songs ki list ban jayegi.</p><div class="genre-grid">'+
    GENRES.map((g,i)=>'<button type="button" class="genre-tile" data-gi="'+i+'" style="--g:linear-gradient(145deg,'+g.c[0]+','+g.c[1]+');--gc:'+g.c[0]+'"><span class="gt-ico">'+g.i+'</span><b>'+esc(g.n)+'</b><small>New · Trending</small></button>').join("")+
    '</div></div>';
   window.scrollTo({top:0,behavior:"smooth"});
