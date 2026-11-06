@@ -4812,7 +4812,7 @@ async function searchLocal(q, page){
   _searchReq++;
   state._searchMore=null;state._channelMore=null;state._playlistMore=null;
   state.songs=[...CATALOG];renderCards(CATALOG);$("#trackHeading").textContent="🔥 Trending Now";
-  try{closeSearchOverlay()}catch(e){}
+  forceCloseSearchUI();
   return;
  }
  const req=++_searchReq;
@@ -4822,7 +4822,7 @@ async function searchLocal(q, page){
   state._channelMore=null;state._playlistMore=null;
   $("#trackHeading").textContent="Searching…";
   toast("Searching…");
-  try{closeSearchOverlay()}catch(e){}
+  forceCloseSearchUI();
  }
  const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(14000);
  try{
@@ -5806,7 +5806,7 @@ function bind(){
   state.songs=state.queue;
   renderCards(state.songs);
   $("#trackHeading").textContent="Search · "+state.songs.length+" results";
-  try{closeSearchOverlay()}catch(e){}
+  forceCloseSearchUI();
   playSong(0);
  }
  function clearSearchBox(){
@@ -5848,7 +5848,8 @@ function bind(){
    if(_suggAbort){try{_suggAbort.abort()}catch(err){}}
    _suggAbort=null;
    _suggGen++; // cancel in-flight suggest
-   // Only use suggestion if user arrowed to select one
+   // Close search overlay immediately on Enter
+   forceCloseSearchUI();
    if(open&&_suggIdx>=0&&items[_suggIdx]){
     const histQ=items[_suggIdx].dataset.hist;
     if(histQ){
@@ -5896,6 +5897,7 @@ function bind(){
  });
  suggBox?.addEventListener("mousedown",e=>{
   e.preventDefault();
+  e.stopPropagation();
   if(e.target.closest("#clearHistBtn")){
    clearSearchHistory();
    hideSuggestions();
@@ -5908,6 +5910,7 @@ function bind(){
    $("#search").value=q;
    updateClearBtn();
    hideSuggestions();
+   forceCloseSearchUI();
    searchLocal(q);
    return;
   }
@@ -5919,11 +5922,20 @@ function bind(){
    $("#search").value=t;
    updateClearBtn();
    hideSuggestions();
+   forceCloseSearchUI();
    searchLocal(t);
+   return;
+  }
+  // song suggestion with id
+  if(item.dataset.id && suggBox._list){
+   const i=+item.dataset.suggI;
+   forceCloseSearchUI();
+   pickSuggestion(suggBox._list[i]);
    return;
   }
   if(!suggBox._list)return;
   const i=+item.dataset.suggI;
+  forceCloseSearchUI();
   pickSuggestion(suggBox._list[i]);
  });
  document.addEventListener("click",e=>{
@@ -6277,10 +6289,23 @@ body.has-bg-image:before{
   document.body.style.overflow="";
  }
  
+
+function forceCloseSearchUI(){
+  try{
+    var ov=document.getElementById("searchOverlay");
+    if(ov){ ov.classList.remove("open"); ov.style.display="none"; ov.setAttribute("aria-hidden","true"); }
+    document.body.style.overflow="";
+    var sb=document.getElementById("searchSuggestions");
+    if(sb) sb.classList.remove("open");
+  }catch(e){}
+  try{ if(typeof window.closeSearchOverlay==="function") window.closeSearchOverlay(); }catch(e){}
+}
+
 /* Spotlight search overlay */
 function openSearchOverlay(){
   const ov=document.getElementById("searchOverlay");
   if(!ov)return;
+  ov.style.display="flex";
   ov.classList.add("open");
   ov.setAttribute("aria-hidden","false");
   document.body.style.overflow="hidden";
@@ -6290,15 +6315,18 @@ function closeSearchOverlay(){
   const ov=document.getElementById("searchOverlay");
   if(!ov)return;
   ov.classList.remove("open");
+  ov.style.display="none";
   ov.setAttribute("aria-hidden","true");
-  // only restore scroll if other modals not open
   if(!document.getElementById("themePanel")?.classList.contains("open")
      &&!document.getElementById("authModal")?.classList.contains("open")
      &&!document.getElementById("profileModal")?.classList.contains("open")){
     document.body.style.overflow="";
   }
+  try{hideSuggestions()}catch(e){}
   try{$("#search")?.blur()}catch(e){}
 }
+window.closeSearchOverlay=closeSearchOverlay;
+window.openSearchOverlay=openSearchOverlay;
 document.getElementById("sideSearchBtn")?.addEventListener("click",e=>{
   e.preventDefault();e.stopPropagation();
   openSearchOverlay();
