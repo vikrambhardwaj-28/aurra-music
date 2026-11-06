@@ -2422,7 +2422,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
 <div class="profile-modal" id="profileModal" aria-hidden="true">
  <div class="profile-box glass">
   <h3>Your Profile</h3>
-  <p>Name dikhega hero pe greeting ke saath</p>
+  <p>Your name will appear in the hero greeting</p>
   <label>FIRST NAME</label>
   <input id="profFirst" placeholder="e.g. Rahul" maxlength="24" autocomplete="given-name">
   <label>LAST NAME</label>
@@ -2442,12 +2442,12 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
   <!-- SIGN IN -->
   <div class="auth-view active" id="authSignInView">
    <h3>Sign In</h3>
-   <p class="auth-sub">Apne account se login karo — playlists aur history cloud pe safe rahegi.</p>
+   <p class="auth-sub">Sign in to your account — playlists and history stay safely in the cloud.</p>
    <ul class="auth-benefits">
-    <li>Playlists har device pe sync</li>
-    <li>Liked songs & listening history save</li>
-    <li>Theme & preferences yaad rahenge</li>
-    <li>Premium feel, personal library</li>
+    <li>Playlists sync across every device</li>
+    <li>Liked songs and listening history saved</li>
+    <li>Theme and preferences remembered</li>
+    <li>Premium feel with a personal library</li>
    </ul>
    <div class="auth-msg" id="authSignInMsg"></div>
    <label>USERNAME</label>
@@ -2465,7 +2465,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
   <!-- SIGN UP -->
   <div class="auth-view" id="authSignUpView">
    <h3>Create Account</h3>
-   <p class="auth-sub">Free account banao — name, username aur password set karo.</p>
+   <p class="auth-sub">Create a free account — set your name, username, and password.</p>
    <div class="auth-msg" id="authSignUpMsg"></div>
    <label>FULL NAME</label>
    <input id="suName" placeholder="Your name" maxlength="40" autocomplete="name">
@@ -2482,7 +2482,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
   <!-- FORGOT PASSWORD -->
   <div class="auth-view" id="authForgotView">
    <h3>Forgot Password</h3>
-   <p class="auth-sub">Help ke liye apna username / email bhejo — support mail <b style="color:#fff">vikram.2872006@gmail.com</b> pe jayegi.</p>
+   <p class="auth-sub">Send your username or email for help — the request goes to <b style="color:#fff">vikram.2872006@gmail.com</b>.</p>
    <div class="auth-msg" id="authForgotMsg"></div>
    <label>USERNAME OR EMAIL</label>
    <input id="fpUser" placeholder="Username or email" maxlength="64" autocomplete="username">
@@ -2696,7 +2696,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
     if(signInBtn) signInBtn.onclick = async function(){
       var u = ($("authUser")&&$("authUser").value||"").trim().toLowerCase();
       var p = ($("authPass")&&$("authPass").value)||"";
-      if(!u||!p){ msg("authSignInMsg","Username aur password dono chahiye"); return; }
+      if(!u||!p){ msg("authSignInMsg","Username and password are required"); return; }
       signInBtn.disabled = true;
       msg("authSignInMsg","Signing in…", true);
       try{
@@ -2720,10 +2720,10 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
       var u = ($("suUser")&&$("suUser").value||"").trim().toLowerCase();
       var p = ($("suPass")&&$("suPass").value)||"";
       var p2 = ($("suPass2")&&$("suPass2").value)||"";
-      if(!name||!u||!p){ msg("authSignUpMsg","Name, username aur password bharo"); return; }
-      if(u.length<3){ msg("authSignUpMsg","Username kam se kam 3 characters"); return; }
-      if(p.length<4){ msg("authSignUpMsg","Password kam se kam 4 characters"); return; }
-      if(p!==p2){ msg("authSignUpMsg","Passwords match nahi karte"); return; }
+      if(!name||!u||!p){ msg("authSignUpMsg","Please enter name, username, and password"); return; }
+      if(u.length<3){ msg("authSignUpMsg","Username must be at least 3 characters"); return; }
+      if(p.length<4){ msg("authSignUpMsg","Password must be at least 4 characters"); return; }
+      if(p!==p2){ msg("authSignUpMsg","Passwords do not match"); return; }
       signUpBtn.disabled = true;
       msg("authSignUpMsg","Creating account…", true);
       try{
@@ -2734,7 +2734,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
           try{ await pushCloud(); }catch(e){}
           await pullCloud();
         }, 300);
-        msg("authSignUpMsg","Account ban gaya!", true);
+        msg("authSignUpMsg","Account created!", true);
         setTimeout(closeAuth, 500);
       }catch(e){
         msg("authSignUpMsg", e.message || "Signup failed");
@@ -3886,16 +3886,18 @@ async function searchLocal(q, page){
   $("#trackHeading").textContent="Searching…";
   toast("Searching…");
  }
- // Faster timeout so failed/slow searches recover quicker
- const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(8000);
+ const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(14000);
  try{
-  const res=await fetch("/search?q="+encodeURIComponent(q)+"&page="+page,{signal,cache:"no-store"});
+  const res=await fetch("/search?q="+encodeURIComponent(q)+"&page="+page,{signal});
   if(req!==_searchReq)return;
   if(!res.ok) throw new Error("HTTP "+res.status);
   const data=await res.json();
   if(req!==_searchReq)return;
   const raw=Array.isArray(data)?data:(data.items||[]);
   const list=raw.map(mapSearchItem).filter(s=>s.id);
+  const vidCount=list.filter(s=>s.type==="video"||!s.type).length;
+  // Normal search: always keep Show More until an empty page comes back
+  const hasMore=true;
   if(!list.length&&page===1){
    state._searchMore=null;
    $("#trackHeading").textContent="No results";
@@ -3913,22 +3915,18 @@ async function searchLocal(q, page){
   const videos=list.filter(s=>s.type==="video"||!s.type);
   if(page===1){
    if(!state._keepArtistView){try{hideArtistHero()}catch(e){}}
-   // Paint results immediately — cache/history after paint
    state.queue=videos.length?videos:[];
    state.songs=list;
    state._searchMore={q,page:1,hasMore:true};
    state.navType="search";
    renderCards(list);
    $("#trackHeading").textContent="Search · "+list.length+" results";
+   saveSearchHistory(q);
+   try{
+     if(state.saveBrowseCache) state.saveBrowseCache();
+     else state.browseCache={songs:(state.songs||[]).slice(),heading:($("#trackHeading")&&$("#trackHeading").textContent)||"",searchMore:state._searchMore?{...state._searchMore}:null,playlistMore:state._playlistMore?{...state._playlistMore}:null,channelMore:state._channelMore?{...state._channelMore}:null,searchQ:q,fromDiscovery:true,navType:"search"};
+   }catch(e){}
    toast(list.length+" results found");
-   // Non-critical work after UI is shown
-   queue requestAnimationFrame(()=>{
-    try{saveSearchHistory(q)}catch(e){}
-    try{
-      if(state.saveBrowseCache) state.saveBrowseCache();
-      else state.browseCache={songs:(state.songs||[]).slice(),heading:($("#trackHeading")&&$("#trackHeading").textContent)||"",searchMore:state._searchMore?{...state._searchMore}:null,playlistMore:state._playlistMore?{...state._playlistMore}:null,channelMore:state._channelMore?{...state._channelMore}:null,searchQ:q,fromDiscovery:true,navType:"search"};
-    }catch(e){}
-   });
   }else{
    const seen=new Set((state.songs||[]).map(s=>s.id));
    const fresh=list.filter(s=>s.id&&!seen.has(s.id));
@@ -4809,31 +4807,38 @@ function bind(){
    const script=document.createElement("script");
    script.src="https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&jsonp="+cb+"&q="+encodeURIComponent(q);
    script.onerror=()=>finish([]);
-   setTimeout(()=>finish([]),1800);
+   setTimeout(()=>finish([]),3500);
    (document.head||document.documentElement).appendChild(script);
   });
  }
  async function fetchSuggestions(q){
   q=(q||"").trim();
   if(q.length<1){showHistoryPanel();return}
+  // bump generation so late responses are ignored
   const gen=++_suggGen;
   try{
-   // 1) instant local catalog
+   // 1) instant local catalog (songs with thumbs)
    const ql=q.toLowerCase();
    const local=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql)).slice(0,4);
    if(local.length && gen===_suggGen) showSuggestions(local,q);
 
-   // 2) YouTube-style text suggestions (JSONP)
+   // 2) YouTube-style text suggestions (fast, no CORS issues via JSONP)
    const texts=await fetchYoutubeSuggest(q);
    if(gen!==_suggGen)return;
    if(texts&&texts.length){
-    showSuggestions(texts,q);
+    // merge: keep local song hits first, then unique text queries
+    if(local.length){
+     // show text suggestions (YouTube style) — preferred for autocomplete feel
+     showSuggestions(texts,q);
+    }else{
+     showSuggestions(texts,q);
+    }
     return;
    }
-   // 3) light /search fallback only if suggest empty (shorter timeout)
+   // 3) fallback: light /search if suggest empty
    if(_suggAbort){try{_suggAbort.abort()}catch(e){}}
    _suggAbort=typeof AbortController!=="undefined"?new AbortController():null;
-   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:_suggAbort.signal||AbortSignal.timeout(2500),cache:"no-store"});
+   const res=await fetch("/search?q="+encodeURIComponent(q),{signal:_suggAbort.signal||AbortSignal.timeout(4000)});
    if(gen!==_suggGen)return;
    if(!res.ok)return;
    const data=await res.json();
@@ -4877,8 +4882,8 @@ function bind(){
   updateClearBtn();
   clearTimeout(_suggTimer);
   if(!q.trim()){showHistoryPanel();return}
-  // faster suggestions
-  _suggTimer=setTimeout(()=>fetchSuggestions(q),80);
+  // faster: 120ms debounce
+  _suggTimer=setTimeout(()=>fetchSuggestions(q),120);
  });
  $("#search").addEventListener("keydown",e=>{
   const open=suggBox&&suggBox.classList.contains("open");
@@ -5149,21 +5154,42 @@ function bind(){
   if(dim!=null)state.bgImageDim=Math.max(20,Math.min(90,+dim||55));
   const d=state.bgImageDim;
   const preview=$("#bgImagePreview");
+  document.body.classList.remove("has-bg-image");
+  document.body.style.removeProperty("--custom-bg-image");
+  let st=$("#auraBgStyle");
+  if(!st){st=document.createElement("style");st.id="auraBgStyle";document.head.appendChild(st)}
+  st.textContent="";
   if(url){
    state.bgImage=url;
-   document.body.style.setProperty("--custom-bg-image",`url("${url}")`);
+   const cssUrl=String(url).replace(/\\/g,"\\\\").replace(/"/g,'\\"');
+   document.body.style.setProperty("--custom-bg-image",'url("'+cssUrl+'")');
+   document.body.style.background="transparent";
+   const dimA=(d/100).toFixed(2);
+   const dimB=(d/100*0.82).toFixed(2);
+   st.textContent=
+'body.has-bg-image{background:transparent!important;background-color:transparent!important}'+
+'body.has-bg-image:before{content:""!important;position:fixed!important;inset:0!important;z-index:-2!important;'+
+'background-color:transparent!important;'+
+'background-image:linear-gradient(160deg,rgba(0,0,0,'+dimA+'),rgba(0,0,0,'+dimB+')),url("'+cssUrl+'")!important;'+
+'background-size:cover!important;background-position:center center!important;'+
+'background-repeat:no-repeat!important;background-attachment:fixed!important;opacity:1!important;pointer-events:none!important;display:block!important}'+
+'body.has-bg-image:after{opacity:0!important;visibility:hidden!important}';
+   void document.body.offsetHeight;
    document.body.classList.add("has-bg-image");
-   // overlay dim via body:before style injection
-   let st=$("#auraBgStyle");
-   if(!st){st=document.createElement("style");st.id="auraBgStyle";document.head.appendChild(st)}
-   st.textContent=`body.has-bg-image:before{background-image:linear-gradient(120deg,rgba(10,10,10,${(d/100).toFixed(2)}),rgba(10,10,10,${(d/100*0.85).toFixed(2)})),var(--custom-bg-image)!important;background-size:cover!important;background-position:center!important;background-attachment:fixed!important}`;
-   if(preview)preview.style.backgroundImage=`url("${url}")`;
-   try{localStorage.setItem("auraBgImage",url);localStorage.setItem("auraBgDim",String(d))}catch(e){}
+   if(preview)preview.style.backgroundImage='url("'+cssUrl+'")';
+   try{
+    if(url.length<800000) localStorage.setItem("auraBgImage",url);
+    else localStorage.removeItem("auraBgImage");
+    localStorage.setItem("auraBgDim",String(d));
+   }catch(e){try{localStorage.removeItem("auraBgImage")}catch(e2){}}
   }else{
    state.bgImage="";
-   document.body.classList.remove("has-bg-image");
-   document.body.style.removeProperty("--custom-bg-image");
-   const st=$("#auraBgStyle");if(st)st.textContent="";
+   try{
+    const cs=getComputedStyle(document.documentElement);
+    let bg=(cs.getPropertyValue("--bg")||"#000000").trim();
+    if(!bg||bg==="transparent") bg="#000000";
+    document.body.style.background=bg;
+   }catch(e){document.body.style.background="#000000"}
    if(preview)preview.style.backgroundImage="";
    try{localStorage.removeItem("auraBgImage");localStorage.setItem("auraBgDim",String(d))}catch(e){}
   }
@@ -5177,7 +5203,7 @@ function bind(){
   if(b)root.style.setProperty("--b",b);
   if(bg){
    root.style.setProperty("--bg",bg);
-   if(!document.body.classList.contains("has-bg-image") && !state.bgImage){
+   if(!document.body.classList.contains("has-bg-image") && !(typeof state!=="undefined" && state.bgImage)){
     document.body.style.background=bg;
    }
   }
@@ -5514,18 +5540,25 @@ function bind(){
   applyBgImage(state.bgImage||"",+e.target.value);
  });
  $("#bgImageFile")?.addEventListener("change",e=>{
-  const file=e.target.files&&e.target.files[0];
+  const input=e.target;
+  const file=input.files&&input.files[0];
   if(!file)return;
-  if(!file.type.startsWith("image/")){toast("Image file only");return}
-  if(file.size>4.5*1024*1024){toast("Image max 4.5 MB");return}
+  if(!file.type.startsWith("image/")){toast("Image file only");input.value="";return}
+  if(file.size>6*1024*1024){toast("Image max 6 MB");input.value="";return}
+  toast("Uploading…");
   const reader=new FileReader();
   reader.onload=()=>{
-   applyBgImage(String(reader.result||""),state.bgImageDim);
-   toast("Background uploaded ✦");
+   const data=String(reader.result||"");
+   if(!data||data.length<32){toast("Upload failed");input.value="";return}
+   applyBgImage("",state.bgImageDim);
+   requestAnimationFrame(()=>{
+    applyBgImage(data,state.bgImageDim);
+    toast("Background uploaded ✦");
+    input.value="";
+   });
   };
-  reader.onerror=()=>toast("Upload failed");
+  reader.onerror=()=>{toast("Upload failed");input.value=""};
   reader.readAsDataURL(file);
-  e.target.value="";
  });
  $$(".theme-presets button").forEach(btn=>btn.addEventListener("click",()=>{
   applyThemeColors(btn.dataset.pa,btn.dataset.pb,btn.dataset.bg);
@@ -5953,7 +5986,7 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
   setTitle("New");
   const h=$("#trackHeading");if(h)h.textContent="✨ New · Pick a style";
   const b=$("#genreBack");if(b)b.style.display="none";
-  box.innerHTML='<div class="new-view"><p class="nv-sub">Koi bhi style chuno — us type ke new uploaded aur trending songs ki list ban jayegi.</p><div class="genre-grid">'+
+  box.innerHTML='<div class="new-view"><p class="nv-sub">Pick any style — we will build a list of newly uploaded and trending songs for that vibe.</p><div class="genre-grid">'+
    GENRES.map((g,i)=>'<button type="button" class="genre-tile" data-gi="'+i+'" style="--g:linear-gradient(145deg,'+g.c[0]+','+g.c[1]+');--gc:'+g.c[0]+'"><span class="gt-ico">'+g.i+'</span><b>'+esc(g.n)+'</b><small>New · Trending</small></button>').join("")+
    '</div></div>';
   window.scrollTo({top:0,behavior:"smooth"});
