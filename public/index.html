@@ -4812,6 +4812,7 @@ async function searchLocal(q, page){
   _searchReq++;
   state._searchMore=null;state._channelMore=null;state._playlistMore=null;
   state.songs=[...CATALOG];renderCards(CATALOG);$("#trackHeading").textContent="🔥 Trending Now";
+  try{closeSearchOverlay()}catch(e){}
   return;
  }
  const req=++_searchReq;
@@ -4821,6 +4822,7 @@ async function searchLocal(q, page){
   state._channelMore=null;state._playlistMore=null;
   $("#trackHeading").textContent="Searching…";
   toast("Searching…");
+  try{closeSearchOverlay()}catch(e){}
  }
  const signal=(page===1&&_searchAbort)?_searchAbort.signal:AbortSignal.timeout(14000);
  try{
@@ -5804,6 +5806,7 @@ function bind(){
   state.songs=state.queue;
   renderCards(state.songs);
   $("#trackHeading").textContent="Search · "+state.songs.length+" results";
+  try{closeSearchOverlay()}catch(e){}
   playSong(0);
  }
  function clearSearchBox(){
