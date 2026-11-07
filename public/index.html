@@ -4857,6 +4857,7 @@ async function searchLocal(q, page){
  if(page===1){
   if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
   _searchAbort=typeof AbortController!=="undefined"?new AbortController():null;
+  try{if(typeof pushNav==="function") pushNav()}catch(e){}
   state._channelMore=null;state._playlistMore=null;
   $("#trackHeading").textContent="Searching…";
   toast("Searching…");
@@ -4871,7 +4872,7 @@ async function searchLocal(q, page){
     state.fromDiscovery=true;
     const videos=hit.filter(s=>s.type==="video"||!s.type);
     if(!state._keepArtistView){try{hideArtistHero()}catch(e){}}
-    state.queue=videos.length?videos:[];
+    // Browse only — do not touch queue until user plays a song
     state.songs=hit;
     state._searchMore={q,page:1,hasMore:true};
     state.navType="search";
@@ -4908,7 +4909,7 @@ async function searchLocal(q, page){
   const videos=list.filter(s=>s.type==="video"||!s.type);
   if(page===1){
    if(!state._keepArtistView){try{hideArtistHero()}catch(e){}}
-   state.queue=videos.length?videos:[];
+   // Browse only — keep current queue/song until user plays from results
    state.songs=list;
    state._searchMore={q,page:1,hasMore:true};
    try{if(page===1&&list.length)_searchCache.set(_cacheKey(q,1),list.slice(0,60))}catch(e){}
@@ -4931,9 +4932,7 @@ async function searchLocal(q, page){
     return;
    }
    state.songs=[...(state.songs||[]),...fresh];
-   const vSeen=new Set((state.queue||[]).map(s=>s.id));
-   const freshV=fresh.filter(s=>(s.type==="video"||!s.type)&&!vSeen.has(s.id));
-   state.queue=[...(state.queue||[]),...freshV];
+   // Do not append browse results into active queue
    state._searchMore={q,page,hasMore:true};
    renderCards(state.songs);
    $("#trackHeading").textContent="Search · "+state.songs.length+" results";
@@ -4948,7 +4947,7 @@ async function searchLocal(q, page){
   const ql=q.toLowerCase();
   const list=CATALOG.filter(s=>(s.title||"").toLowerCase().includes(ql)||(s.artist||"").toLowerCase().includes(ql));
   state.fromDiscovery=true;state._searchMore=null;
-  if(list.length){state.queue=list;state.songs=list}
+  if(list.length){state.songs=list}
   renderCards(list.length?list:CATALOG);
   $("#trackHeading").textContent=list.length?("Offline · "+list.length):"Search failed — offline catalog";
   toast("Search API offline — showing local");
@@ -5148,6 +5147,7 @@ async function loadPlaylist(listId, page, meta){
  listId=listIdClean;
 
  if(page===1){
+  try{if(typeof pushNav==="function") pushNav()}catch(e){}
   state._channelMore=null;state._searchMore=null;
   $("#trackHeading").textContent="Loading playlist…";
   toast("Loading playlist…");
@@ -5202,10 +5202,10 @@ async function loadPlaylist(listId, page, meta){
       const list=raw.map(mapSearchItem).filter(s=>s&&s.id&&(!s.type||s.type==="video"));
       if(list.length){
        state.fromDiscovery=false;
-       state.queue=list;state.songs=list;state.currentIndex=0;
+       state.songs=list;
        state._playlistMore=null;
        state._searchMore={q:titleHint+" playlist songs",page:1,hasMore:true};
-       playSong(0);renderCards(list);
+       renderCards(list);
        $("#trackHeading").textContent="♫ "+titleHint;
        state.navType="search";
        try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
@@ -5243,9 +5243,9 @@ async function loadPlaylist(listId, page, meta){
       const raw=Array.isArray(d)?d:(d.items||[]);
       const alt=raw.map(mapSearchItem).filter(s=>s&&s.id&&(!s.type||s.type==="video"));
       if(alt.length){
-       state.queue=alt;state.songs=alt;state.currentIndex=0;
+       state.songs=alt;
        state._playlistMore=null;
-       playSong(0);renderCards(alt);
+       renderCards(alt);
        $("#trackHeading").textContent="♫ "+titleHint;
        toast("Playlist · "+alt.length+" songs");
        return;
@@ -5264,9 +5264,10 @@ async function loadPlaylist(listId, page, meta){
   state.fromDiscovery=false;
   const apiMore=data.hasMore!==false;
   if(page===1){
-   state.queue=list;state.songs=list;state.currentIndex=0;
+   // Browse playlist — do not replace queue or auto-play; queue updates only when user plays a track
+   state.songs=list;
    state._playlistMore={listId,page:1,hasMore:!!(apiMore||list.length>=8),title:data.title||meta.title||"Playlist"};
-   playSong(0);renderCards(list);
+   renderCards(list);
    $("#trackHeading").textContent="♫ "+(data.title||meta.title||"Playlist");
    state.navType="search";
    try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
@@ -5281,7 +5282,7 @@ async function loadPlaylist(listId, page, meta){
     return;
    }
    state.songs=[...(state.songs||[]),...extra];
-   state.queue=[...(state.queue||[]),...extra];
+   // Do not merge browse-more into active queue
    state._playlistMore={listId,page,hasMore:!!(apiMore||extra.length>=5),title:(state._playlistMore&&state._playlistMore.title)||data.title||"Playlist"};
    renderCards(state.songs);
    $("#trackHeading").textContent="♫ "+(state._playlistMore.title||"Playlist");
@@ -5670,9 +5671,9 @@ async function loadChannel(channelId,channelName,page,meta){
   state.fromDiscovery=false;
   const apiMore=data.hasMore!==false;
   if(page===1){
-   state.queue=list;state.songs=list;state.currentIndex=0;
+   // Browse artist — do not replace queue; only update when user plays
+   state.songs=list;
    state._channelMore={id:channelId,name:channelName||displayName,page:1,hasMore:!!(apiMore||list.length>=8),thumb:apiThumb};
-   // Don't auto-play — Apple Music style: user presses Play
   }else{
    const existing=new Set((state.songs||[]).map(s=>s.id));
    const extra=list.filter(s=>!existing.has(s.id));
@@ -5683,7 +5684,6 @@ async function loadChannel(channelId,channelName,page,meta){
     return;
    }
    state.songs=[...(state.songs||[]),...extra];
-   state.queue=[...(state.queue||[]),...extra];
    state._channelMore={id:channelId,name:channelName||displayName,page,hasMore:!!(apiMore||extra.length>=5),thumb:apiThumb};
   }
   renderCards(state.songs);
@@ -6465,10 +6465,22 @@ body.has-bg-image:after{
  // expose for playSong / outer helpers
  state.saveBrowseCache=saveBrowseCache;
  state.restoreBrowseCache=restoreBrowseCache;
+ state._ignorePopstate=false;
  function pushNav(){
   try{
+   // Avoid pushing identical consecutive snapshots (double-calls)
    if(state.saveBrowseCache) state.saveBrowseCache();
    const snap=snapshotNav();
+   const prev=state.navStack&&state.navStack.length?state.navStack[state.navStack.length-1]:null;
+   if(prev && prev.type===snap.type && prev.heading===snap.heading && prev.library===snap.library &&
+      (prev.searchQ||"")===(snap.searchQ||"") &&
+      JSON.stringify(prev.searchMore)===JSON.stringify(snap.searchMore) &&
+      JSON.stringify(prev.playlistMore)===JSON.stringify(snap.playlistMore) &&
+      JSON.stringify(prev.channelMore)===JSON.stringify(snap.channelMore) &&
+      (prev.songs||[]).length===(snap.songs||[]).length &&
+      ((prev.songs||[])[0]&&prev.songs[0].id)===((snap.songs||[])[0]&&snap.songs[0].id)){
+    return; // same view — no extra history step
+   }
    state.navStack.push(snap);
    if(state.navStack.length>20) state.navStack.shift();
    history.pushState({auraNav:1,depth:state.navStack.length},"");
@@ -6482,20 +6494,38 @@ body.has-bg-image:after{
   state._channelMore=snap.channelMore||null;
   state._libraryView=!!snap.library;
   // NEVER change queue / currentIndex / playing song on nav restore
-  if(snap.library){ showLibraryView(true); }
-  else{
+  if(snap.library){
+   try{hideArtistHero()}catch(e){}
+   showLibraryView(true);
+  }else{
    state._libraryView=false;
    state.songs=snap.songs&&snap.songs.length?snap.songs:[...CATALOG];
    renderCards(state.songs);
    if($("#trackHeading")) $("#trackHeading").textContent=snap.heading||"🔥 Trending Now";
    if(snap.searchQ&&$("#search")){
     $("#search").value=snap.searchQ;
+    try{const clr=$("#searchClear");if(clr)clr.classList.toggle("show",!!(snap.searchQ||"").trim())}catch(e){}
    }
+   // Restore artist hero only if this snap was a channel page
+   try{
+    if(snap.channelMore&&(snap.channelMore.id||snap.channelMore.name)){
+      showArtistHero({
+        id:snap.channelMore.id,
+        name:snap.channelMore.name||"Artist",
+        thumb:snap.channelMore.thumb||"",
+        sub:(snap.songs&&snap.songs.length?snap.songs.length+" songs":"")
+      });
+      if($("#trackHeading")) $("#trackHeading").textContent="Top Songs";
+    }else{
+      hideArtistHero();
+    }
+   }catch(e){}
   }
   $$("#mobileNav button").forEach(b=>{
    const a=b.dataset.mnav;
    b.classList.toggle("active",(snap.type==="home"&&a==="home")||(snap.type==="search"&&a==="search")||(snap.type==="library"&&a==="library")||(snap.type==="new"&&a==="new"));
   });
+  try{window.scrollTo({top:0,behavior:"instant" in window?undefined:"auto"})}catch(e){}
  }
  function goBackOneStep(){
   if(state.screenLocked) return false;
@@ -6893,7 +6923,12 @@ body.has-bg-image:after{
    try{history.pushState({auraLock:1},"")}catch(err){}
    return;
   }
-  if(typeof goBackOneStep==="function" && goBackOneStep()) return;
+  if(state._ignorePopstate){
+   state._ignorePopstate=false;
+   return;
+  }
+  // Browser/swipe back → exactly one nav step; never touch queue/playing song
+  if(typeof goBackOneStep==="function") goBackOneStep();
  });
  // Wake lock only while playing (works with phone auto-lock when idle)
  document.addEventListener("visibilitychange",()=>{
@@ -6972,43 +7007,40 @@ body.has-bg-image:after{
  });
  // Artist page controls — one clean back step (never re-open same artist)
  $("#artistBack")?.addEventListener("click",()=>{
-  try{hideArtistHero()}catch(e){}
-  state._channelMore=null;
-  // Prefer nav stack (previous search / home / etc.)
+  // One step only: use browser history so stack + history stay in sync
   if(state.navStack&&state.navStack.length){
-   const snap=state.navStack.pop();
-   try{
-    state.navType=snap.type||"home";
-    state._searchMore=snap.searchMore||null;
-    state._playlistMore=snap.playlistMore||null;
-    state._channelMore=null; // never restore channel on explicit artist back
-    state._libraryView=!!snap.library;
-    if(snap.library){ showLibraryView(true); }
-    else{
-     state._libraryView=false;
-     state.songs=snap.songs&&snap.songs.length?snap.songs:[...CATALOG];
-     renderCards(state.songs);
-     if($("#trackHeading")) $("#trackHeading").textContent=snap.heading||"🔥 Trending Now";
-     if(snap.searchQ&&$("#search")) $("#search").value=snap.searchQ;
-    }
-   }catch(err){}
-   window.scrollTo({top:0,behavior:"smooth"});
+   history.back();
    return;
   }
-  // Fallback: home trending (do not restoreBrowseCache — it reopens channel)
-  state.songs=[...CATALOG];
-  state.queue=[...CATALOG];
-  renderCards(CATALOG);
-  if($("#trackHeading")) $("#trackHeading").textContent="🔥 Trending Now";
+  // Fallback: leave artist page without touching queue / current song
+  try{hideArtistHero()}catch(e){}
+  state._channelMore=null;
+  const homeList=(state.homeSongs&&state.homeSongs.length)?state.homeSongs:(state.browseCache&&state.browseCache.songs&&state.browseCache.songs.length?state.browseCache.songs:[...CATALOG]);
+  state.songs=homeList.slice();
+  state._libraryView=false;
   state.navType="home";
+  renderCards(state.songs);
+  if($("#trackHeading")) $("#trackHeading").textContent="🔥 Trending Now";
   window.scrollTo({top:0,behavior:"smooth"});
  });
  $("#artistPlay")?.addEventListener("click",()=>{
-  if(state.queue&&state.queue.length){state.shuffle=false;playSong(state.currentIndex>=0?state.currentIndex:0)}
-  else toast("No songs yet");
+  const list=(state.songs&&state.songs.length)?state.songs.filter(s=>!s.type||s.type==="video"):[];
+  if(list.length){
+   state.queue=list.slice();
+   state.shuffle=false;
+   playSong(0);
+  }else if(state.queue&&state.queue.length){
+   state.shuffle=false;playSong(state.currentIndex>=0?state.currentIndex:0);
+  }else toast("No songs yet");
  });
  $("#artistShuffle")?.addEventListener("click",()=>{
-  if(state.queue&&state.queue.length){
+  const list=(state.songs&&state.songs.length)?state.songs.filter(s=>!s.type||s.type==="video"):[];
+  if(list.length){
+   state.queue=list.slice();
+   state.shuffle=true;
+   playSong(Math.floor(Math.random()*state.queue.length));
+   toast("Shuffle · Artist");
+  }else if(state.queue&&state.queue.length){
    state.shuffle=true;
    playSong(Math.floor(Math.random()*state.queue.length));
    toast("Shuffle · Artist");
