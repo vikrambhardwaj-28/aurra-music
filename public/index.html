@@ -4857,7 +4857,7 @@ async function searchLocal(q, page){
  if(page===1){
   if(_searchAbort){try{_searchAbort.abort()}catch(e){}}
   _searchAbort=typeof AbortController!=="undefined"?new AbortController():null;
-  try{if(typeof pushNav==="function") pushNav()}catch(e){}
+  try{if(state&&typeof state.pushNav==="function") state.pushNav(); else if(typeof pushNav==="function") pushNav()}catch(e){}
   state._channelMore=null;state._playlistMore=null;
   $("#trackHeading").textContent="Searching…";
   toast("Searching…");
@@ -5147,7 +5147,7 @@ async function loadPlaylist(listId, page, meta){
  listId=listIdClean;
 
  if(page===1){
-  try{if(typeof pushNav==="function") pushNav()}catch(e){}
+  try{if(state&&typeof state.pushNav==="function") state.pushNav(); else if(typeof pushNav==="function") pushNav()}catch(e){}
   state._channelMore=null;state._searchMore=null;
   $("#trackHeading").textContent="Loading playlist…";
   toast("Loading playlist…");
@@ -5769,7 +5769,7 @@ function bind(){
      if(m) thumb=m[1];
    }catch(e){}
    if(!thumb) thumb=card.dataset.thumb||"";
-   try{if(typeof pushNav==="function") pushNav()}catch(e){}
+   try{if(state&&typeof state.pushNav==="function") state.pushNav(); else if(typeof pushNav==="function") pushNav()}catch(e){}
    loadChannel(id,card.dataset.name||"",1,{name:card.dataset.name||"",thumb});
    return;
   }
@@ -6468,10 +6468,10 @@ body.has-bg-image:after{
  state._ignorePopstate=false;
  function pushNav(){
   try{
-   // Avoid pushing identical consecutive snapshots (double-calls)
    if(state.saveBrowseCache) state.saveBrowseCache();
    const snap=snapshotNav();
    const prev=state.navStack&&state.navStack.length?state.navStack[state.navStack.length-1]:null;
+   // Skip only if exact same view was just pushed (prevent double-tap junk)
    if(prev && prev.type===snap.type && prev.heading===snap.heading && prev.library===snap.library &&
       (prev.searchQ||"")===(snap.searchQ||"") &&
       JSON.stringify(prev.searchMore)===JSON.stringify(snap.searchMore) &&
@@ -6479,13 +6479,17 @@ body.has-bg-image:after{
       JSON.stringify(prev.channelMore)===JSON.stringify(snap.channelMore) &&
       (prev.songs||[]).length===(snap.songs||[]).length &&
       ((prev.songs||[])[0]&&prev.songs[0].id)===((snap.songs||[])[0]&&snap.songs[0].id)){
-    return; // same view — no extra history step
+    return;
    }
+   state.navStack=state.navStack||[];
    state.navStack.push(snap);
-   if(state.navStack.length>20) state.navStack.shift();
-   history.pushState({auraNav:1,depth:state.navStack.length},"");
-  }catch(e){}
+   if(state.navStack.length>30) state.navStack.shift();
+   // Real browser history entry so trackpad/cursor back walks one step at a time
+   history.pushState({auraNav:1, depth:state.navStack.length, t:Date.now()}, "", location.pathname+location.search+location.hash);
+  }catch(e){console.warn("pushNav",e)}
  }
+ state.pushNav=pushNav;
+ window.__auraPushNav=pushNav;
  function restoreNav(snap){
   if(!snap)return;
   state.navType=snap.type||"home";
@@ -6536,6 +6540,7 @@ body.has-bg-image:after{
   }
   return false;
  }
+ state.goBackOneStep=goBackOneStep;
  function showLibraryView(fromBack){
   try{hideArtistHero()}catch(e){}
   state._libraryView=true;
@@ -6927,8 +6932,10 @@ body.has-bg-image:after{
    state._ignorePopstate=false;
    return;
   }
-  // Browser/swipe back → exactly one nav step; never touch queue/playing song
-  if(typeof goBackOneStep==="function") goBackOneStep();
+  // Browser / two-finger / cursor back → exactly ONE in-app step
+  const handled = (typeof goBackOneStep==="function") && goBackOneStep();
+  // If no in-app steps left, allow normal browser exit (previous site / blank)
+  if(!handled){ /* at SPA root — nothing to restore */ }
  });
  // Wake lock only while playing (works with phone auto-lock when idle)
  document.addEventListener("visibilitychange",()=>{
@@ -7065,6 +7072,11 @@ function init(){
  // write backup so next open is safe
  savePlaylists();saveFavs();saveLikedSongs();
  renderPlaylistNav();renderCards(CATALOG);renderMix();renderRecent();updateProfileUI();updateNowUI();setVolume(70);syncEqUI();bind();
+ // Seed SPA root history entry (Apple Music style step-back needs a stable base)
+ try{
+   state.navStack=state.navStack||[];
+   history.replaceState({auraNav:0, root:1, t:Date.now()}, "", location.pathname+location.search+location.hash);
+ }catch(e){}
  let _rhT;
  window.addEventListener("resize",()=>{clearTimeout(_rhT);_rhT=setTimeout(syncRecentToCardsHeight,120)});
  // images in cards may load late — resync height
@@ -7133,6 +7145,7 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
  function showNew(){
   req++;
   const box=$("#cards");if(!box)return;
+  try{if(window.__auraPushNav) window.__auraPushNav(); else if(window.__aura&&window.__aura.state&&window.__aura.state.pushNav) window.__aura.state.pushNav()}catch(e){}
   try{if(window.__aura&&window.__aura.state){/* hide artist via class */}document.body.classList.remove("view-artist");const ah=document.getElementById("artistHero");if(ah){ah.classList.remove("open");ah.hidden=true}}catch(e){}
   document.body.classList.add("view-new");
   const bar=$("#showMoreBar");if(bar){bar.style.display="none";bar.innerHTML=""}
@@ -7148,6 +7161,7 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
  }
  async function openGenre(g){
   const A=window.__aura;if(!A)return;
+  try{if(window.__auraPushNav) window.__auraPushNav(); else if(A.state&&A.state.pushNav) A.state.pushNav()}catch(e){}
   const my=++req;
   const h=$("#trackHeading");if(h)h.textContent="Loading "+g.n+"…";
   A.toast("Loading "+g.n+"…");
@@ -7167,7 +7181,7 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
   const st=A.state;
   st.fromDiscovery=true;st._playlistMore=null;st._channelMore=null;
   st.songs=out;
-  st.queue=out.slice();
+  // Browse only — do not replace active queue until user plays
   // Enable Show More for genre (search-style pagination)
   st._searchMore={q:(g.q+" songs").trim(),page:1,hasMore:true};
   A.renderCards(out);
