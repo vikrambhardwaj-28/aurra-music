@@ -3965,7 +3965,7 @@ function renderCards(list){
    return `<div class="music-card playlist-card" data-type="playlist" data-id="${escHtml(s.id||"")}" data-name="${escHtml(s.title||"Playlist")}" role="button" tabindex="0">
     <div class="art" style="background-image:url('${s.thumb||s.thumbnail||""}');background-size:cover;background-position:center;position:relative">
      <div class="pl-stack"></div>
-     <span class="type-badge pl-badge">♫ Playlist</span>
+     <span class="type-badge pl-badge">YouTube Playlist</span>
     </div>
     <b>${cleanSongTitle(s.title||"Playlist")}</b>
     <small>${cleanArtistName(s.author||s.artist||"")}${s.videoCount?" · "+s.videoCount+" tracks":""}</small>
@@ -4582,34 +4582,75 @@ function clearSearchHistory(){
 }
 let _searchReq=0;
 let _searchAbort=null;
+function isYouTubePlaylistId(id){
+  id=String(id||"").trim();
+  if(!id) return false;
+  // strip VL browse prefix
+  if(id.startsWith("VL")) id=id.slice(2);
+  // Real YouTube playlist id patterns (not radio RD* mixes that usually fail)
+  // PL… user/curated, OLAK5uy… album, UU… channel uploads, FL/LL… library lists
+  if(/^(PL|OLAK5uy_|UU|FL|LL)[a-zA-Z0-9_-]{10,}$/.test(id)) return true;
+  // some playlists are longer alphanumeric without short prefix but start with PL already covered
+  // reject pure video ids (11 chars) and RD radio/mix ids
+  if(/^RD/i.test(id)) return false;
+  if(/^[a-zA-Z0-9_-]{11}$/.test(id)) return false; // video id shape
+  return false;
+}
+function extractYouTubePlaylistId(v){
+  if(!v) return "";
+  let id=v.playlistId||v.listId||v.id||v.browseId||"";
+  id=String(id||"").trim();
+  if(id.startsWith("VL")) id=id.slice(2);
+  const tryUrl=(u)=>{
+    if(!u) return "";
+    try{
+      const url=new URL(String(u), "https://www.youtube.com");
+      const list=url.searchParams.get("list");
+      if(list) return list.trim();
+    }catch(e){
+      const m=String(u).match(/[?&]list=([a-zA-Z0-9_-]+)/i);
+      if(m) return m[1];
+    }
+    return "";
+  };
+  if(!isYouTubePlaylistId(id)){
+    const fromUrl=tryUrl(v.url)||tryUrl(v.webpage_url)||tryUrl(v.link)||tryUrl(v.playlistUrl);
+    if(fromUrl) id=fromUrl;
+  }
+  if(id.startsWith("VL")) id=id.slice(2);
+  return isYouTubePlaylistId(id)?id:"";
+}
 function mapSearchItem(v){
  if(!v||typeof v!=="object") return null;
- // normalize type
  let type=(v.type||v.resultType||v.itemType||"").toLowerCase();
  if(!type && (v.playlistId||v.listId||(v.url&&String(v.url).includes("list=")))) type="playlist";
- if(!type && (v.channelId||v.browseId&&String(v.browseId).startsWith("UC"))) type="channel";
+ if(!type && (v.channelId||(v.browseId&&String(v.browseId).startsWith("UC")))) type="channel";
  if(type==="channel"||type==="artist"){
   const id=v.id||v.channelId||v.browseId||"";
-  return{type:"channel",id:String(id).replace(/^UC/,"UC")?id:id,title:v.title||v.author||v.name,author:v.author||v.title||v.name,thumb:v.thumbnail||v.thumb||v.avatar||"",videoCount:v.videoCount,subscribers:v.subscribers||v.subCount||""};
+  return{type:"channel",id:id,title:v.title||v.author||v.name,author:v.author||v.title||v.name,thumb:v.thumbnail||v.thumb||v.avatar||"",videoCount:v.videoCount,subscribers:v.subscribers||v.subCount||""};
  }
  if(type==="playlist"||type==="album"){
-  let id=v.id||v.playlistId||v.listId||v.browseId||"";
-  // from URL
-  if((!id||id.length<6) && v.url){
-   try{
-    const u=new URL(v.url, "https://www.youtube.com");
-    id=u.searchParams.get("list")||id;
-   }catch(e){
-    const m=String(v.url).match(/[?&]list=([a-zA-Z0-9_-]+)/);
-    if(m) id=m[1];
-   }
-  }
-  id=String(id||"").trim();
-  // strip VL prefix YouTube sometimes adds to playlist browse ids
-  if(id.startsWith("VL") && id.length>2) id=id.slice(2);
-  return{type:"playlist",id,title:v.title||v.name||"Playlist",author:v.author||v.channelName||v.artist||"",thumb:v.thumbnail||v.thumb||"",videoCount:v.videoCount||v.itemCount||v.songCount||""};
+  const id=extractYouTubePlaylistId(v);
+  // Only keep real accessible YouTube playlists
+  if(!id) return null;
+  return{
+    type:"playlist",
+    id,
+    title:v.title||v.name||"Playlist",
+    author:v.author||v.channelName||v.artist||"",
+    thumb:v.thumbnail||v.thumb||"",
+    videoCount:v.videoCount||v.itemCount||v.songCount||"",
+    ytUrl:"https://www.youtube.com/playlist?list="+id
+  };
  }
  const vid=v.id||v.videoId||v.video_id||"";
+ // if API mis-tagged a playlist as video but has list id, promote it
+ if(v.playlistId||(v.url&&/list=/.test(String(v.url||"")))){
+  const pid=extractYouTubePlaylistId(v);
+  if(pid && !vid){
+   return{type:"playlist",id:pid,title:v.title||"Playlist",author:v.author||"",thumb:v.thumbnail||v.thumb||"",videoCount:v.videoCount||"",ytUrl:"https://www.youtube.com/playlist?list="+pid};
+  }
+ }
  return{
   type:"video",
   id:vid,
@@ -4619,6 +4660,7 @@ function mapSearchItem(v){
   thumb:v.thumbnail||v.thumb||(vid?("https://i.ytimg.com/vi/"+vid+"/hqdefault.jpg"):"")
  };
 }
+
 /* Search result cache — faster repeat queries */
 const _searchCache=new Map();
 function _cacheKey(q,page){return (q||"").trim().toLowerCase()+"::"+page}
@@ -4920,7 +4962,11 @@ async function loadPlaylist(listId, page, meta){
  if(rawId.startsWith("VL") && rawId.length>4) rawId=rawId.slice(2);
  // keep valid YT playlist charset
  let listIdClean=rawId.replace(/[^a-zA-Z0-9_-]/g,"");
- if(listIdClean.length<6){toast("Invalid playlist id");return}
+ if(listIdClean.startsWith("VL")) listIdClean=listIdClean.slice(2);
+ if(!isYouTubePlaylistId(listIdClean)){
+  toast("Not a YouTube playlist");
+  return;
+ }
  listId=listIdClean;
 
  if(page===1){
@@ -4930,10 +4976,14 @@ async function loadPlaylist(listId, page, meta){
  }
 
  async function fetchPlaylistOnce(id, pg, timeoutMs){
+  const ytListUrl="https://www.youtube.com/playlist?list="+id;
   const urls=[
    "/playlist?list="+encodeURIComponent(id)+"&page="+pg,
+   "/playlist?url="+encodeURIComponent(ytListUrl)+"&page="+pg,
+   "/playlist?list="+encodeURIComponent(ytListUrl)+"&page="+pg,
    "/playlist?id="+encodeURIComponent(id)+"&page="+pg,
-   "/api/playlist?list="+encodeURIComponent(id)+"&page="+pg
+   "/api/playlist?list="+encodeURIComponent(id)+"&page="+pg,
+   "/api/playlist?url="+encodeURIComponent(ytListUrl)+"&page="+pg
   ];
   let lastErr=null, lastData=null, lastStatus=0;
   for(const url of urls){
