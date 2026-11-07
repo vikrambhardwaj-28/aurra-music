@@ -876,6 +876,99 @@ body.app-fs .lock-screen{padding-top:calc(var(--fs-top) + 36px)!important}
 body.app-fs .immersive-player{padding:0!important}
 
 
+
+/* ---------- Site footer (Apple Music style) ---------- */
+.site-footer{
+  margin:48px 0 24px;
+  padding:28px 0 8px;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.45;
+}
+.site-footer-inner{max-width:1100px}
+.footer-top{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:28px 32px;
+  margin-bottom:22px;
+}
+.footer-col h4{
+  margin:0 0 12px;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.2px;
+  color:rgba(255,255,255,.72);
+  text-transform:none;
+}
+.footer-col p{
+  margin:0 0 8px;
+  font-size:12px;
+  color:var(--muted);
+  max-width:280px;
+  line-height:1.5;
+}
+.footer-col a,.footer-link{
+  display:inline-block;
+  color:var(--muted);
+  text-decoration:none;
+  font-size:12px;
+  margin:0 0 8px;
+  transition:color .15s;
+  cursor:pointer;
+  background:none;border:0;padding:0;font:inherit;text-align:left;
+}
+.footer-col a:hover,.footer-link:hover{color:#fff}
+.footer-col .footer-links{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.footer-made{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:6px;padding:5px 10px;border-radius:980px;
+  border:1px solid var(--line);background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.8);font-size:11px;font-weight:600;letter-spacing:.2px;
+}
+.footer-bottom{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;
+  padding-top:16px;border-top:1px solid rgba(255,255,255,.06);
+  font-size:11px;color:rgba(255,255,255,.38);
+}
+.footer-bottom .fb-left{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.footer-bottom a{color:rgba(255,255,255,.45);text-decoration:none}
+.footer-bottom a:hover{color:#fff}
+@media(max-width:700px){
+  .footer-top{grid-template-columns:1fr;gap:22px}
+  .site-footer{margin:36px 0 20px;padding-top:22px}
+}
+
+/* Feedback modal extras */
+.fb-stars{display:flex;gap:8px;margin:4px 0 14px;justify-content:center}
+.fb-stars button{
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+  background:var(--surface-2);color:rgba(255,255,255,.35);font-size:18px;
+  cursor:pointer;transition:transform .12s,background .12s,color .12s,border-color .12s;
+}
+.fb-stars button:hover{transform:scale(1.08);border-color:var(--a)}
+.fb-stars button.on{color:#ffd60a;border-color:rgba(255,214,10,.45);background:rgba(255,214,10,.12);text-shadow:0 0 12px rgba(255,214,10,.35)}
+.fb-rate-label{text-align:center;font-size:12px;color:var(--muted);margin:-6px 0 12px;min-height:16px}
+#feedbackModal textarea{
+  width:100%;min-height:110px;resize:vertical;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface-2);color:#fff;padding:12px;outline:0;font:inherit;box-sizing:border-box;
+}
+#feedbackModal textarea:focus{border-color:var(--a)}
+#feedbackModal .fb-field{margin-bottom:12px}
+#feedbackModal .fb-field label{display:block;font-size:11px;color:var(--muted);letter-spacing:.5px;margin:0 0 5px;font-weight:600}
+#feedbackModal .fb-field input{
+  width:100%;height:40px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface-2);color:#fff;padding:0 12px;outline:0;box-sizing:border-box;
+}
+#feedbackModal .fb-field input:focus{border-color:var(--a)}
+#feedbackModal .fb-actions{display:flex;gap:8px;margin-top:14px}
+#feedbackModal .fb-actions button{
+  flex:1;height:42px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface-2);color:#fff;
+}
+#feedbackModal .fb-actions .fb-send{border:0;background:var(--a);box-shadow:0 4px 16px var(--glow)}
+#feedbackModal .fb-actions .fb-send:disabled{opacity:.5;cursor:not-allowed}
+
 /* ---------- Sidebar ---------- */
 .sidebar{
   position:fixed;left:0;top:0;bottom:0;width:var(--side-w);z-index:60;
@@ -3008,6 +3101,44 @@ body.has-bg-image:before{
   <div class="section-head"><h2 id="trackHeading">🔥 Trending Now</h2><button type="button" id="genreBack">‹ Genres</button></div>
   <div class="cards" id="cards"></div>
  </section>
+
+ <footer class="site-footer" id="siteFooter">
+  <div class="site-footer-inner">
+   <div class="footer-top">
+    <div class="footer-col">
+     <h4>Aura Music</h4>
+     <p>Free online music streaming with HD audio, live lyrics, smart playlists, equalizer and sleep timer.</p>
+     <p>Created by <strong style="color:rgba(255,255,255,.85);font-weight:600">Vikram Bhardwaj</strong></p>
+     <span class="footer-made">🇮🇳 Made in India</span>
+    </div>
+    <div class="footer-col">
+     <h4>Connect</h4>
+     <div class="footer-links">
+      <a href="https://www.instagram.com/vikrm_bhardwaj?igsh=OWh4ZHprbW5rNTZv" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a href="https://www.facebook.com/share/196jZuggxg/" target="_blank" rel="noopener noreferrer">Facebook</a>
+      <a href="mailto:vikram.2872006@gmail.com">vikram.2872006@gmail.com</a>
+     </div>
+    </div>
+    <div class="footer-col">
+     <h4>Support</h4>
+     <div class="footer-links">
+      <button type="button" class="footer-link" id="openFeedbackBtn">Feedback</button>
+      <a href="mailto:vikram.2872006@gmail.com?subject=Aura%20Music%20Support">Contact</a>
+     </div>
+     <p style="margin-top:10px">Modinagar, Ghaziabad<br>India</p>
+    </div>
+   </div>
+   <div class="footer-bottom">
+    <div class="fb-left">
+     <span>Copyright © 2026 Vikram Bhardwaj. All rights reserved.</span>
+     <span>Made in India</span>
+    </div>
+    <div class="fb-left">
+     <span>Modinagar, Ghaziabad, India</span>
+    </div>
+   </div>
+  </div>
+ </footer>
 </main>
 
 <aside class="rightcol">
@@ -3546,6 +3677,34 @@ body.has-bg-image:before{
  </div>
 </div>
 
+<div class="float-modal" id="feedbackModal" aria-hidden="true">
+ <div class="float-box" style="width:min(420px,94vw)">
+  <button type="button" class="float-close" id="feedbackModalClose" aria-label="Close">×</button>
+  <h3>Feedback</h3>
+  <p class="fm-sub">Rate Aura Music and send a note to Vikram Bhardwaj</p>
+  <div class="fb-stars" id="fbStars" role="group" aria-label="Star rating">
+   <button type="button" data-star="1" aria-label="1 star">★</button>
+   <button type="button" data-star="2" aria-label="2 stars">★</button>
+   <button type="button" data-star="3" aria-label="3 stars">★</button>
+   <button type="button" data-star="4" aria-label="4 stars">★</button>
+   <button type="button" data-star="5" aria-label="5 stars">★</button>
+  </div>
+  <div class="fb-rate-label" id="fbRateLabel">Tap a star to rate</div>
+  <div class="fb-field">
+   <label for="fbName">NAME (OPTIONAL)</label>
+   <input type="text" id="fbName" placeholder="Your name" maxlength="80" autocomplete="name">
+  </div>
+  <div class="fb-field">
+   <label for="fbMsg">YOUR FEEDBACK</label>
+   <textarea id="fbMsg" placeholder="What did you like? What should we improve?" maxlength="2000"></textarea>
+  </div>
+  <div class="fb-actions">
+   <button type="button" id="fbCancel">Cancel</button>
+   <button type="button" class="fb-send" id="fbSend">Send Feedback</button>
+  </div>
+ </div>
+</div>
+
 <div class="float-modal" id="sleepModal" aria-hidden="true">
  <div class="float-box">
   <button type="button" class="float-close" id="sleepModalClose" aria-label="Close">×</button>
@@ -3723,7 +3882,7 @@ function loadPlaylists(){
   });
   return out;
 }
-const state={songs:[...CATALOG],queue:[...CATALOG],currentIndex:-1,playing:false,shuffle:false,repeat:0,volume:70,favorites:loadJSON("auraFavs",[]),likedSongs:loadJSON("auraLikedSongs",[]),customPlaylists:loadPlaylists(),profile:loadJSON("auraProfile",{}),recentPlayed:loadJSON("auraRecent",[]),bgImage:(()=>{try{return localStorage.getItem("auraBgImage")||""}catch(e){return""}})(),bgImageDim:+((()=>{try{return localStorage.getItem("auraBgDim")||55}catch(e){return55}})()),ytPlayer:null,ytReady:false,progressTimer:null,fsView:"lyrics",fromDiscovery:true,lastSuggestedFor:"",aiQueue:[],aiLoading:false,ctxSong:null,sleepMin:0,sleepEndsAt:0,sleepTimer:null,eqBands:[50,50,50,50,50],eqPreset:"flat"};
+const state={songs:[...CATALOG],queue:[...CATALOG],currentIndex:-1,playing:false,shuffle:false,repeat:0,volume:70,favorites:loadJSON("auraFavs",[]),likedSongs:loadJSON("auraLikedSongs",[]),customPlaylists:loadPlaylists(),profile:loadJSON("auraProfile",{}),recentPlayed:loadJSON("auraRecent",[]),bgImage:(()=>{try{return localStorage.getItem("auraBgImage")||""}catch(e){return""}})(),bgImageDim:+((()=>{try{return localStorage.getItem("auraBgDim")||55}catch(e){return55}})()),ytPlayer:null,ytReady:false,progressTimer:null,fsView:"lyrics",fromDiscovery:true,lastSuggestedFor:"",aiQueue:[],aiLoading:false,ctxSong:null,sleepMin:0,sleepEndsAt:0,sleepTimer:null,eqBands:[50,50,50,50,50],eqPreset:"flat",_fadeLevel:1,_fadeToken:0};
 const EQ_PRESETS={flat:[50,50,50,50,50],bass:[82,70,48,40,38],vocal:[40,48,72,68,45],treble:[35,42,55,75,85],electronic:[78,45,55,70,80]};
 const fmt=s=>{if(!s||!isFinite(s))return"0:00";const m=Math.floor(s/60),sec=Math.floor(s%60);return m+":"+String(sec).padStart(2,"0")};
 
@@ -4582,18 +4741,77 @@ async function loadLyrics(videoId, title, artist){
 }
 
 
-function playSong(index){state._skip=false;state._skipping=false;
+function _fadeSleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function fadePlayerTo(target, ms, token){
+ // Smooth volume ramp (Apple-like). target 0..1 multiplies user volume.
+ try{
+  const steps=Math.max(8, Math.round((ms||300)/28));
+  const start=(typeof state._fadeLevel==="number")?state._fadeLevel:1;
+  for(let i=1;i<=steps;i++){
+   if(token!==state._fadeToken) return false;
+   const t=i/steps;
+   // ease-in-out for less abrupt edges
+   const e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+   state._fadeLevel=start+(target-start)*e;
+   applyPlayerVolume();
+   await _fadeSleep(ms/steps);
+  }
+  if(token!==state._fadeToken) return false;
+  state._fadeLevel=target;
+  applyPlayerVolume();
+  return true;
+ }catch(e){return false}
+}
+async function playSong(index){state._skip=false;state._skipping=false;
  if(index<0||index>=state.queue.length)return;
+ const prev=currentSong&&typeof currentSong==="function"?currentSong():null;
+ const prevId=prev&&prev.id;
  state.currentIndex=index;
  const s=state.queue[index];if(!s)return;
  updateNowUI();
  addToRecent(s);
  try{if(state.saveBrowseCache) state.saveBrowseCache()}catch(e){}
+ const token=++state._fadeToken;
+ const switching=!!(state.ytReady&&state.ytPlayer&&prevId&&prevId!==s.id&&state.playing);
+ // Fade out current track before hard switch (single YT player = sequential crossfade)
+ if(switching){
+  await fadePlayerTo(0, 320, token);
+  if(token!==state._fadeToken) return;
+ }else{
+  // Fresh start / same-song: begin from soft silence then rise
+  state._fadeLevel=0;
+  applyPlayerVolume();
+ }
+ const startTrack=()=>{
+  try{
+   state.ytPlayer.loadVideoById(s.id);
+   state._fadeLevel=0;
+   applyPlayerVolume();
+   state.ytPlayer.playVideo();
+   state.playing=true;
+  }catch(e){}
+ };
  if(state.ytReady&&state.ytPlayer){
-  state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;
+  startTrack();
+  // brief settle so audio engine has frames, then fade in
+  (async()=>{
+   await _fadeSleep(140);
+   if(token!==state._fadeToken) return;
+   await fadePlayerTo(1, 420, token);
+  })();
  }else{
   const wait=setInterval(()=>{
-   if(state.ytReady&&state.ytPlayer){clearInterval(wait);state.ytPlayer.loadVideoById(s.id);applyPlayerVolume();state.ytPlayer.playVideo();state.playing=true;updateNowUI()}
+   if(state.ytReady&&state.ytPlayer){
+    clearInterval(wait);
+    if(token!==state._fadeToken) return;
+    startTrack();
+    (async()=>{
+     await _fadeSleep(140);
+     if(token!==state._fadeToken) return;
+     await fadePlayerTo(1, 420, token);
+    })();
+    updateNowUI();
+   }
   },200);
   setTimeout(()=>clearInterval(wait),8000);
  }
@@ -4685,7 +4903,8 @@ function eqGain(){
  return Math.max(0.72,Math.min(1.18,1+bias));
 }
 function applyPlayerVolume(){
- const eff=Math.round(Math.max(0,Math.min(100,state.volume*eqGain())));
+ const fade=(typeof state._fadeLevel==="number")?state._fadeLevel:1;
+ const eff=Math.round(Math.max(0,Math.min(100,state.volume*eqGain()*Math.max(0,Math.min(1,fade)))));
  try{state.ytPlayer?.setVolume?.(eff)}catch(e){}
 }
 function setVolume(v){
@@ -6735,6 +6954,52 @@ body.has-bg-image:after{
  }catch(e){}
  if(state.bgImage)applyBgImage(state.bgImage,state.bgImageDim);
  // Sleep timer + EQ modals
+ // Feedback modal
+ state._fbStars=0;
+ function openFeedbackModal(){
+  state._fbStars=0;
+  $$("#fbStars button").forEach(b=>b.classList.remove("on"));
+  if($("#fbRateLabel")) $("#fbRateLabel").textContent="Tap a star to rate";
+  if($("#fbMsg")) $("#fbMsg").value="";
+  if($("#fbName")) $("#fbName").value="";
+  openFloat("#feedbackModal");
+ }
+ function closeFeedbackModal(){ closeFloat("#feedbackModal"); }
+ $("#openFeedbackBtn")?.addEventListener("click",openFeedbackModal);
+ $("#feedbackModalClose")?.addEventListener("click",closeFeedbackModal);
+ $("#fbCancel")?.addEventListener("click",closeFeedbackModal);
+ $("#feedbackModal")?.addEventListener("click",e=>{if(e.target===$("#feedbackModal"))closeFeedbackModal()});
+ $("#fbStars")?.addEventListener("click",e=>{
+  const btn=e.target.closest("button[data-star]");if(!btn)return;
+  const n=+btn.dataset.star||0;
+  state._fbStars=n;
+  $$("#fbStars button").forEach(b=>b.classList.toggle("on",(+b.dataset.star)<=n));
+  const labels=["","Poor","Fair","Good","Very good","Excellent"];
+  if($("#fbRateLabel")) $("#fbRateLabel").textContent=labels[n]? (n+" ★ · "+labels[n]) : "Tap a star to rate";
+ });
+ $("#fbSend")?.addEventListener("click",()=>{
+  const stars=state._fbStars||0;
+  const msg=($("#fbMsg")?.value||"").trim();
+  const name=($("#fbName")?.value||"").trim();
+  if(!stars){toast("Please select a star rating");return}
+  if(!msg){toast("Please write your feedback");return}
+  const subject="Aura Music Feedback — "+stars+"/5 stars";
+  const body=[
+    "Aura Music Feedback",
+    "-------------------",
+    "Rating: "+stars+"/5",
+    name?("Name: "+name):"Name: (not provided)",
+    "",
+    msg,
+    "",
+    "— Sent from Aura Music"
+  ].join("\n");
+  const href="mailto:vikram.2872006@gmail.com?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
+  try{ window.location.href=href; }catch(e){}
+  toast("Opening email to send feedback…");
+  closeFeedbackModal();
+ });
+
  $("#openSleepBtn")?.addEventListener("click",()=>openFloat("#sleepModal"));
  $("#openEqBtn")?.addEventListener("click",()=>{syncEqUI();openFloat("#eqModal")});
  // Mobile Theme Studio shortcuts (Sleep / EQ / New Playlist)
