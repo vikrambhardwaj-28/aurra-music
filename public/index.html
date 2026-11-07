@@ -3607,11 +3607,13 @@ body.has-bg-image:before{
     var fpSend = $("authForgotSend");
     if(fpSend) fpSend.onclick = function(){
       var who = ($("fpUser")&&$("fpUser").value||"").trim();
-      if(!who){ msg("authForgotMsg","Please enter a username or email"); return; }
-      var subject = encodeURIComponent("Aura Music — Password help");
-      var body = encodeURIComponent("Password help request\n\nUsername/Email: "+who+"\n\n— Aura Music");
+      var note = ($("fpMsg")&&$("fpMsg").value||"").trim();
+      if(!who){ msg("authForgotMsg","Please enter your username or email"); return; }
+      var subject = encodeURIComponent("Aura Music — Forgot password help");
+      var bodyText = "Aura Music — Password help request\n--------------------------------\nUser ID / Username / Email: "+who+"\n"+(note?("Message: "+note+"\n"):"Message: (none)\n")+"\nPlease help me reset my password.\n\n— Sent from Aura Music Sign In";
+      var body = encodeURIComponent(bodyText);
       window.location.href = "mailto:vikram.2872006@gmail.com?subject="+subject+"&body="+body;
-      msg("authForgotMsg","Mail app opened", true);
+      msg("authForgotMsg","Mail app opened — send the email to get help", true);
     };
 
     // If already logged in on page load → pull cloud library
@@ -6342,7 +6344,12 @@ function bind(){
  document.addEventListener("keydown",e=>{
   if(e.key==="Escape"&&$("#immersivePlayer").classList.contains("open"))closePlayer();
   if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();$("#search").focus()}
-  if(e.code==="Space"&&e.target.tagName!=="INPUT"){e.preventDefault();togglePlay()}
+  if(e.code==="Space"){
+   const t=e.target;
+   const tag=(t&&t.tagName||"").toUpperCase();
+   const typing=tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT"||(t&&t.isContentEditable);
+   if(!typing){e.preventDefault();togglePlay()}
+  }
  });
  $$(".view-switch").forEach(b=>b.onclick=()=>setView(b.dataset.view));
  $("#queueList")?.addEventListener("click",e=>{const item=e.target.closest(".queue-item");if(!item)return;const idx=state.queue.findIndex(s=>s.id===item.dataset.id);if(idx>=0)playSong(idx)});
