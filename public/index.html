@@ -703,31 +703,71 @@ body:has(.immersive-player.open) .rightcol{
 
 #heroGreeting{font-size:12px;color:var(--muted);letter-spacing:.2px;margin:0 0 4px;min-height:16px;font-weight:500}
 .hero .eyebrow,.hero h1,.hero p,.hero-actions,#heroGreeting{position:relative;z-index:2}
-.hero-thumb-wrap{position:absolute;right:24px;top:50%;transform:translateY(-50%);z-index:2;width:100px;height:100px;perspective:600px}
+.hero-thumb-wrap{position:absolute;right:28px;top:50%;transform:translateY(-50%);z-index:2;width:112px;height:112px;perspective:700px}
 .hero-thumb{
-  width:100px;height:100px;border-radius:10px;
+  width:112px;height:112px;border-radius:16px;
   background:linear-gradient(145deg,var(--a),var(--b)) center/cover no-repeat;
-  box-shadow:0 8px 28px rgba(0,0,0,.4);position:relative;overflow:visible;
-  display:grid;place-items:center;font-size:24px;color:rgba(255,255,255,.8);
+  box-shadow:0 10px 28px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.1),inset 0 1px 0 rgba(255,255,255,.2);
+  position:relative;overflow:visible;
+  display:grid;place-items:center;font-size:28px;color:rgba(255,255,255,.9);
   transform-style:preserve-3d;
+  transition:box-shadow .3s ease,transform .25s ease;
+  cursor:pointer;
+}
+.hero-thumb .hero-thumb-ico{
+  position:relative;z-index:2;line-height:1;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
+  transition:transform .25s ease;
 }
 .hero-thumb .thumb-face{position:absolute;inset:0;border-radius:inherit;background-size:cover;background-position:center;background-image:inherit;overflow:hidden;z-index:1}
-.hero-thumb::after{display:none}
-.hero-thumb .beat-ring{position:absolute;inset:-5px;border-radius:14px;border:1.5px solid rgba(250,36,60,.4);pointer-events:none;opacity:0;z-index:0}
-.hero-thumb .beat-ring.r2{inset:-12px;border-radius:18px;border-width:1px}
-.hero-thumb .beat-ring.r3{inset:-19px;border-radius:22px;border-width:1px}
-.hero.playing .hero-thumb .beat-ring{opacity:.6;animation:thumbBeat 1.1s ease-in-out infinite}
-.hero.playing .hero-thumb .beat-ring.r2{animation-delay:.15s;opacity:.4}
-.hero.playing .hero-thumb .beat-ring.r3{animation-delay:.3s;opacity:.25}
-.hero.playing .hero-thumb{box-shadow:0 8px 28px rgba(0,0,0,.4),0 0 24px var(--glow)}
-.hero-thumb.roll-in{animation:thumbRollIn 1.2s cubic-bezier(.22,.8,.36,1) both}
-@keyframes thumbRollIn{
-  0%{opacity:0;transform:translateX(40px) rotateY(-60deg) scale(.85)}
-  40%{opacity:1}
-  72%{transform:translateX(-3px) rotateY(6deg) scale(1.01)}
-  100%{opacity:1;transform:translateX(0) rotateY(0) scale(1)}
+.hero-thumb::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+  background:linear-gradient(145deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.06) 30%,transparent 50%);
 }
-@keyframes thumbBeat{0%,100%{transform:scale(1);opacity:.2}50%{transform:scale(1.06);opacity:.55}}
+.hero-thumb .beat-ring{
+  position:absolute;inset:-6px;border-radius:20px;
+  border:1.5px solid color-mix(in srgb,var(--a) 55%,#fff);
+  pointer-events:none;opacity:0;z-index:0;
+  box-shadow:0 0 12px color-mix(in srgb,var(--a) 30%,transparent);
+}
+.hero-thumb .beat-ring.r2{inset:-14px;border-radius:24px;border-width:1px}
+.hero-thumb .beat-ring.r3{inset:-22px;border-radius:28px;border-width:1px;opacity:0}
+/* Playing: soft float + pulse rings + note bounce */
+.hero.playing .hero-thumb{
+  animation:thumbFloat 2.4s ease-in-out infinite;
+  box-shadow:0 12px 32px rgba(0,0,0,.45),0 0 28px var(--glow),0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.22);
+}
+.hero.playing .hero-thumb .hero-thumb-ico{
+  animation:noteBounce 1.05s ease-in-out infinite;
+}
+.hero.playing .hero-thumb .beat-ring{opacity:.7;animation:thumbBeat 1.2s ease-out infinite}
+.hero.playing .hero-thumb .beat-ring.r2{animation-delay:.2s;opacity:.45}
+.hero.playing .hero-thumb .beat-ring.r3{animation-delay:.4s;opacity:.28}
+/* Entry / track change animation */
+.hero-thumb.roll-in{animation:thumbPopIn .85s cubic-bezier(.22,1.15,.36,1) both}
+@keyframes thumbPopIn{
+  0%{opacity:0;transform:translateY(18px) scale(.72) rotate(-8deg)}
+  55%{opacity:1;transform:translateY(-4px) scale(1.06) rotate(2deg)}
+  75%{transform:translateY(2px) scale(.98) rotate(-1deg)}
+  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
+}
+@keyframes thumbFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-5px)}
+}
+@keyframes noteBounce{
+  0%,100%{transform:scale(1) translateY(0)}
+  30%{transform:scale(1.12) translateY(-2px)}
+  55%{transform:scale(.96) translateY(1px)}
+  75%{transform:scale(1.05) translateY(-1px)}
+}
+@keyframes thumbBeat{
+  0%{transform:scale(.92);opacity:.55}
+  70%{transform:scale(1.18);opacity:0}
+  100%{transform:scale(1.22);opacity:0}
+}
+.hero-thumb:hover{transform:scale(1.04)}
+.hero-thumb:active{transform:scale(.96)}
 
 .song-menu-btn{
   position:absolute;top:6px;right:6px;z-index:5;width:26px;height:26px;
@@ -1027,9 +1067,9 @@ body.app-fs .immersive-player{padding:0!important}
 .btn.primary{background:#fff;color:#111}
 .btn.primary:hover{background:#ececee}
 .hero-stamp{position:absolute;right:20px;bottom:14px;font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,.4);z-index:2;pointer-events:none;white-space:nowrap}
-.hero-thumb-wrap{right:44px;width:170px;height:170px}
-.hero-thumb{width:170px;height:170px;border-radius:10px;font-size:40px;box-shadow:0 14px 40px rgba(0,0,0,.5)}
-.hero-thumb .beat-ring{border-color:rgba(255,255,255,.35)}
+.hero-thumb-wrap{right:40px;width:120px;height:120px}
+.hero-thumb{width:120px;height:120px;border-radius:16px;font-size:30px;box-shadow:0 12px 32px rgba(0,0,0,.48),0 0 0 1px rgba(255,255,255,.1),inset 0 1px 0 rgba(255,255,255,.2)}
+.hero-thumb .beat-ring{border-color:rgba(255,255,255,.4)}
 
 /* ---------- Moods ---------- */
 .section-head{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px}
@@ -1927,15 +1967,22 @@ body.show-lyrics-panel .lyrics-panel{
 /* Cards subtle glass hover glow */
 .music-card{
   border-radius:12px;
-  transition:transform .18s var(--ease-fast),box-shadow .2s ease!important;
+  transition:transform .2s cubic-bezier(.22,.8,.36,1),box-shadow .2s ease!important;
+  overflow:visible;
+  z-index:0;
+  transform-origin:center top;
 }
 .music-card:hover{
-  transform:translateY(-3px);
-  box-shadow:0 12px 28px rgba(0,0,0,.35),0 0 20px rgba(250,35,59,.08);
+  transform:none;
+  z-index:3;
+  box-shadow:none;
 }
 .music-card .art{
   box-shadow:0 6px 18px rgba(0,0,0,.3);
-  border-radius:10px;
+  border-radius:12px;
+  transition:transform .22s cubic-bezier(.22,.8,.36,1),box-shadow .22s ease!important;
+  transform-origin:center center;
+  will-change:transform;
 }
 
 /* Hero glass */
@@ -2078,8 +2125,8 @@ body.show-lyrics-panel .lyrics-panel{
     border:1px solid rgba(255,255,255,.12)!important;
   }
   .music-card:hover{
-    transform:translateY(-5px) scale(1.02);
-    box-shadow:0 16px 36px rgba(0,0,0,.4),0 0 24px rgba(250,35,59,.12)!important;
+    transform:none;
+    box-shadow:none!important;
   }
   .music-card .art{
     box-shadow:0 8px 22px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.06)!important;
@@ -2183,12 +2230,695 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
 
 /* ==== end glass polish ==== */
 
+/* ============================================================
+   AURA 3D FLOATING GLASS — premium rounded glossy panels
+   All panels float · soft 3D depth · no sharp edges · glass finish
+   Layout / logic unchanged
+   ============================================================ */
+:root{
+  --r-sm:12px;
+  --r-md:16px;
+  --r-lg:20px;
+  --r-xl:24px;
+  --r-2xl:28px;
+  --glass-3d:
+    0 1px 0 rgba(255,255,255,.22) inset,
+    0 -1px 0 rgba(0,0,0,.28) inset,
+    0 10px 28px rgba(0,0,0,.45),
+    0 2px 8px rgba(0,0,0,.25),
+    0 0 0 1px rgba(255,255,255,.08);
+  --glass-3d-soft:
+    0 1px 0 rgba(255,255,255,.18) inset,
+    0 -1px 0 rgba(0,0,0,.2) inset,
+    0 8px 24px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.07);
+  --glass-3d-float:
+    0 1px 0 rgba(255,255,255,.25) inset,
+    0 -1px 0 rgba(0,0,0,.3) inset,
+    0 18px 48px rgba(0,0,0,.55),
+    0 6px 16px rgba(0,0,0,.3),
+    0 0 0 1px rgba(255,255,255,.1),
+    0 0 40px color-mix(in srgb,var(--a) 12%,transparent);
+  --icon-3d:
+    0 1px 0 rgba(255,255,255,.3) inset,
+    0 -1px 0 rgba(0,0,0,.25) inset,
+    0 4px 12px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.1);
+}
+
+/* Universal soft corners — kill sharp edges */
+.sidebar,.player,.rightcol,.lyrics-panel-inner,.mobile-nav,
+.float-box,.profile-box,.pl-box,.auth-box,.theme-panel,.song-ctx,
+.toast,.hero,.lcd,.search input,.search-sugg,
+.music-card .art,.mood,.genre-tile,.btn,.icon-btn,.avatar,
+.tool-btns button,.tool-ico,.nav button,.side-signin,
+.mobile-action-bar button,.view-switch,.big-cover,.minimal-cover,
+.lock-now,.lock-play,.transport .play-main,.right-controls .big,
+.eq-presets button,.sleep-opts button,.float-close,.theme-close,
+.lyrics-panel-close,.song-menu-btn,.lib-art,.q-art,.recent-art,
+.mix-cover,.current-art,.now-art,.sugg-thumb,.logo{
+  border-radius:var(--r-md)!important;
+}
+.sidebar{border-radius:0 var(--r-xl) var(--r-xl) 0!important}
+.player{border-radius:var(--r-2xl)!important}
+.rightcol,.lyrics-panel-inner{border-radius:var(--r-xl)!important}
+.mobile-nav{border-radius:var(--r-xl) var(--r-xl) 0 0!important}
+.float-box,.profile-box,.pl-box,.auth-box{border-radius:var(--r-xl)!important}
+.theme-panel,.song-ctx{border-radius:var(--r-lg)!important}
+.hero{border-radius:var(--r-xl)!important}
+.music-card .art,.big-cover,.minimal-cover{border-radius:var(--r-lg)!important}
+.mood,.genre-tile{border-radius:var(--r-lg)!important}
+.btn,.mobile-action-bar button,.view-switch{border-radius:980px!important}
+.icon-btn,.avatar,.tool-ico,.float-close,.theme-close,.lyrics-panel-close,
+.song-menu-btn,.logo,.transport .play-main,.right-controls .big,.lock-play{
+  border-radius:50%!important;
+}
+.nav button{border-radius:var(--r-md)!important}
+.side-signin{border-radius:var(--r-lg)!important}
+.search input{border-radius:var(--r-md)!important}
+.search-sugg{border-radius:var(--r-lg)!important}
+.lcd{border-radius:var(--r-lg)!important}
+.toast{border-radius:var(--r-md)!important}
+.lib-art{border-radius:var(--r-sm)!important}
+.lib-art.round,.channel-art{border-radius:50%!important}
+.eq-presets button,.sleep-opts button{border-radius:var(--r-md)!important}
+.tool-btns button{border-radius:var(--r-md)!important}
+
+/* 3D glossy glass panels */
+.sidebar{
+  position:fixed!important;
+  left:10px!important;
+  top:12px!important;
+  bottom:12px!important;
+  height:auto!important;
+  width:calc(var(--side-w) - 12px)!important;
+  margin:0!important;
+  padding-top:16px!important;
+  background:linear-gradient(165deg,rgba(255,255,255,.1),rgba(255,255,255,.02)),rgba(14,14,18,.58)!important;
+  backdrop-filter:blur(40px) saturate(1.7)!important;
+  -webkit-backdrop-filter:blur(40px) saturate(1.7)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--glass-3d-float)!important;
+  overflow:visible!important;
+}
+.layout{margin-left:calc(var(--side-w) + 8px)!important}
+.player{
+  background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.04)),rgba(12,12,16,.55)!important;
+  backdrop-filter:blur(40px) saturate(1.75)!important;
+  -webkit-backdrop-filter:blur(40px) saturate(1.75)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:var(--glass-3d-float)!important;
+}
+.rightcol{
+  background:transparent!important;
+  border:none!important;
+  box-shadow:none!important;
+}
+.rightcol .right-card,
+body.show-queue .rightcol{
+  /* outer shell stays transparent; content cards get glass */
+}
+/* Make queue content float as glass card */
+.rightcol{
+  padding:0!important;
+}
+.rightcol > *{
+  /* keep structure */
+}
+/* Force inner floating glass look on queue panel body */
+body.show-queue .rightcol{
+  background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.03)),rgba(14,14,18,.72)!important;
+  backdrop-filter:blur(40px) saturate(1.7)!important;
+  -webkit-backdrop-filter:blur(40px) saturate(1.7)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--glass-3d-float)!important;
+  border-radius:var(--r-xl)!important;
+  padding:16px!important;
+  right:16px!important;
+  top:16px!important;
+  bottom:110px!important;
+}
+.lyrics-panel-inner{
+  background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.03)),rgba(14,14,18,.72)!important;
+  backdrop-filter:blur(40px) saturate(1.7)!important;
+  -webkit-backdrop-filter:blur(40px) saturate(1.7)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--glass-3d-float)!important;
+}
+.mobile-nav{
+  background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.02)),rgba(10,10,14,.7)!important;
+  backdrop-filter:blur(36px) saturate(1.6)!important;
+  -webkit-backdrop-filter:blur(36px) saturate(1.6)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-bottom:none!important;
+  box-shadow:0 -12px 40px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.15) inset!important;
+  left:10px!important;right:10px!important;bottom:8px!important;
+  width:auto!important;
+  border-radius:var(--r-xl)!important;
+}
+.float-box,.profile-box,.pl-box,.auth-box{
+  background:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.04)),rgba(18,18,22,.82)!important;
+  backdrop-filter:blur(40px) saturate(1.7)!important;
+  -webkit-backdrop-filter:blur(40px) saturate(1.7)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:var(--glass-3d-float)!important;
+}
+.theme-panel,.song-ctx{
+  background:linear-gradient(155deg,rgba(255,255,255,.13),rgba(255,255,255,.03)),rgba(16,16,20,.85)!important;
+  backdrop-filter:blur(36px) saturate(1.6)!important;
+  -webkit-backdrop-filter:blur(36px) saturate(1.6)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--glass-3d-float)!important;
+}
+.toast{
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04)),rgba(22,22,28,.88)!important;
+  backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--glass-3d)!important;
+}
+.hero{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--a) 42%,transparent),color-mix(in srgb,var(--b) 14%,transparent) 55%,rgba(255,255,255,.05))!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  box-shadow:var(--glass-3d-float)!important;
+}
+.lcd{
+  background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.04))!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  box-shadow:var(--glass-3d-soft)!important;
+}
+.search input{
+  background:rgba(255,255,255,.08)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--glass-3d-soft)!important;
+}
+.search-sugg{
+  background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),rgba(16,16,20,.9)!important;
+  backdrop-filter:blur(32px)!important;-webkit-backdrop-filter:blur(32px)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--glass-3d-float)!important;
+}
+
+/* Cards / tiles 3D gloss */
+.music-card .art{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.2) inset,
+    0 12px 28px rgba(0,0,0,.5),
+    0 0 0 1px rgba(255,255,255,.1)!important;
+}
+.music-card:hover .art{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.28) inset,
+    0 16px 36px rgba(0,0,0,.5),
+    0 0 0 1px rgba(255,255,255,.16),
+    0 0 24px color-mix(in srgb,var(--a) 20%,transparent)!important;
+  transform:scale(1.06);
+}
+.music-card:hover b{
+  color:#fff;
+}
+.music-card:hover small{
+  color:rgba(255,255,255,.75);
+}
+/* Grid allows hover scale without clipping neighbors badly */
+.cards{
+  overflow:visible!important;
+  padding:6px 4px 10px!important;
+  margin:-6px -4px 0!important;
+  width:auto!important;
+}
+.music-card b,.music-card small{
+  transition:color .18s ease;
+}
+.mood,.genre-tile{
+  box-shadow:var(--glass-3d)!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+}
+.mood:hover,.genre-tile:hover{
+  box-shadow:var(--glass-3d-float)!important;
+  transform:translateY(-3px) scale(1.02);
+}
+
+/* Logo + icons 3D glossy */
+.logo{
+  background:linear-gradient(145deg,var(--a),var(--b))!important;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,.35) inset,
+    0 -2px 0 rgba(0,0,0,.25) inset,
+    0 8px 20px var(--glow),
+    0 2px 6px rgba(0,0,0,.4)!important;
+  transform:translateZ(0);
+}
+.icon-btn,.avatar,.tool-ico{
+  background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.05))!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:var(--icon-3d)!important;
+}
+.icon-btn:hover,.tool-ico:hover{
+  background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.08))!important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.35) inset,
+    0 6px 16px rgba(0,0,0,.4),
+    0 0 18px color-mix(in srgb,var(--a) 25%,transparent)!important;
+  transform:translateY(-1px);
+}
+.avatar{
+  box-shadow:
+    0 2px 0 rgba(255,255,255,.35) inset,
+    0 6px 16px var(--glow),
+    0 0 0 1px rgba(255,255,255,.15)!important;
+}
+.nav button{
+  box-shadow:none;
+}
+.nav button:hover{
+  background:rgba(255,255,255,.08)!important;
+  box-shadow:var(--glass-3d-soft)!important;
+}
+.nav button.active{
+  background:linear-gradient(90deg,color-mix(in srgb,var(--a) 30%,transparent),rgba(255,255,255,.08))!important;
+  box-shadow:var(--glass-3d-soft),0 0 18px color-mix(in srgb,var(--a) 20%,transparent)!important;
+  border:1px solid rgba(255,255,255,.1);
+}
+.side-signin{
+  background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.04))!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--glass-3d-soft)!important;
+}
+.side-signin:hover{
+  box-shadow:var(--glass-3d)!important;
+  transform:translateY(-1px);
+}
+.tool-btns button{
+  background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.04))!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--icon-3d)!important;
+}
+.tool-btns button:hover{
+  box-shadow:var(--glass-3d)!important;
+  transform:translateY(-1px);
+}
+.btn{
+  background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.06))!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  box-shadow:var(--icon-3d)!important;
+}
+.btn:hover{
+  transform:translateY(-1px);
+  box-shadow:var(--glass-3d)!important;
+}
+.btn.primary{
+  background:linear-gradient(145deg,#fff,#e8e8ee)!important;
+  color:#0a0a0c!important;
+  border-color:#fff!important;
+  box-shadow:0 1px 0 #fff inset,0 8px 24px rgba(255,255,255,.35),0 2px 8px rgba(0,0,0,.2)!important;
+}
+.transport .play-main,.right-controls .big{
+  background:linear-gradient(145deg,var(--a),var(--b))!important;
+  box-shadow:
+    0 2px 0 rgba(255,255,255,.4) inset,
+    0 -1px 0 rgba(0,0,0,.2) inset,
+    0 8px 22px var(--glow),
+    0 2px 6px rgba(0,0,0,.35)!important;
+}
+.transport .play-main:hover,.right-controls .big:hover{
+  transform:scale(1.06);
+  box-shadow:
+    0 2px 0 rgba(255,255,255,.45) inset,
+    0 10px 28px var(--glow)!important;
+}
+.mobile-action-bar button{
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.05))!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--icon-3d)!important;
+}
+.view-switch{
+  background:rgba(0,0,0,.35)!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:var(--icon-3d)!important;
+  backdrop-filter:blur(20px)!important;
+}
+.view-switch.active{
+  background:#fff!important;color:#000!important;
+  box-shadow:0 4px 16px rgba(255,255,255,.3)!important;
+}
+.eq-presets button,.sleep-opts button{
+  background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.04))!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--icon-3d)!important;
+}
+.eq-presets button.active,.sleep-opts button.active{
+  border-color:var(--a)!important;
+  background:rgba(250,36,60,.22)!important;
+  box-shadow:0 0 16px var(--glow),var(--icon-3d)!important;
+}
+.float-close,.theme-close,.lyrics-panel-close{
+  background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.06))!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--icon-3d)!important;
+}
+.song-menu-btn{
+  background:rgba(0,0,0,.55)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:var(--icon-3d)!important;
+  border-radius:50%!important;
+}
+
+/* Album art subtle 3D lift */
+.now-art,.current-art,.q-art,.recent-art,.mix-cover,.lib-art,.sugg-thumb{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.18) inset,
+    0 6px 16px rgba(0,0,0,.4),
+    0 0 0 1px rgba(255,255,255,.08)!important;
+  border-radius:var(--r-sm)!important;
+}
+.now-art,.current-art{border-radius:var(--r-md)!important}
+
+/* Floating desktop player already has gap — reinforce */
+@media(min-width:1001px){
+  .sidebar{
+    left:12px!important;
+    top:14px!important;bottom:14px!important;
+    width:calc(var(--side-w) - 14px)!important;
+    border-radius:var(--r-xl)!important;
+    border:1px solid rgba(255,255,255,.12)!important;
+  }
+  .layout{margin-left:calc(var(--side-w) + 10px)!important;padding-bottom:160px!important}
+  .player{
+    left:calc(var(--side-w) + 28px)!important;
+    right:24px!important;
+    bottom:18px!important;
+    height:80px!important;
+    border-radius:var(--r-2xl)!important;
+  }
+  .search{
+    left:24px!important;
+    width:calc(var(--side-w) - 36px)!important;
+  }
+  .rightcol, body.show-queue .rightcol{
+    right:20px!important;
+    top:20px!important;
+    bottom:116px!important;
+    border-radius:var(--r-xl)!important;
+  }
+  .lyrics-panel{right:16px!important}
+  .toast{bottom:118px!important}
+}
+
+/* Mobile floating gaps */
+@media(max-width:1000px){
+  .sidebar{display:none!important}
+  .layout{margin-left:0!important}
+  .player{
+    left:12px!important;right:12px!important;
+    bottom:calc(72px + env(safe-area-inset-bottom,0px))!important;
+    border-radius:var(--r-xl)!important;
+    box-shadow:var(--glass-3d-float)!important;
+  }
+  .mobile-nav{
+    left:12px!important;right:12px!important;
+    bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+    border-radius:var(--r-xl)!important;
+  }
+  .theme-panel{
+    left:12px!important;right:12px!important;
+    bottom:calc(80px + env(safe-area-inset-bottom,0px))!important;
+    border-radius:var(--r-xl)!important;
+  }
+  .hero{border-radius:var(--r-lg)!important}
+  .cards .art{border-radius:var(--r-md)!important}
+}
+
+/* Immersive covers stay rounded glossy */
+.big-cover,.minimal-cover{
+  box-shadow:
+    0 2px 0 rgba(255,255,255,.25) inset,
+    0 28px 70px rgba(0,0,0,.55),
+    0 10px 28px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.12)!important;
+}
+.big-cover::after,.minimal-cover::after{
+  border-radius:inherit!important;
+}
+
+/* Lock screen glass chip */
+.lock-now{
+  background:rgba(44,44,46,.72)!important;
+  backdrop-filter:blur(24px)!important;-webkit-backdrop-filter:blur(24px)!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  box-shadow:var(--glass-3d)!important;
+  border-radius:var(--r-lg)!important;
+}
+.lock-play{
+  background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.06))!important;
+  box-shadow:var(--icon-3d)!important;
+}
+
+/* Specular gloss sweep helper on key surfaces */
+.sidebar::before,
+.player::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background:linear-gradient(125deg,rgba(255,255,255,.12) 0%,transparent 42%,transparent 58%,rgba(255,255,255,.04) 100%);
+  z-index:0;
+}
+.sidebar > *,.player > *{position:relative;z-index:1}
+
+/* Smooth 3D press feedback */
+.icon-btn:active,.tool-ico:active,.btn:active,.nav button:active,
+.tool-btns button:active,.mobile-action-bar button:active,
+.transport button:active,.mood:active,.genre-tile:active{
+  transform:scale(.96)!important;
+}
+
+
+/* ============================================================
+   Search under brand · higher glass transparency
+   ============================================================ */
+
+/* Desktop: search lives inside sidebar, below brand, above Home */
+.sidebar .brand{
+  position:relative!important;
+  left:auto!important;right:auto!important;top:auto!important;
+  height:auto!important;
+  padding:4px 6px 12px!important;
+  margin:0 0 4px!important;
+  flex-shrink:0;
+}
+.sidebar{
+  display:flex!important;
+  flex-direction:column!important;
+  padding:18px 12px 14px!important;
+  gap:0!important;
+  padding-top:18px!important;
+}
+.sidebar .search{
+  position:relative!important;
+  left:auto!important;top:auto!important;
+  width:100%!important;
+  z-index:5;
+  display:block!important;
+  margin:0 0 12px!important;
+  flex-shrink:0;
+}
+.sidebar .search input{
+  height:36px!important;
+  font-size:13px!important;
+  border-radius:12px!important;
+  background:rgba(255,255,255,.1)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.2) inset,
+    0 4px 12px rgba(0,0,0,.25)!important;
+  backdrop-filter:blur(20px)!important;
+  -webkit-backdrop-filter:blur(20px)!important;
+}
+.sidebar .search .mag{left:12px!important}
+.sidebar .search input{padding-left:34px!important;padding-right:34px!important}
+.sidebar .nav{flex-shrink:0}
+.sidebar .playlist{flex:1;min-height:0;display:flex;flex-direction:column}
+.sidebar .search-sugg{
+  position:absolute!important;
+  left:0!important;right:0!important;
+  width:100%!important;
+  top:calc(100% + 6px)!important;
+}
+
+/* Topbar no longer holds search on desktop */
+.topbar-spacer{flex:1;min-width:0}
+.topbar .search{display:none}
+
+/* ---- Higher transparency + stronger blur/gloss on ALL panels ---- */
+.sidebar{
+  background:linear-gradient(165deg,rgba(255,255,255,.09),rgba(255,255,255,.02)),rgba(14,14,18,.38)!important;
+  backdrop-filter:blur(48px) saturate(1.8)!important;
+  -webkit-backdrop-filter:blur(48px) saturate(1.8)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.2) inset,
+    0 -1px 0 rgba(0,0,0,.2) inset,
+    0 20px 50px rgba(0,0,0,.4),
+    0 0 40px color-mix(in srgb,var(--a) 10%,transparent)!important;
+}
+.player{
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.03)),rgba(12,12,16,.4)!important;
+  backdrop-filter:blur(48px) saturate(1.85)!important;
+  -webkit-backdrop-filter:blur(48px) saturate(1.85)!important;
+  border:1px solid rgba(255,255,255,.15)!important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.22) inset,
+    0 -1px 0 rgba(0,0,0,.25) inset,
+    0 18px 48px rgba(0,0,0,.45),
+    0 0 36px color-mix(in srgb,var(--a) 12%,transparent)!important;
+}
+body.show-queue .rightcol{
+  background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.02)),rgba(14,14,18,.42)!important;
+  backdrop-filter:blur(48px) saturate(1.8)!important;
+  -webkit-backdrop-filter:blur(48px) saturate(1.8)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+.lyrics-panel-inner{
+  background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.02)),rgba(14,14,18,.42)!important;
+  backdrop-filter:blur(48px) saturate(1.8)!important;
+  -webkit-backdrop-filter:blur(48px) saturate(1.8)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+.mobile-nav{
+  background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.02)),rgba(10,10,14,.45)!important;
+  backdrop-filter:blur(44px) saturate(1.75)!important;
+  -webkit-backdrop-filter:blur(44px) saturate(1.75)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+.float-box,.profile-box,.pl-box,.auth-box{
+  background:linear-gradient(155deg,rgba(255,255,255,.12),rgba(255,255,255,.03)),rgba(18,18,22,.5)!important;
+  backdrop-filter:blur(48px) saturate(1.8)!important;
+  -webkit-backdrop-filter:blur(48px) saturate(1.8)!important;
+  border:1px solid rgba(255,255,255,.15)!important;
+}
+.theme-panel,.song-ctx{
+  background:linear-gradient(155deg,rgba(255,255,255,.11),rgba(255,255,255,.03)),rgba(16,16,20,.52)!important;
+  backdrop-filter:blur(44px) saturate(1.75)!important;
+  -webkit-backdrop-filter:blur(44px) saturate(1.75)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+.toast{
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04)),rgba(22,22,28,.55)!important;
+  backdrop-filter:blur(28px)!important;-webkit-backdrop-filter:blur(28px)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+.hero{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--a) 36%,transparent),color-mix(in srgb,var(--b) 12%,transparent) 55%,rgba(255,255,255,.04))!important;
+  backdrop-filter:blur(28px) saturate(1.5)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(1.5)!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+}
+.lcd{
+  background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.03))!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 4px 14px rgba(0,0,0,.25)!important;
+}
+.search-sugg{
+  background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),rgba(16,16,20,.55)!important;
+  backdrop-filter:blur(36px) saturate(1.7)!important;
+  -webkit-backdrop-filter:blur(36px) saturate(1.7)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+}
+.side-signin,.tool-btns button,.icon-btn,.tool-ico,.mobile-action-bar button{
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04))!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;
+}
+.nav button.active{
+  background:linear-gradient(90deg,color-mix(in srgb,var(--a) 28%,transparent),rgba(255,255,255,.08))!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 4px 16px rgba(0,0,0,.2)!important;
+}
+.lock-now{
+  background:rgba(44,44,46,.45)!important;
+  backdrop-filter:blur(28px)!important;-webkit-backdrop-filter:blur(28px)!important;
+}
+
+/* Mobile: sidebar hidden — float search into topbar area */
+@media(max-width:1000px){
+  .sidebar{
+    display:none!important;
+  }
+  /* Re-host: show search fixed under status / in top flow */
+  .sidebar .search{
+    /* won't show while sidebar display:none — so we need alternate */
+  }
+  .topbar{
+    display:flex!important;
+    align-items:center;
+    gap:10px;
+  }
+  .topbar-spacer{display:none!important}
+}
+
+
+
+/* Kill old fixed search placement — now flows in sidebar */
+.search{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  z-index:70;
+}
+@media(max-width:1000px){
+  .topbar .search,
+  label.search{
+    position:relative!important;
+    left:auto!important;
+    top:auto!important;
+    width:auto!important;
+    flex:1 1 auto!important;
+    min-width:0!important;
+    display:block!important;
+    margin:0!important;
+  }
+  .topbar .search input,
+  label.search input{
+    height:38px!important;
+    font-size:16px!important;
+    border-radius:12px!important;
+    width:100%!important;
+  }
+  .topbar{
+    gap:8px!important;
+  }
+  .page-title{display:none!important}
+}
+
+
+/* Background image must never be covered by solid theme bg */
+html.has-bg-image,body.has-bg-image{
+  background:transparent!important;
+  background-color:transparent!important;
+}
+body.has-bg-image:before{
+  z-index:-2!important;
+  pointer-events:none!important;
+}
+
+
+@media (hover:hover) and (pointer:fine){
+  .music-card:hover .art{transform:scale(1.06)}
+}
+@media (hover:none){
+  .music-card:hover .art{transform:none!important}
+  .music-card:active .art{transform:scale(0.98)}
+}
+
 </style>
 </head>
 <body>
 <div class="layout">
 <aside class="sidebar">
- <div class="brand"><div class="logo">♫</div><div><b>Aura Music</b><small>FEEL THE VIBE</small></div></div>
+ <div class="brand"><div class="logo">♫</div><div><b>Aura Music</b><small>Feel the vibe</small></div></div>
+ <label class="search" id="sideSearch"><span class="mag">⌕</span><input id="search" placeholder="Search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false"><button type="button" class="search-clear" id="searchClear" title="Clear search" aria-label="Clear search">×</button><span class="shortcut">⌘ K</span><div class="search-sugg" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div></label>
  <div class="nav" id="sideNav">
   <button class="active" data-go="home"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
   <button data-go="new"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>New</button>
@@ -2217,7 +2947,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
 <main class="center">
  <header class="topbar">
   <h1 class="page-title">Listen Now</h1>
-  <label class="search"><span class="mag">⌕</span><input id="search" placeholder="Search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false"><button type="button" class="search-clear" id="searchClear" title="Clear search" aria-label="Clear search">×</button><span class="shortcut">⌘ K</span><div class="search-sugg" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div></label>
+  <div class="topbar-spacer" aria-hidden="true"></div>
   <button class="icon-btn" id="themeToggle" title="Theme">☼</button>
   <button class="avatar" id="profile">A</button>
  </header>
@@ -2422,7 +3152,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
 <div class="profile-modal" id="profileModal" aria-hidden="true">
  <div class="profile-box glass">
   <h3>Your Profile</h3>
-  <p>Your name will appear in the hero greeting</p>
+  <p>Your name will appear in the home greeting</p>
   <label>FIRST NAME</label>
   <input id="profFirst" placeholder="e.g. Rahul" maxlength="24" autocomplete="given-name">
   <label>LAST NAME</label>
@@ -2442,12 +3172,12 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
   <!-- SIGN IN -->
   <div class="auth-view active" id="authSignInView">
    <h3>Sign In</h3>
-   <p class="auth-sub">Sign in to your account — playlists and history stay safely in the cloud.</p>
+   <p class="auth-sub">Sign in to keep your playlists and listening history safely synced to the cloud.</p>
    <ul class="auth-benefits">
-    <li>Playlists sync across every device</li>
+    <li>Playlists sync across all your devices</li>
     <li>Liked songs and listening history saved</li>
     <li>Theme and preferences remembered</li>
-    <li>Premium feel with a personal library</li>
+    <li>A personal library with a premium feel</li>
    </ul>
    <div class="auth-msg" id="authSignInMsg"></div>
    <label>USERNAME</label>
@@ -2482,7 +3212,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
   <!-- FORGOT PASSWORD -->
   <div class="auth-view" id="authForgotView">
    <h3>Forgot Password</h3>
-   <p class="auth-sub">Send your username or email for help — the request goes to <b style="color:#fff">vikram.2872006@gmail.com</b>.</p>
+   <p class="auth-sub">Send your username or email for help — your request will go to <b style="color:#fff">vikram.2872006@gmail.com</b>.</p>
    <div class="auth-msg" id="authForgotMsg"></div>
    <label>USERNAME OR EMAIL</label>
    <input id="fpUser" placeholder="Username or email" maxlength="64" autocomplete="username">
@@ -2720,7 +3450,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
       var u = ($("suUser")&&$("suUser").value||"").trim().toLowerCase();
       var p = ($("suPass")&&$("suPass").value)||"";
       var p2 = ($("suPass2")&&$("suPass2").value)||"";
-      if(!name||!u||!p){ msg("authSignUpMsg","Please enter name, username, and password"); return; }
+      if(!name||!u||!p){ msg("authSignUpMsg","Please fill in name, username, and password"); return; }
       if(u.length<3){ msg("authSignUpMsg","Username must be at least 3 characters"); return; }
       if(p.length<4){ msg("authSignUpMsg","Password must be at least 4 characters"); return; }
       if(p!==p2){ msg("authSignUpMsg","Passwords do not match"); return; }
@@ -2734,7 +3464,7 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
           try{ await pushCloud(); }catch(e){}
           await pullCloud();
         }, 300);
-        msg("authSignUpMsg","Account created!", true);
+        msg("authSignUpMsg","Account created successfully!", true);
         setTimeout(closeAuth, 500);
       }catch(e){
         msg("authSignUpMsg", e.message || "Signup failed");
@@ -2746,11 +3476,11 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
     var fpSend = $("authForgotSend");
     if(fpSend) fpSend.onclick = function(){
       var who = ($("fpUser")&&$("fpUser").value||"").trim();
-      if(!who){ msg("authForgotMsg","Username ya email likho"); return; }
+      if(!who){ msg("authForgotMsg","Please enter a username or email"); return; }
       var subject = encodeURIComponent("Aura Music — Password help");
       var body = encodeURIComponent("Password help request\n\nUsername/Email: "+who+"\n\n— Aura Music");
       window.location.href = "mailto:vikram.2872006@gmail.com?subject="+subject+"&body="+body;
-      msg("authForgotMsg","Mail app open hua", true);
+      msg("authForgotMsg","Mail app opened", true);
     };
 
     // If already logged in on page load → pull cloud library
@@ -2789,8 +3519,8 @@ body:not(.show-lyrics-panel) .lyrics-panel{pointer-events:none!important}
  <div class="theme-row"><label>Accent A</label><input type="color" id="colorA" value="#fa233b"></div>
  <div class="theme-row"><label>Accent B</label><input type="color" id="colorB" value="#fb5c74"></div>
  <div class="theme-row"><label>Background</label><input type="color" id="colorBg" value="#000000"></div>
- <div class="theme-row"><label>Text</label><input type="color" id="colorText" value="#f5f5f7"></div>
- <div class="theme-row"><label>Muted text</label><input type="color" id="colorMuted" value="#98989f"></div>
+ <div class="theme-row"><label>Primary text</label><input type="color" id="colorText" value="#f5f5f7"></div>
+ <div class="theme-row"><label>Secondary text</label><input type="color" id="colorMuted" value="#98989f"></div>
  <div class="theme-row"><label>Gloss</label><input type="range" id="glossRange" min="100" max="200" value="145"></div>
  <div class="theme-bg-row">
   <label>BACKGROUND IMAGE</label>
@@ -3390,7 +4120,7 @@ function updateNowUI(){
    void ht.offsetWidth;
    ht.classList.add("roll-in");
    clearTimeout(ht._rollT);
-   ht._rollT=setTimeout(()=>ht.classList.remove("roll-in"),1500);
+   ht._rollT=setTimeout(()=>ht.classList.remove("roll-in"),900);
   }
  }
  $("#shuffle").style.color=state.shuffle?"var(--b)":"";$("#rShuffle").style.color=state.shuffle?"var(--b)":"";
@@ -4696,6 +5426,14 @@ function bind(){
   }
  });
  $("#playHero").onclick=()=>playSong(state.currentIndex>=0?state.currentIndex:0);
+ $("#heroThumb")?.addEventListener("click",()=>{
+  try{
+   const ht=$("#heroThumb");
+   if(ht){ht.classList.remove("roll-in");void ht.offsetWidth;ht.classList.add("roll-in");setTimeout(()=>ht.classList.remove("roll-in"),900)}
+  }catch(e){}
+  if(state.playing){try{togglePlay()}catch(e){}}
+  else playSong(state.currentIndex>=0?state.currentIndex:0);
+ });
  $("#shuffleHero").onclick=()=>{state.shuffle=true;playSong(Math.floor(Math.random()*state.queue.length));toast("Surprise! ✨")};
  $$(".mood").forEach(btn=>btn.addEventListener("click",()=>{
   const m=btn.dataset.mood;
@@ -5154,42 +5892,63 @@ function bind(){
   if(dim!=null)state.bgImageDim=Math.max(20,Math.min(90,+dim||55));
   const d=state.bgImageDim;
   const preview=$("#bgImagePreview");
-  document.body.classList.remove("has-bg-image");
-  document.body.style.removeProperty("--custom-bg-image");
-  let st=$("#auraBgStyle");
-  if(!st){st=document.createElement("style");st.id="auraBgStyle";document.head.appendChild(st)}
-  st.textContent="";
   if(url){
    state.bgImage=url;
-   const cssUrl=String(url).replace(/\\/g,"\\\\").replace(/"/g,'\\"');
-   document.body.style.setProperty("--custom-bg-image",'url("'+cssUrl+'")');
-   document.body.style.background="transparent";
-   const dimA=(d/100).toFixed(2);
-   const dimB=(d/100*0.82).toFixed(2);
-   st.textContent=
-'body.has-bg-image{background:transparent!important;background-color:transparent!important}'+
-'body.has-bg-image:before{content:""!important;position:fixed!important;inset:0!important;z-index:-2!important;'+
-'background-color:transparent!important;'+
-'background-image:linear-gradient(160deg,rgba(0,0,0,'+dimA+'),rgba(0,0,0,'+dimB+')),url("'+cssUrl+'")!important;'+
-'background-size:cover!important;background-position:center center!important;'+
-'background-repeat:no-repeat!important;background-attachment:fixed!important;opacity:1!important;pointer-events:none!important;display:block!important}'+
-'body.has-bg-image:after{opacity:0!important;visibility:hidden!important}';
-   void document.body.offsetHeight;
+   document.body.style.setProperty("--custom-bg-image",`url("${url}")`);
    document.body.classList.add("has-bg-image");
-   if(preview)preview.style.backgroundImage='url("'+cssUrl+'")';
-   try{
-    if(url.length<800000) localStorage.setItem("auraBgImage",url);
-    else localStorage.removeItem("auraBgImage");
-    localStorage.setItem("auraBgDim",String(d));
-   }catch(e){try{localStorage.removeItem("auraBgImage")}catch(e2){}}
+   // Keep body/html clear so image on :before is visible (not hidden under solid bg color)
+   document.body.style.background="transparent";
+   document.documentElement.style.background="transparent";
+   let st=$("#auraBgStyle");
+   if(!st){st=document.createElement("style");st.id="auraBgStyle";document.head.appendChild(st)}
+   const dimA=(d/100).toFixed(2);
+   const dimB=(d/100*0.88).toFixed(2);
+   st.textContent=`
+html.has-bg-image,body.has-bg-image{background:transparent!important;background-image:none!important;background-color:transparent!important}
+html.has-bg-image{background:transparent!important}
+body.has-bg-image{
+  background:transparent!important;
+  background-image:none!important;
+  background-color:transparent!important;
+}
+body.has-bg-image:before{
+  content:""!important;
+  position:fixed!important;
+  inset:0!important;
+  z-index:-2!important;
+  pointer-events:none!important;
+  opacity:1!important;
+  background-color:transparent!important;
+  background-image:
+    linear-gradient(120deg,rgba(8,8,10,${dimA}),rgba(8,8,10,${dimB})),
+    var(--custom-bg-image)!important;
+  background-size:cover!important;
+  background-position:center center!important;
+  background-repeat:no-repeat!important;
+  background-attachment:fixed!important;
+  filter:none!important;
+  transform:none!important;
+}
+body.has-bg-image:after{
+  opacity:.35!important;
+}
+`;
+   document.documentElement.classList.add("has-bg-image");
+   if(preview)preview.style.backgroundImage=`url("${url}")`;
+   try{localStorage.setItem("auraBgImage",url);localStorage.setItem("auraBgDim",String(d))}catch(e){}
   }else{
    state.bgImage="";
+   document.body.classList.remove("has-bg-image");
+   document.documentElement.classList.remove("has-bg-image");
+   document.body.style.removeProperty("--custom-bg-image");
+   // restore solid bg from theme
    try{
-    const cs=getComputedStyle(document.documentElement);
-    let bg=(cs.getPropertyValue("--bg")||"#000000").trim();
-    if(!bg||bg==="transparent") bg="#000000";
-    document.body.style.background=bg;
-   }catch(e){document.body.style.background="#000000"}
+     const cs=getComputedStyle(document.documentElement);
+     const bg=(cs.getPropertyValue("--bg")||"#000").trim();
+     document.body.style.background=bg;
+     document.documentElement.style.background=bg;
+   }catch(e){}
+   const st=$("#auraBgStyle");if(st)st.textContent="";
    if(preview)preview.style.backgroundImage="";
    try{localStorage.removeItem("auraBgImage");localStorage.setItem("auraBgDim",String(d))}catch(e){}
   }
@@ -5197,21 +5956,27 @@ function bind(){
   if($("#bgImageUrl")&&url&&!String(url).startsWith("data:"))$("#bgImageUrl").value=url;
   if($("#bgImageUrl")&&!url)$("#bgImageUrl").value="";
  }
- function applyThemeColors(a,b,bg,gloss,text,muted){
+ function applyThemeColors(a,b,bg,gloss,textCol,mutedCol){
   const root=document.documentElement;
   if(a){root.style.setProperty("--a",a);root.style.setProperty("--glow",a+"55")}
   if(b)root.style.setProperty("--b",b);
   if(bg){
    root.style.setProperty("--bg",bg);
-   if(!document.body.classList.contains("has-bg-image") && !(typeof state!=="undefined" && state.bgImage)){
+   if(!document.body.classList.contains("has-bg-image") && !state.bgImage){
     document.body.style.background=bg;
+    document.documentElement.style.background=bg;
+   }else{
+    document.body.style.background="transparent";
+    document.documentElement.style.background="transparent";
    }
   }
-  if(text){
-   root.style.setProperty("--text",text);
-   document.body.style.color=text;
+  if(textCol){
+   root.style.setProperty("--text",textCol);
+   document.body.style.color=textCol;
   }
-  if(muted) root.style.setProperty("--muted",muted);
+  if(mutedCol){
+   root.style.setProperty("--muted",mutedCol);
+  }
   if(gloss!=null){
    const g=(+gloss/100).toFixed(2);
    root.style.setProperty("--gloss",g);
@@ -5223,8 +5988,8 @@ function bind(){
     a:a||cs.getPropertyValue("--a").trim(),
     b:b||cs.getPropertyValue("--b").trim(),
     bg:bg||cs.getPropertyValue("--bg").trim(),
-    text:text||cs.getPropertyValue("--text").trim(),
-    muted:muted||cs.getPropertyValue("--muted").trim(),
+    text:textCol||cs.getPropertyValue("--text").trim(),
+    muted:mutedCol||cs.getPropertyValue("--muted").trim(),
     gloss:gloss!=null?+gloss:Math.round((parseFloat(cs.getPropertyValue("--gloss"))||1.45)*100)
    }))
   }catch(e){}
@@ -5245,10 +6010,12 @@ function bind(){
   if($("#colorA"))$("#colorA").value=toHex(a);
   if($("#colorB"))$("#colorB").value=toHex(b);
   if($("#colorBg"))$("#colorBg").value=toHex(bg);
-  const tx=(cs.getPropertyValue("--text")||"#f5f5f7").trim();
-  const mu=(cs.getPropertyValue("--muted")||"#98989f").trim();
-  if($("#colorText"))$("#colorText").value=toHex(tx);
-  if($("#colorMuted"))$("#colorMuted").value=toHex(mu);
+  try{
+    const t=(cs.getPropertyValue("--text")||"#f5f5f7").trim();
+    const mu=(cs.getPropertyValue("--muted")||"#98989f").trim();
+    if($("#colorText"))$("#colorText").value=toHex(t);
+    if($("#colorMuted"))$("#colorMuted").value=toHex(mu);
+  }catch(e){}
   if($("#glossRange")) $("#glossRange").value=Math.round((parseFloat(cs.getPropertyValue("--gloss"))||1.45)*100);
   if($("#bgImageDim"))$("#bgImageDim").value=state.bgImageDim||55;
   if($("#bgImageUrl"))$("#bgImageUrl").value=(state.bgImage&&!String(state.bgImage).startsWith("data:"))?state.bgImage:"";
@@ -5519,12 +6286,12 @@ function bind(){
   }
  });
  $("#themeClose")?.addEventListener("click",closeThemePanel);
- $("#colorA")?.addEventListener("input",e=>applyThemeColors(e.target.value,null,null));
- $("#colorB")?.addEventListener("input",e=>applyThemeColors(null,e.target.value,null));
- $("#colorBg")?.addEventListener("input",e=>applyThemeColors(null,null,e.target.value));
+ $("#colorA")?.addEventListener("input",e=>applyThemeColors(e.target.value,null,null,null,null,null));
+ $("#colorB")?.addEventListener("input",e=>applyThemeColors(null,e.target.value,null,null,null,null));
+ $("#colorBg")?.addEventListener("input",e=>applyThemeColors(null,null,e.target.value,null,null,null));
  $("#colorText")?.addEventListener("input",e=>applyThemeColors(null,null,null,null,e.target.value,null));
  $("#colorMuted")?.addEventListener("input",e=>applyThemeColors(null,null,null,null,null,e.target.value));
- $("#glossRange")?.addEventListener("input",e=>applyThemeColors(null,null,null,+e.target.value));
+ $("#glossRange")?.addEventListener("input",e=>applyThemeColors(null,null,null,+e.target.value,null,null));
  $("#bgImageApply")?.addEventListener("click",()=>{
   const url=($("#bgImageUrl")?.value||"").trim();
   if(!url){toast("Enter a URL or upload an image");return}
@@ -5540,25 +6307,18 @@ function bind(){
   applyBgImage(state.bgImage||"",+e.target.value);
  });
  $("#bgImageFile")?.addEventListener("change",e=>{
-  const input=e.target;
-  const file=input.files&&input.files[0];
+  const file=e.target.files&&e.target.files[0];
   if(!file)return;
-  if(!file.type.startsWith("image/")){toast("Image file only");input.value="";return}
-  if(file.size>6*1024*1024){toast("Image max 6 MB");input.value="";return}
-  toast("Uploading…");
+  if(!file.type.startsWith("image/")){toast("Image file only");return}
+  if(file.size>4.5*1024*1024){toast("Image max 4.5 MB");return}
   const reader=new FileReader();
   reader.onload=()=>{
-   const data=String(reader.result||"");
-   if(!data||data.length<32){toast("Upload failed");input.value="";return}
-   applyBgImage("",state.bgImageDim);
-   requestAnimationFrame(()=>{
-    applyBgImage(data,state.bgImageDim);
-    toast("Background uploaded ✦");
-    input.value="";
-   });
+   applyBgImage(String(reader.result||""),state.bgImageDim);
+   toast("Background uploaded ✦");
   };
-  reader.onerror=()=>{toast("Upload failed");input.value=""};
+  reader.onerror=()=>toast("Upload failed");
   reader.readAsDataURL(file);
+  e.target.value="";
  });
  $$(".theme-presets button").forEach(btn=>btn.addEventListener("click",()=>{
   applyThemeColors(btn.dataset.pa,btn.dataset.pb,btn.dataset.bg);
@@ -5573,7 +6333,7 @@ function bind(){
  // restore saved theme + bg image
  try{
   const saved=JSON.parse(localStorage.getItem("auraThemeAM")||"null");
-  if(saved)applyThemeColors(saved.a,saved.b,saved.bg,saved.gloss,saved.text,saved.muted);
+  if(saved)applyThemeColors(saved.a,saved.b,saved.bg,saved.gloss,saved.text||null,saved.muted||null);
  }catch(e){}
  if(state.bgImage)applyBgImage(state.bgImage,state.bgImageDim);
  // Sleep timer + EQ modals
@@ -5986,7 +6746,7 @@ window.__aura={state,renderCards,mapSearchItem,toast,searchLocal,playSong,loadCh
   setTitle("New");
   const h=$("#trackHeading");if(h)h.textContent="✨ New · Pick a style";
   const b=$("#genreBack");if(b)b.style.display="none";
-  box.innerHTML='<div class="new-view"><p class="nv-sub">Pick any style — we will build a list of newly uploaded and trending songs for that vibe.</p><div class="genre-grid">'+
+  box.innerHTML='<div class="new-view"><p class="nv-sub">Pick a style — we’ll build a list of new uploads and trending songs for that vibe.</p><div class="genre-grid">'+
    GENRES.map((g,i)=>'<button type="button" class="genre-tile" data-gi="'+i+'" style="--g:linear-gradient(145deg,'+g.c[0]+','+g.c[1]+');--gc:'+g.c[0]+'"><span class="gt-ico">'+g.i+'</span><b>'+esc(g.n)+'</b><small>New · Trending</small></button>').join("")+
    '</div></div>';
   window.scrollTo({top:0,behavior:"smooth"});
@@ -6117,5 +6877,53 @@ window.addEventListener("appinstalled",()=>{
   console.log("PWA installed");
 });
 </script>
+
+<script>
+/* Keep single #search: place in sidebar on desktop, topbar on mobile */
+(function(){
+  function placeSearch(){
+    var search = document.getElementById("sideSearch") || document.querySelector("label.search");
+    var sidebar = document.querySelector(".sidebar");
+    var topbar = document.querySelector(".topbar");
+    if(!search || !sidebar || !topbar) return;
+    var mobile = window.innerWidth <= 1000;
+    if(mobile){
+      if(search.parentElement !== topbar){
+        var spacer = topbar.querySelector(".topbar-spacer");
+        if(spacer) topbar.insertBefore(search, spacer);
+        else topbar.insertBefore(search, topbar.firstChild?.nextSibling || topbar.firstChild);
+      }
+      search.style.position = "relative";
+      search.style.left = "auto";
+      search.style.top = "auto";
+      search.style.width = "auto";
+      search.style.flex = "1";
+      search.style.minWidth = "0";
+      search.style.margin = "0";
+      search.style.display = "block";
+    }else{
+      var brand = sidebar.querySelector(".brand");
+      var nav = document.getElementById("sideNav");
+      if(brand && nav && search.parentElement !== sidebar){
+        sidebar.insertBefore(search, nav);
+      }else if(brand && search.parentElement === sidebar && search.previousElementSibling !== brand){
+        sidebar.insertBefore(search, nav);
+      }
+      search.style.position = "";
+      search.style.left = "";
+      search.style.top = "";
+      search.style.width = "";
+      search.style.flex = "";
+      search.style.minWidth = "";
+      search.style.margin = "";
+      search.style.display = "";
+    }
+  }
+  placeSearch();
+  window.addEventListener("resize", placeSearch);
+  document.addEventListener("DOMContentLoaded", placeSearch);
+})();
+</script>
+
 </body>
 </html>
