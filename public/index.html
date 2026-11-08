@@ -743,6 +743,53 @@ body:has(.immersive-player.open) .rightcol{
 .hero.playing .hero-thumb .beat-ring{opacity:.7;animation:thumbBeat 1.2s ease-out infinite}
 .hero.playing .hero-thumb .beat-ring.r2{animation-delay:.2s;opacity:.45}
 .hero.playing .hero-thumb .beat-ring.r3{animation-delay:.4s;opacity:.28}
+/* Hero panel wavy color pulse — only while song is playing */
+.hero::after{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;
+  opacity:0;transition:opacity .45s ease;
+  background:
+    radial-gradient(ellipse 90% 70% at 15% 40%, color-mix(in srgb,var(--a) 55%, transparent), transparent 55%),
+    radial-gradient(ellipse 80% 60% at 85% 25%, color-mix(in srgb,var(--b) 45%, transparent), transparent 50%),
+    radial-gradient(ellipse 70% 80% at 50% 90%, color-mix(in srgb,#7d2cff 35%, transparent), transparent 55%),
+    linear-gradient(125deg,
+      color-mix(in srgb,var(--a) 40%, transparent),
+      color-mix(in srgb,var(--b) 28%, transparent) 45%,
+      color-mix(in srgb,#30d158 18%, transparent) 70%,
+      color-mix(in srgb,var(--a) 22%, transparent));
+  background-size:180% 180%, 160% 160%, 200% 200%, 220% 220%;
+  background-position:0% 40%, 100% 20%, 50% 100%, 0% 50%;
+  mix-blend-mode:soft-light;
+}
+.hero.playing::after{
+  opacity:.95;
+  animation:heroWaveShift 4.2s ease-in-out infinite;
+}
+@keyframes heroWaveShift{
+  0%{
+    background-position:0% 40%, 100% 20%, 50% 100%, 0% 50%;
+    filter:hue-rotate(0deg) saturate(1);
+  }
+  20%{
+    background-position:30% 55%, 70% 35%, 60% 70%, 25% 40%;
+    filter:hue-rotate(18deg) saturate(1.2);
+  }
+  40%{
+    background-position:60% 30%, 40% 60%, 30% 40%, 55% 70%;
+    filter:hue-rotate(-12deg) saturate(1.35);
+  }
+  60%{
+    background-position:85% 65%, 20% 45%, 75% 55%, 80% 25%;
+    filter:hue-rotate(32deg) saturate(1.15);
+  }
+  80%{
+    background-position:45% 25%, 55% 75%, 40% 85%, 35% 55%;
+    filter:hue-rotate(-8deg) saturate(1.25);
+  }
+  100%{
+    background-position:0% 40%, 100% 20%, 50% 100%, 0% 50%;
+    filter:hue-rotate(0deg) saturate(1);
+  }
+}
 /* Entry / track change animation */
 .hero-thumb.roll-in{animation:thumbPopIn .85s cubic-bezier(.22,1.15,.36,1) both}
 @keyframes thumbPopIn{
