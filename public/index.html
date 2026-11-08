@@ -1151,28 +1151,67 @@ body.app-fs .immersive-player{padding:0!important}
 }
 .search-clear.show{display:grid}
 .search-mic{
-  position:absolute;right:32px;top:50%;transform:translateY(-50%);
-  width:28px;height:28px;border-radius:50%;border:0;
-  background:transparent;color:var(--muted);font-size:14px;line-height:1;
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  width:30px;height:30px;border-radius:50%;border:0;
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));
+  color:rgba(255,255,255,.72);
   display:grid;place-items:center;cursor:pointer;z-index:3;
-  transition:color .15s,background .15s,box-shadow .15s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 8px rgba(0,0,0,.25);
+  transition:color .18s,background .18s,box-shadow .18s,opacity .18s,transform .15s;
 }
-.search-mic:hover{color:#fff;background:rgba(255,255,255,.1)}
+.search-mic .mic-ico{display:block;position:relative;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.search-mic .mic-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid color-mix(in srgb,var(--a) 70%,#fff);
+  opacity:0;pointer-events:none;z-index:1;
+}
+.search-mic .mic-ring.r2{inset:-5px;border-width:1px}
+.search-mic:hover{
+  color:#fff;
+  background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.08));
+  transform:translateY(-50%) scale(1.06);
+}
+.search-mic:active{transform:translateY(-50%) scale(.96)}
+/* Active / listening — premium glow + rings */
 .search-mic.listening{
-  color:#fff;background:var(--a);
-  box-shadow:0 0 0 0 rgba(250,35,59,.45);
-  animation:micPulse 1.2s ease-out infinite;
+  color:#fff;
+  background:linear-gradient(145deg,var(--a),var(--b));
+  box-shadow:0 0 0 1px rgba(255,255,255,.2),0 0 18px var(--glow),inset 0 1px 0 rgba(255,255,255,.35);
+  animation:micGlow 1.6s ease-in-out infinite;
 }
-.search.has-text .search-mic{right:32px}
-.search input{padding-right:60px!important}
-@keyframes micPulse{
-  0%{box-shadow:0 0 0 0 rgba(250,35,59,.5)}
-  70%{box-shadow:0 0 0 12px rgba(250,35,59,0)}
-  100%{box-shadow:0 0 0 0 rgba(250,35,59,0)}
+.search-mic.listening .mic-ico{animation:micBob .9s ease-in-out infinite}
+.search-mic.listening .mic-ring{
+  opacity:.85;
+  animation:micRing 1.3s ease-out infinite;
+}
+.search-mic.listening .mic-ring.r2{animation-delay:.22s;opacity:.5}
+/* Hide mic when search has text — clear button remains */
+.search.has-text .search-mic,
+.search-mic.hide-for-text{
+  opacity:0!important;
+  pointer-events:none!important;
+  transform:translateY(-50%) scale(.7)!important;
+}
+.search.has-text .search-clear.show{right:7px}
+.search input{padding-right:44px!important}
+.search.has-text input{padding-right:36px!important}
+@keyframes micGlow{
+  0%,100%{box-shadow:0 0 0 1px rgba(255,255,255,.18),0 0 14px var(--glow),inset 0 1px 0 rgba(255,255,255,.3)}
+  50%{box-shadow:0 0 0 1px rgba(255,255,255,.28),0 0 26px var(--glow),0 0 40px color-mix(in srgb,var(--a) 35%,transparent),inset 0 1px 0 rgba(255,255,255,.4)}
+}
+@keyframes micRing{
+  0%{transform:scale(.85);opacity:.75}
+  100%{transform:scale(1.55);opacity:0}
+}
+@keyframes micBob{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.08)}
 }
 @media(max-width:1000px){
-  .search-mic{right:36px;width:32px;height:32px;font-size:15px}
-  .search input{padding-right:68px!important}
+  .search-mic{right:10px;width:32px;height:32px}
+  .search-mic .mic-ico{width:19px;height:19px}
+  .search input{padding-right:48px!important}
+  .search.has-text input{padding-right:40px!important}
 }
 .search-sugg{
   position:absolute;left:0;top:calc(100% + 6px);width:380px;max-width:92vw;z-index:120;
@@ -3070,7 +3109,7 @@ body.has-bg-image:before{
 <div class="layout">
 <aside class="sidebar">
  <div class="brand"><div class="logo">♫</div><div><b>Aura Music</b><small>Feel the vibe</small></div></div>
- <label class="search" id="sideSearch"><span class="mag">⌕</span><input id="search" placeholder="Search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false"><button type="button" class="search-mic" id="searchMic" title="Search with your voice" aria-label="Voice search">🎤</button><button type="button" class="search-clear" id="searchClear" title="Clear search" aria-label="Clear search">×</button><span class="shortcut">⌘ K</span><div class="search-sugg" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div></label>
+ <label class="search" id="sideSearch"><span class="mag">⌕</span><input id="search" placeholder="Search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false"><button type="button" class="search-mic" id="searchMic" title="Search with your voice" aria-label="Voice search"><span class="mic-ring" aria-hidden="true"></span><span class="mic-ring r2" aria-hidden="true"></span><svg class="mic-ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/><path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.93V21H9a1 1 0 0 0 0 2h6a1 1 0 0 0 0-2h-2v-3.07A7 7 0 0 0 19 11z" fill="currentColor"/></svg></button><button type="button" class="search-clear" id="searchClear" title="Clear search" aria-label="Clear search">×</button><span class="shortcut">⌘ K</span><div class="search-sugg" id="searchSuggestions" role="listbox" aria-label="Search suggestions"></div></label>
  <div class="nav" id="sideNav">
   <button class="active" data-go="home"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
   <button data-go="new"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>New</button>
@@ -6249,6 +6288,12 @@ function bind(){
   const has=!!($("#search")?.value||"").trim();
   if(searchClearBtn) searchClearBtn.classList.toggle("show",has);
   if(searchLabel) searchLabel.classList.toggle("has-text",has);
+  const micBtn=$("#searchMic");
+  if(micBtn){
+   // Hide mic while typing / text present (unless actively listening)
+   if(has && !micBtn.classList.contains("listening")) micBtn.classList.add("hide-for-text");
+   else if(!has) micBtn.classList.remove("hide-for-text");
+  }
  }
  function hideSuggestions(){
   if(suggBox){suggBox.classList.remove("open");suggBox.innerHTML=""}
@@ -6488,6 +6533,8 @@ function bind(){
    mic.classList.toggle("listening", listening);
    mic.setAttribute("aria-pressed", listening?"true":"false");
    mic.title=listening?"Listening… tap to stop":"Search with your voice";
+   if(listening) mic.classList.remove("hide-for-text");
+   else { try{ updateClearBtn(); }catch(e){} }
   }
   function stopRec(){
    try{if(rec) rec.stop()}catch(e){}
